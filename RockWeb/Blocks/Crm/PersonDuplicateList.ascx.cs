@@ -15,6 +15,7 @@
 // </copyright>
 //
 using System;
+using System.Collections.Generic;
 using System.ComponentModel;
 using System.Linq;
 using System.Web.UI;
@@ -23,6 +24,7 @@ using Rock;
 using Rock.Attribute;
 using Rock.Data;
 using Rock.Model;
+using Rock.Utility.Enums;
 using Rock.Web.Cache;
 using Rock.Web.UI;
 using Rock.Web.UI.Controls;
@@ -118,6 +120,27 @@ namespace RockWeb.Blocks.Crm
             {
                 return string.Empty;
             }
+        }
+
+        /// <summary>
+        /// Gets the account protection profile column HTML.
+        /// </summary>
+        /// <param name="confidenceScore">The confidence score.</param>
+        /// <returns></returns>
+        public string GetAccountProtectionProfileColumnHtml( AccountProtectionProfile accountProtectionProfile )
+        {
+            var cssMap = new Dictionary<AccountProtectionProfile, string>
+            {
+                { AccountProtectionProfile.Extreme, "danger" },
+                { AccountProtectionProfile.High, "warning" },
+                { AccountProtectionProfile.Medium, "default" },
+                { AccountProtectionProfile.Low, "success" }
+            };
+
+            var css = $"label label-{cssMap[accountProtectionProfile]}";
+
+
+            return $"<span class='{css}'>{accountProtectionProfile.ConvertToString()}</span>";
         }
 
         #region Base Control Methods
@@ -236,7 +259,9 @@ namespace RockWeb.Blocks.Crm
                     PersonModifiedDateTime = person.ModifiedDateTime,
                     CreatedByPerson = person.CreatedByPersonAlias.Person.FirstName + " " + person.CreatedByPersonAlias.Person.LastName,
                     personDuplicate.MatchCount,
-                    personDuplicate.MaxConfidenceScore
+                    personDuplicate.MaxConfidenceScore,
+                    person.AccountProtectionProfile,
+                    Campus = person.PrimaryCampus.Name
                 } );
 
             SortProperty sortProperty = gList.SortProperty;
