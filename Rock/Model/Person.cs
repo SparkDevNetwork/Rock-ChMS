@@ -35,6 +35,7 @@ using Rock.Data;
 using Rock.Tasks;
 using Rock.UniversalSearch;
 using Rock.UniversalSearch.IndexModels;
+using Rock.Utility.Enums;
 using Rock.Web.Cache;
 using Rock.Lava;
 
@@ -549,6 +550,14 @@ namespace Rock.Model
         [DataMember]
         public int? ContributionFinancialAccountId { get; set; }
 
+        /// <summary>
+        /// Gets or sets the person's account protection profile, which is used by the duplication detection and merge processes.
+        /// </summary>
+        /// <value>
+        /// The account protection profile.
+        /// </value>
+        [DataMember]
+        public AccountProtectionProfile AccountProtectionProfile { get; set; }
         /// <summary>
         /// Gets or sets the DefinedValueId of the <see cref="Rock.Model.DefinedValue"/> that represents the Preferred Language for this person.
         /// </summary>

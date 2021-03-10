@@ -32,6 +32,7 @@ using Rock.Data;
 using Rock.Security;
 using Rock.UniversalSearch;
 using Rock.UniversalSearch.IndexModels;
+using Rock.Utility.Enums;
 using Rock.Web.Cache;
 using Rock.Lava;
 
@@ -137,6 +138,15 @@ namespace Rock.Model
         [DataMember( IsRequired = true )]
         [Previewable]
         public bool IsSecurityRole { get; set; }
+
+        /// <summary>
+        /// Gets or sets the elevated security level. This setting is used to determine the group member's Account Protection Profile.
+        /// </summary>
+        /// <value>
+        /// The elevated security level.
+        /// </value>
+        [DataMember()]
+        public ElevatedSecurityLevel ElevatedSecurityLevel { get; set; }
 
         /// <summary>
         /// Gets or sets a flag indicating if this is an active group. This value is required.
