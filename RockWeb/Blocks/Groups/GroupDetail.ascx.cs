@@ -31,6 +31,7 @@ using Rock.Data;
 using Rock.Model;
 using Rock.Security;
 using Rock.Utility;
+using Rock.Utility.Enums;
 using Rock.Web;
 using Rock.Web.Cache;
 using Rock.Web.UI;
@@ -945,7 +946,21 @@ namespace RockWeb.Blocks.Groups
             group.StatusValueId = dvpGroupStatus.SelectedValueAsId();
             group.GroupCapacity = nbGroupCapacity.Text.AsIntegerOrNull();
             group.RequiredSignatureDocumentTemplateId = ddlSignatureDocumentTemplate.SelectedValueAsInt();
+
             group.IsSecurityRole = cbIsSecurityRole.Checked;
+
+            // If this block's attribute limit group to SecurityRoleGroups, don't let them edit the SecurityRole checkbox value
+            if ( GetAttributeValue( AttributeKey.LimittoSecurityRoleGroups ).AsBoolean() )
+            {
+                group.IsSecurityRole = true;
+            }
+
+            group.ElevatedSecurityLevel = rblElevatedSecurityLevel.SelectedValue.ConvertToEnum<ElevatedSecurityLevel>();
+            if ( !group.IsSecurityRole )
+            {
+                group.ElevatedSecurityLevel = ElevatedSecurityLevel.None;
+            }
+
             group.IsActive = cbIsActive.Checked;
             group.IsPublic = cbIsPublic.Checked;
 
@@ -1700,6 +1715,19 @@ namespace RockWeb.Blocks.Groups
             tbDescription.Text = group.Description;
             nbGroupCapacity.Text = group.GroupCapacity.ToString();
             cbIsSecurityRole.Checked = group.IsSecurityRole;
+
+            LoadElevatedSecurityRadioList();
+
+            rblElevatedSecurityLevel.SelectedValue = group.ElevatedSecurityLevel.ConvertToInt().ToString();
+
+            if ( !group.IsSecurityRole )
+            {
+                divElevatedSecurity.Attributes.Add( "style", "display:none" );
+                rblElevatedSecurityLevel.SelectedValue = ElevatedSecurityLevel.None.ConvertToInt().ToString();
+            }
+
+            
+
             cbIsActive.Checked = group.IsActive;
             cbIsPublic.Checked = group.IsPublic;
 
@@ -1854,6 +1882,15 @@ namespace RockWeb.Blocks.Groups
             }
 
             BindMemberWorkflowTriggersGrid();
+        }
+
+        private void LoadElevatedSecurityRadioList()
+        {
+            rblElevatedSecurityLevel.Items.Clear();
+            foreach ( ElevatedSecurityLevel value in Enum.GetValues( typeof(ElevatedSecurityLevel) ) )
+            {
+                rblElevatedSecurityLevel.Items.Add( new ListItem( value.ToString(), value.ConvertToInt().ToString() ) );
+            }
         }
 
         /// <summary>
