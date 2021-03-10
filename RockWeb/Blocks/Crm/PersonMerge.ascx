@@ -32,7 +32,7 @@
                     <asp:HiddenField ID="hfSelectedColumnPersonId" runat="server" />
 
                     <div class="grid">
-                        <Rock:Grid ID="gValues" CssClass="sticky-headers js-sticky-headers js-person-merge-table" RowStyle-CssClass="js-merge-field-row" runat="server" EnableResponsiveTable="false" AllowSorting="false" EmptyDataText="No Results" />
+                        <Rock:Grid ID="gValues" TableStripped="false" CssClass="sticky-headers js-sticky-headers js-person-merge-table" RowStyle-CssClass="js-merge-field-row" runat="server" EnableResponsiveTable="false" AllowSorting="false" EmptyDataText="No Results" />
                     </div>
 
                     <Rock:NotificationBox ID="nmMultipleFamilies" runat="server" NotificationBoxType="Warning" Visible="true" Heading="Merge Target Has Multiple Families:"
@@ -109,3 +109,16 @@
 
     </ContentTemplate>
 </asp:UpdatePanel>
+<style>
+    .table>tbody>tr.merge-grid-section-header>td
+    {
+        color: #484848;
+        background-color: #f6f6f6;
+    }
+
+    .table>tbody>tr.merge-grid-section-header:hover>td
+    {
+        color: #484848;
+        background-color: #f6f6f6;
+    }
+</style>

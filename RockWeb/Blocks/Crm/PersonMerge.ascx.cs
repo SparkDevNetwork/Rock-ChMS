@@ -430,16 +430,12 @@ namespace RockWeb.Blocks.Crm
             {
                 if ( headingKeys.Contains( gValues.DataKeys[e.Row.RowIndex].Value.ToString() ) )
                 {
-                    e.Row.AddCssClass( "grid-section-header" );
+                    e.Row.AddCssClass( "merge-grid-section-header" );
                 }
                 else
                 {
                     e.Row.Cells[1].AddCssClass( "grid-row-header" );
                 }
-            }
-            else if ( e.Row.RowType == DataControlRowType.Header )
-            {
-                e.Row.AddCssClass( "grid-header-bold" );
             }
         }
 

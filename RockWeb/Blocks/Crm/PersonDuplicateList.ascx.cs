@@ -18,6 +18,7 @@ using System;
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.Linq;
+using System.Linq.Dynamic;
 using System.Web.UI;
 
 using Rock;
@@ -125,15 +126,15 @@ namespace RockWeb.Blocks.Crm
         /// <summary>
         /// Gets the account protection profile column HTML.
         /// </summary>
-        /// <param name="confidenceScore">The confidence score.</param>
+        /// <param name="accountProtectionProfile">The account protection profile.</param>
         /// <returns></returns>
         public string GetAccountProtectionProfileColumnHtml( AccountProtectionProfile accountProtectionProfile )
         {
             var cssMap = new Dictionary<AccountProtectionProfile, string>
             {
                 { AccountProtectionProfile.Extreme, "danger" },
-                { AccountProtectionProfile.High, "warning" },
-                { AccountProtectionProfile.Medium, "default" },
+                { AccountProtectionProfile.High, "primary" },
+                { AccountProtectionProfile.Medium, "warning" },
                 { AccountProtectionProfile.Low, "success" }
             };
 
@@ -274,6 +275,13 @@ namespace RockWeb.Blocks.Crm
                 qry = qry.OrderByDescending( a => a.MaxConfidenceScore ).ThenBy( a => a.LastName ).ThenBy( a => a.FirstName );
             }
 
+            var hasMultipleCampuses = CampusCache.All().Count( c => c.IsActive ?? true ) > 1;
+            if ( !hasMultipleCampuses )
+            {
+                var campustColumn = gList.Columns.OfType<RockBoundField>().First( a => a.DataField == "Campus" );
+                campustColumn.Visible = false;
+            }
+           
             // NOTE: Because the .Count() in the SetLinqDataSource() sometimes creates SQL that takes *significantly* 
             // longer (> 26 minutes) to execute than the actual query (< 1s), we're changing this to a 
             // simple .DataSource = ToList() for now until we have more time to consider an alternative solution.  
