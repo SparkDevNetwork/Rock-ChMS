@@ -31,6 +31,12 @@
 
                     <asp:HiddenField ID="hfSelectedColumnPersonId" runat="server" />
 
+                    <Rock:NotificationBox runat="server"
+                        ID="nbSecurityAlert"
+                        NotificationBoxType="danger"
+                        Visible="false"
+                    />
+
                     <div class="grid">
                         <Rock:Grid ID="gValues" TableStripped="false" CssClass="sticky-headers js-sticky-headers js-person-merge-table" RowStyle-CssClass="js-merge-field-row" runat="server" EnableResponsiveTable="false" AllowSorting="false" EmptyDataText="No Results" />
                     </div>

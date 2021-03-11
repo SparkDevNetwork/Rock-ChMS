@@ -29,6 +29,7 @@ using Rock.Attribute;
 using Rock.Data;
 using Rock.Model;
 using Rock.Security;
+using Rock.Utility.Enums;
 using Rock.Web.Cache;
 using Rock.Web.UI.Controls;
 
@@ -1198,6 +1199,8 @@ namespace RockWeb.Blocks.Crm
         {
             if ( MergeData != null && MergeData.People != null && MergeData.People.Any() )
             {
+                var maxAccountProtectionProfile = MergeData.People.Max( p => p.AccountProtectionProfile );
+                var hasRequiredPermission = 
                 // If the people have different email addresses and any logins, display security alert box
                 bool showAlert =
                     MergeData.People.Select( p => p.Email ).Where( e => e != null && e != string.Empty ).Distinct( StringComparer.CurrentCultureIgnoreCase ).Count() > 1 &&
@@ -1965,6 +1968,8 @@ namespace RockWeb.Blocks.Crm
 
         public Guid Guid { get; set; }
 
+        public AccountProtectionProfile AccountProtectionProfile { get; set; }
+
         public MergePerson( Person person )
         {
             Id = person.Id;
@@ -1981,6 +1986,7 @@ namespace RockWeb.Blocks.Crm
             {
                 ModifiedBy = person.ModifiedByPersonAlias.Person.FullName;
             }
+            AccountProtectionProfile = person.AccountProtectionProfile;
         }
     }
 
