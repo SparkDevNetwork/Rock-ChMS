@@ -1200,9 +1200,9 @@ namespace RockWeb.Blocks.Crm
             if ( MergeData != null && MergeData.People != null && MergeData.People.Any() )
             {
                 var maxAccountProtectionProfile = MergeData.People.Max( p => p.AccountProtectionProfile );
-                var hasRequiredPermission = 
+                //var hasRequiredPermission = 
                 // If the people have different email addresses and any logins, display security alert box
-                bool showAlert =
+                var showAlert =
                     MergeData.People.Select( p => p.Email ).Where( e => e != null && e != string.Empty ).Distinct( StringComparer.CurrentCultureIgnoreCase ).Count() > 1 &&
                     MergeData.People.Where( p => p.HasLogins ).Any();
 
