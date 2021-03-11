@@ -109,16 +109,3 @@
 
     </ContentTemplate>
 </asp:UpdatePanel>
-<style>
-    .table>tbody>tr.merge-grid-section-header>td
-    {
-        color: #484848;
-        background-color: #f6f6f6;
-    }
-
-    .table>tbody>tr.merge-grid-section-header:hover>td
-    {
-        color: #484848;
-        background-color: #f6f6f6;
-    }
-</style>
