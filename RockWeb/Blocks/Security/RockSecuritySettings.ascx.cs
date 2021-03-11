@@ -112,7 +112,10 @@ namespace RockWeb.Blocks.Security
             }
             else
             {
-                nbSaveResult.Text = "The following errors occurred while trying to save:<ul><li>" +_securitySettingsService.ValidationResults.Select( r => r.ErrorMessage ).JoinStrings( "</li><li>" ) + "</li></ul>";
+                var errors = "<li>" + _securitySettingsService.ValidationResults.Select( r => r.ErrorMessage ).JoinStrings( "</li><li>" ) + "</li>";
+                errors = errors.Replace( "<li></li>", string.Empty );
+
+                nbSaveResult.Text = $"The following errors occurred while trying to save:<ul>{errors}</ul>";
                 nbSaveResult.NotificationBoxType = NotificationBoxType.Danger;
                 nbSaveResult.Visible = true;
             }
