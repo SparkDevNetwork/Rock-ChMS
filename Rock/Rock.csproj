@@ -731,6 +731,8 @@
     <Compile Include="Model\CRM\UserLogin\UserLogin.Logic.cs" />
     <Compile Include="Model\CRM\UserLogin\UserLogin.WebForms.cs" />
     <Compile Include="Model\CRM\UserLogin\UserLoginService.WebForms.cs" />
+    <Compile Include="Security\SecuritySettings.cs" />
+    <Compile Include="Security\SecuritySettingsService.cs" />
     <Compile Include="Tasks\AddCommunicationRecipients.cs" />
     <Compile Include="Tasks\AddNewMetaphones.cs" />
     <Compile Include="Tasks\AddPageRenameInteraction.cs" />

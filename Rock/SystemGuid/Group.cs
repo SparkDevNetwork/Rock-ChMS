@@ -90,5 +90,10 @@ namespace Rock.SystemGuid
         /// Group of people who are responsible for the safety and security of staff and members
         /// </summary>
         public const string GROUP_SAFETY_SECURITY = "32E80B6C-A1EB-40FD-BEC3-E11DE8FF75AB";
+
+        /// <summary>
+        /// Group of people who are responsible for the integrity of the data.
+        /// </summary>
+        public const string GROUP_DATA_INTEGRITY_WORKER = "40517E10-0F2D-4C61-AA8D-BDE36D58C63A";
     }
 }
