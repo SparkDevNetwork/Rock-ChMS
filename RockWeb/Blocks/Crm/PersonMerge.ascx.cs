@@ -431,7 +431,7 @@ namespace RockWeb.Blocks.Crm
             {
                 if ( headingKeys.Contains( gValues.DataKeys[e.Row.RowIndex].Value.ToString() ) )
                 {
-                    e.Row.AddCssClass( "merge-grid-section-header" );
+                    e.Row.AddCssClass( "grid-section-header" );
                 }
                 else
                 {
@@ -1200,7 +1200,7 @@ namespace RockWeb.Blocks.Crm
             if ( MergeData != null && MergeData.People != null && MergeData.People.Any() )
             {
                 var maxAccountProtectionProfile = MergeData.People.Max( p => p.AccountProtectionProfile );
-                //var hasRequiredPermission = 
+                //var hasRequiredPermission =
                 // If the people have different email addresses and any logins, display security alert box
                 var showAlert =
                     MergeData.People.Select( p => p.Email ).Where( e => e != null && e != string.Empty ).Distinct( StringComparer.CurrentCultureIgnoreCase ).Count() > 1 &&
