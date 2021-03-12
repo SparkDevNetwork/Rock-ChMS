@@ -166,7 +166,7 @@ namespace RockWeb.Blocks.Crm
             nbPeople.Visible = false;
             nbError.Visible = false;
 
-            bool canEdit = this.IsUserAuthorized( Rock.Security.Authorization.EDIT );
+            bool canEdit = this.IsUserAuthorized( Authorization.EDIT );
 
             pnlEdit.Visible = canEdit;
             pnlView.Visible = !canEdit;
@@ -447,6 +447,14 @@ namespace RockWeb.Blocks.Crm
         /// <param name="e">The <see cref="EventArgs"/> instance containing the event data.</param>
         protected void lbMerge_Click( object sender, EventArgs e )
         {
+            if ( !CanMerge().CanMerge )
+            {
+                nbError.Heading = "Merge Error";
+                nbError.Text = string.Format( "<p>You do not have the necessary permissions to merge this user.</p>" );
+                nbError.Visible = true;
+                return;
+            }
+
             /*
             01/02/2020 - SK
             Similar code is used in ExpungePerson in PersonService class
@@ -1192,6 +1200,37 @@ namespace RockWeb.Blocks.Crm
             return sbHeaderData.ToString();
         }
 
+        private class CanMergeResult
+        {
+            public bool CanMerge { get; set; }
+            public AccountProtectionProfile MaxAccountProtectionProfile { get; set; }
+            public RoleCache RequiredSecurityRole { get; set; }
+
+        }
+        private CanMergeResult CanMerge()
+        {
+            var maxAccountProtectionProfile = MergeData.People.Max( p => p.AccountProtectionProfile );
+            var securitySettingService = new SecuritySettingsService();
+            RoleCache requiredSecurityRole = null;
+            securitySettingService.SecuritySettings.AccountProtectionProfileSecurityGroup.TryGetValue( maxAccountProtectionProfile, out requiredSecurityRole );
+
+            var canMergeResult = new CanMergeResult
+            {
+                MaxAccountProtectionProfile = maxAccountProtectionProfile,
+                RequiredSecurityRole = requiredSecurityRole,
+                CanMerge = true,
+            };
+
+            if ( requiredSecurityRole != null )
+            {
+                if ( !requiredSecurityRole.IsPersonInRole( RockPage.CurrentPerson.Guid ) )
+                {
+                    canMergeResult.CanMerge = false;
+                }
+            }
+            return canMergeResult;
+        }
+
         /// <summary>
         /// Binds the values.
         /// </summary>
@@ -1199,14 +1238,17 @@ namespace RockWeb.Blocks.Crm
         {
             if ( MergeData != null && MergeData.People != null && MergeData.People.Any() )
             {
-                var maxAccountProtectionProfile = MergeData.People.Max( p => p.AccountProtectionProfile );
-                //var hasRequiredPermission =
-                // If the people have different email addresses and any logins, display security alert box
-                var showAlert =
-                    MergeData.People.Select( p => p.Email ).Where( e => e != null && e != string.Empty ).Distinct( StringComparer.CurrentCultureIgnoreCase ).Count() > 1 &&
-                    MergeData.People.Where( p => p.HasLogins ).Any();
+                var canMergeResult = CanMerge();
+                lbMerge.Visible = canMergeResult.CanMerge;
 
-                nbSecurityNotice.Visible = showAlert;
+                if ( !canMergeResult.CanMerge )
+                {
+                    nbAccountProtectProfile.Text = $"A record on this merge request has an Account Protection Profile of '{canMergeResult.MaxAccountProtectionProfile}'. This will require an individual in the '{canMergeResult.RequiredSecurityRole}' role to perform the merge.";
+                    nbAccountProtectProfile.Visible = true;
+                }
+
+                // If the people have different email addresses and any logins, display security alert box
+                ShowMessages( canMergeResult );
 
                 // If the values of any hidden Attributes differ, display warning message.
                 SetAttributesSecurityNoticeState();
@@ -1226,6 +1268,88 @@ namespace RockWeb.Blocks.Crm
             }
         }
 
+        private void ShowMessages( CanMergeResult canMergeResult )
+        {
+            var hasDifferentEmailAddresses = MergeData
+                .People
+                .Select( p => p.Email )
+                .Where( e => e != null && e != string.Empty )
+                .Distinct( StringComparer.CurrentCultureIgnoreCase )
+                .Count() > 1;
+
+            var hasLogins = MergeData.People.Where( p => p.HasLogins ).Any();
+
+            var hasDifferntMobilePhoneNumbers = MergeData
+                .People
+                .Select( p => p.MobilePhoneNumber )
+                .Where( e => e != null && e != string.Empty )
+                .Distinct( StringComparer.CurrentCultureIgnoreCase )
+                .Count() > 1;
+
+            var differntPluralText = string.Empty;
+            var differntSingularText = string.Empty;
+            if ( hasDifferentEmailAddresses )
+            {
+                differntPluralText += "emails";
+                differntSingularText += "email";
+            }
+            if ( hasDifferentEmailAddresses && hasDifferntMobilePhoneNumbers )
+            {
+                differntPluralText += " and ";
+                differntSingularText += " and ";
+            }
+            if ( hasDifferntMobilePhoneNumbers )
+            {
+                differntPluralText += "phone numbers";
+                differntSingularText += "phone number";
+            }
+            if ( differntPluralText.IsNotNullOrWhiteSpace() )
+            {
+                differntPluralText = $"and different {differntPluralText}";
+            }
+            if ( differntSingularText.IsNullOrWhiteSpace() )
+            {
+                differntSingularText = $"information";
+            }
+
+            var warningMessage = $"One or more of the records has a login {differntPluralText} associated with this merge. This could be an attempt to hijack the account. You should apply considerable caution in selecting the appropriate {differntSingularText} for this merge. Additionally, this person will be prompted to reconfirm before they can login.";
+
+            if ( canMergeResult.MaxAccountProtectionProfile == AccountProtectionProfile.Medium )
+            {
+                if ( hasDifferentEmailAddresses || hasDifferntMobilePhoneNumbers )
+                {
+                    nbSecurityNotice.Heading = "Security Alert:";
+                    nbSecurityNotice.Text = warningMessage;
+                    nbSecurityNotice.NotificationBoxType = NotificationBoxType.Danger;
+                }
+                else
+                {
+                    nbSecurityNotice.Heading = string.Empty;
+                    nbSecurityNotice.Text = "This merge is considered of moderate risk as one of the records has a login. Please be sure to carefully consider the changed information to ensure this is not an attempt to hijack the account.";
+                    nbSecurityNotice.NotificationBoxType = NotificationBoxType.Warning;
+                }
+
+                nbSecurityNotice.Visible = true;
+            }
+
+            if ( canMergeResult.MaxAccountProtectionProfile == AccountProtectionProfile.High )
+            {
+                nbSecurityNotice.Heading = "Important Security Alert:";
+                nbSecurityNotice.Text = $"{ warningMessage}<br><br><b>Additionally, one or more of these records is a member of a security role with elevated privileges.</b>";
+                nbSecurityNotice.NotificationBoxType = NotificationBoxType.Danger;
+
+                nbSecurityNotice.Visible = true;
+            }
+
+            if ( canMergeResult.MaxAccountProtectionProfile == AccountProtectionProfile.Extreme )
+            {
+                nbSecurityNotice.Heading = "Critical Security Alert:";
+                nbSecurityNotice.Text = $"{ warningMessage}<br><br><b class='text-uppercase'>One or more of these records is a member of a security role with high elevated privileges.</b>";
+                nbSecurityNotice.NotificationBoxType = NotificationBoxType.Danger;
+
+                nbSecurityNotice.Visible = true;
+            }
+        }
         /// <summary>
         /// Show or hide the Attributes security warning.
         /// </summary>
@@ -1970,6 +2094,8 @@ namespace RockWeb.Blocks.Crm
 
         public AccountProtectionProfile AccountProtectionProfile { get; set; }
 
+        public string MobilePhoneNumber { get; set; }
+
         public MergePerson( Person person )
         {
             Id = person.Id;
@@ -1987,6 +2113,7 @@ namespace RockWeb.Blocks.Crm
                 ModifiedBy = person.ModifiedByPersonAlias.Person.FullName;
             }
             AccountProtectionProfile = person.AccountProtectionProfile;
+            MobilePhoneNumber = person.PhoneNumbers.Where( p => p.IsMessagingEnabled ).FirstOrDefault()?.FullNumber;
         }
     }
 

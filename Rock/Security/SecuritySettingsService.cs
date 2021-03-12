@@ -1,11 +1,11 @@
 ﻿using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 using System.Linq;
+using Rock.Data;
+using Rock.Model;
 using Rock.Utility.Enums;
 using Rock.Web;
-using Rock.Model;
 using Rock.Web.Cache;
-using Rock.Data;
 
 namespace Rock.Security
 {
@@ -41,7 +41,22 @@ namespace Rock.Security
         public SecuritySettingsService()
         {
             _validationResults = new List<ValidationResult>();
-            SecuritySettings = SystemSettings.GetValue( SYSTEM_SETTING_KEY ).FromJsonOrNull<SecuritySettings>() ?? GetDefaultSecuritySettings();
+            var securitySettings = SystemSettings.GetValue( SYSTEM_SETTING_KEY ).FromJsonOrNull<SecuritySettings>();
+            if ( securitySettings == null )
+            {
+                securitySettings = GetDefaultSecuritySettings();
+                
+            }
+            else
+            {
+                var keys = securitySettings.AccountProtectionProfileSecurityGroup.Keys.ToList();
+                foreach ( var key in keys )
+                {
+                    var roleCache = securitySettings.AccountProtectionProfileSecurityGroup[key];
+                    securitySettings.AccountProtectionProfileSecurityGroup[key] = RoleCache.Get( roleCache.Id );
+                }
+            }
+            SecuritySettings = securitySettings;
         }
 
         /// <summary>
@@ -53,7 +68,7 @@ namespace Rock.Security
             Group adminGroup = null;
             Group dataIntegrityGroup = null;
 
-            using (var rockContext = new RockContext() )
+            using ( var rockContext = new RockContext() )
             {
                 var groupService = new GroupService( rockContext );
                 adminGroup = groupService.GetByGuid( SystemGuid.Group.GROUP_ADMINISTRATORS.AsGuid() );
@@ -113,14 +128,14 @@ namespace Rock.Security
             }
 
             // Validate Groups are security groups.
-            var securityGroupsToValidate = SecuritySettings?.AccountProtectionProfileSecurityGroup?.Values.Select( g => g );
+            var securityGroupsToValidate = SecuritySettings?.AccountProtectionProfileSecurityGroup?.Values.ToList();
             if ( securityGroupsToValidate == null )
             {
                 // The only way invalidGroups would be null is if the SecuritySettings or property is null.
                 ValidationResults.Add( new ValidationResult( "The account protection profile security group list is null." ) );
                 isValid = false;
             }
-            
+
             return isValid;
         }
     }
