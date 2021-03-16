@@ -281,7 +281,7 @@ namespace RockWeb.Blocks.Crm
                 var campustColumn = gList.Columns.OfType<RockBoundField>().First( a => a.DataField == "Campus" );
                 campustColumn.Visible = false;
             }
-           
+
             // NOTE: Because the .Count() in the SetLinqDataSource() sometimes creates SQL that takes *significantly* 
             // longer (> 26 minutes) to execute than the actual query (< 1s), we're changing this to a 
             // simple .DataSource = ToList() for now until we have more time to consider an alternative solution.  

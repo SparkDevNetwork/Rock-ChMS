@@ -1,5 +1,5 @@
 ﻿<%@ Control Language="C#" AutoEventWireup="true" CodeFile="PersonDuplicateDetail.ascx.cs" Inherits="RockWeb.Blocks.Crm.PersonDuplicateDetail" %>
-
+<%@ Import Namespace="Rock.Utility.Enums" %>
 <asp:UpdatePanel ID="upnlContent" runat="server">
     <ContentTemplate>
 
@@ -21,14 +21,6 @@
                                     <%# GetConfidenceScoreColumnHtml((double?)Eval("ConfidenceScore")) %>
                                 </ItemTemplate>
                             </Rock:RockTemplateField>
-
-                            <Rock:RockBoundField DataField="DuplicatePerson.FirstName" HeaderText="First Name" SortExpression="DuplicatePerson.FirstName, DuplicatePerson.LastName" />
-                            <Rock:RockBoundField DataField="DuplicatePerson.LastName" HeaderText="Last Name" SortExpression="DuplicatePerson.LastName, DuplicatePerson.FirstName" />
-                            <Rock:RockBoundField DataField="DuplicatePerson.Email" HeaderText="Email" SortExpression="DuplicatePerson.Email" />
-                            <Rock:EnumField DataField="DuplicatePerson.Gender" HeaderText="Gender" SortExpression="DuplicatePerson.Gender" />
-
-                            <Rock:RockBoundField DataField="DuplicatePerson.Age" HeaderText="Age" SortExpression="DuplicatePerson.Age" />
-
                             <Rock:RockTemplateField HeaderText="Campus">
                                 <ItemTemplate>
                                     <ul class="list-unstyled">
@@ -44,6 +36,19 @@
                                     </ul>
                                 </ItemTemplate>
                             </Rock:RockTemplateField>
+                            <Rock:RockTemplateField HeaderText="Account Protection Profile" SortExpression="AccountProtectionProfile">
+                                <ItemTemplate>
+                                    <%# GetAccountProtectionProfileColumnHtml((AccountProtectionProfile)Eval("DuplicatePerson.AccountProtectionProfile")) %>
+                                </ItemTemplate>
+                            </Rock:RockTemplateField>
+                            <Rock:RockBoundField DataField="DuplicatePerson.FirstName" HeaderText="First Name" SortExpression="DuplicatePerson.FirstName, DuplicatePerson.LastName" />
+                            <Rock:RockBoundField DataField="DuplicatePerson.LastName" HeaderText="Last Name" SortExpression="DuplicatePerson.LastName, DuplicatePerson.FirstName" />
+                            <Rock:RockBoundField DataField="DuplicatePerson.Email" HeaderText="Email" SortExpression="DuplicatePerson.Email" />
+                            <Rock:EnumField DataField="DuplicatePerson.Gender" HeaderText="Gender" SortExpression="DuplicatePerson.Gender" />
+
+                            <Rock:RockBoundField DataField="DuplicatePerson.Age" HeaderText="Age" SortExpression="DuplicatePerson.Age" />
+
+                            
                             <Rock:RockTemplateField HeaderText="Addresses">
                                 <ItemTemplate>
                                     <ul class="list-unstyled">

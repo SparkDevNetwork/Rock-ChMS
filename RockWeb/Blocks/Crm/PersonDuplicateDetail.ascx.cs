@@ -25,6 +25,7 @@ using Rock;
 using Rock.Attribute;
 using Rock.Data;
 using Rock.Model;
+using Rock.Utility.Enums;
 using Rock.Web.Cache;
 using Rock.Web.UI;
 using Rock.Web.UI.Controls;
@@ -164,6 +165,27 @@ namespace RockWeb.Blocks.Crm
         }
 
         /// <summary>
+        /// Gets the account protection profile column HTML.
+        /// </summary>
+        /// <param name="accountProtectionProfile">The account protection profile.</param>
+        /// <returns></returns>
+        public string GetAccountProtectionProfileColumnHtml( AccountProtectionProfile accountProtectionProfile )
+        {
+            var cssMap = new Dictionary<AccountProtectionProfile, string>
+            {
+                { AccountProtectionProfile.Extreme, "danger" },
+                { AccountProtectionProfile.High, "primary" },
+                { AccountProtectionProfile.Medium, "warning" },
+                { AccountProtectionProfile.Low, "success" }
+            };
+
+            var css = $"label label-{cssMap[accountProtectionProfile]}";
+
+
+            return $"<span class='{css}'>{accountProtectionProfile.ConvertToString()}</span>";
+        }
+
+        /// <summary>
         /// Gets the person view onclick.
         /// </summary>
         /// <param name="personId">The person identifier.</param>
@@ -211,6 +233,13 @@ namespace RockWeb.Blocks.Crm
         /// </summary>
         private void BindGrid()
         {
+            var hasMultipleCampuses = CampusCache.All().Count( c => c.IsActive ?? true ) > 1;
+            if ( !hasMultipleCampuses )
+            {
+                var campustColumn = gList.Columns.OfType<RockTemplateField>().First( a => a.HeaderText == "Campus" );
+                campustColumn.Visible = false;
+            }
+
             RockContext rockContext = new RockContext();
             var personDuplicateService = new PersonDuplicateService( rockContext );
             var personService = new PersonService( rockContext );
@@ -234,13 +263,13 @@ namespace RockWeb.Blocks.Crm
             }
 
             var qry = qryPersonDuplicates.Select( s => new
-                {
-                    PersonId = s.DuplicatePersonAlias.Person.Id, // PersonId has to be the key field in the grid for the Merge button to work
-                    PersonDuplicateId = s.Id,
-                    DuplicatePerson = s.DuplicatePersonAlias.Person,
-                    s.ConfidenceScore,
-                    IsComparePerson = true
-                } );
+            {
+                PersonId = s.DuplicatePersonAlias.Person.Id, // PersonId has to be the key field in the grid for the Merge button to work
+                PersonDuplicateId = s.Id,
+                DuplicatePerson = s.DuplicatePersonAlias.Person,
+                s.ConfidenceScore,
+                IsComparePerson = true
+            } );
 
             double? confidenceScoreLow = GetAttributeValue( AttributeKey.ConfidenceScoreLow ).AsDoubleOrNull();
             if ( confidenceScoreLow.HasValue )
@@ -261,7 +290,7 @@ namespace RockWeb.Blocks.Crm
                     new
                     {
                         PersonId = person.Id, // PersonId has to be the key field in the grid for the Merge button to work
-                    PersonDuplicateId = 0,
+                        PersonDuplicateId = 0,
                         DuplicatePerson = person,
                         ConfidenceScore = ( double? ) null,
                         IsComparePerson = false
@@ -290,7 +319,7 @@ namespace RockWeb.Blocks.Crm
             if ( e.Row.RowType == DataControlRowType.DataRow )
             {
                 var person = e.Row.DataItem.GetPropertyValue( "DuplicatePerson" );
-                bool isComparePerson = (bool)e.Row.DataItem.GetPropertyValue( "IsComparePerson" );
+                bool isComparePerson = ( bool ) e.Row.DataItem.GetPropertyValue( "IsComparePerson" );
 
                 // If this is the main person for the compare, select them, but then hide the checkbox. 
                 var row = e.Row;
