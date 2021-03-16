@@ -4091,11 +4091,18 @@ namespace Rock.Model
             return entitySet;
         }
 
+        /// <summary>
+        /// Determines whether a person account protection profile has is disabled for impersonation.
+        /// </summary>
+        /// <param name="person">The person.</param>
+        /// <returns>
+        ///   <c>true</c> if [is person account protection profile disabled] [the specified person]; otherwise, <c>false</c>.
+        /// </returns>
         public static bool IsPersonAccountProtectionProfileDisabled( this Person person )
         {
-            var rockSecuritySettings = new SecuritySettings();
+            var rockSecuritySettingsService = new SecuritySettingsService();
 
-            return rockSecuritySettings.DisableTokensForAccountProtectionProfiles.Contains( person.AccountProtectionProfile );
+            return rockSecuritySettingsService.SecuritySettings.DisableTokensForAccountProtectionProfiles.Contains( person.AccountProtectionProfile );
         }
     }
 
