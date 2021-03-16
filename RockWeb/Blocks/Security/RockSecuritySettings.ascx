@@ -32,8 +32,8 @@
                         <Rock:RockCheckBoxList
                             runat="server"
                             ID="cblIgnoredAccountProtectionProfiles"
-                            Label="Duplicate Prevention ignored for Account Protection Profiles"
-                            Help="Duplication protection will ignore individuals with the selected Account Protection Profiles. People that would normally get handled in the duplication prevention process will be ignored if they have one of the checked Account Protection Profiles. We highly recommend ignoring all but the low profile."
+                            Label="Disable Duplicate Checking for the Following Protection Profiles"
+                            Help="This disables duplication protection checks for individuals with the selected Account Protection Profiles. People with these checked values will always create duplicates (i.e., they will not match existing records.) We highly recommend enabling this for all but the low profile."
                             RepeatDirection="Horizontal"
                             CssClass="js-ignored-protection-profile" />
                     </div>
@@ -54,6 +54,17 @@
                             Label="Allow Merges of Account Protection Profile - Extreme"
                             EnhanceForLongLists="true"
                             Help="Merging records with an Account Protection Profile of Extreme will be limited to individuals in the security role configured." />
+                    </div>
+                </div>
+                <div class="row mt-3">
+                    <div class="col-md-6 col-sm-12 col-xs-12">
+                        <Rock:RockCheckBoxList
+                            runat="server"
+                            ID="cblDisableTokensForAccountProtectionProfiles"
+                            Label="Disable Usage of Personal Tokens for the Following Protection Profiles"
+                            Help="Any protection profiles selected here will not be allowed to use impersonation tokens or tokens to authenticate a person."
+                            RepeatDirection="Horizontal"
+                            CssClass="js-ignored-protection-profile" />
                     </div>
                 </div>
                 <asp:Panel ID="pnlEditModeActions" runat="server" CssClass="actions">

@@ -94,7 +94,10 @@ namespace Rock.Security
                 {
                     { AccountProtectionProfile.Extreme, adminRole },
                     { AccountProtectionProfile.High, dataIntegrityRole }
-                }
+                },
+                DisableTokensForAccountProtectionProfiles = new List<AccountProtectionProfile> {
+                    AccountProtectionProfile.Extreme
+                },
             };
         }
 

@@ -1,9 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using Rock.Model;
+﻿using System.Collections.Generic;
 using Rock.Utility.Enums;
 using Rock.Web.Cache;
 
@@ -37,12 +32,21 @@ namespace Rock.Security
         public Dictionary<AccountProtectionProfile, RoleCache> AccountProtectionProfileSecurityGroup { get; set; }
 
         /// <summary>
+        /// Gets or sets the disable tokens for account protection profiles.
+        /// </summary>
+        /// <value>
+        /// The disable tokens for account protection profiles.
+        /// </value>
+        public List<AccountProtectionProfile> DisableTokensForAccountProtectionProfiles { get; set; }
+
+        /// <summary>
         /// Initializes a new instance of the <see cref="SecuritySettings"/> class.
         /// </summary>
         public SecuritySettings()
         {
             AccountProtectionProfilesForDuplicateDetectionToIgnore = new List<AccountProtectionProfile>();
             AccountProtectionProfileSecurityGroup = new Dictionary<AccountProtectionProfile, RoleCache>();
+            DisableTokensForAccountProtectionProfiles = new List<AccountProtectionProfile>();
         }
     }
 }
