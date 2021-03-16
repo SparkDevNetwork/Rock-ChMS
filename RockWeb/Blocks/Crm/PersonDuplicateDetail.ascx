@@ -21,21 +21,7 @@
                                     <%# GetConfidenceScoreColumnHtml((double?)Eval("ConfidenceScore")) %>
                                 </ItemTemplate>
                             </Rock:RockTemplateField>
-                            <Rock:RockTemplateField HeaderText="Campus">
-                                <ItemTemplate>
-                                    <ul class="list-unstyled">
-                                        <asp:Repeater ID="rptrCampuses" runat="server" DataSource='<%# GetCampuses(Eval("DuplicatePerson") as Rock.Model.Person) %>'>
-                                            <ItemTemplate>
-                                                <li class="campus clearfix">
-                                                    <p>
-                                                        <%# Eval("Name") %>
-                                                    </p>
-                                                </li>
-                                            </ItemTemplate>
-                                        </asp:Repeater>
-                                    </ul>
-                                </ItemTemplate>
-                            </Rock:RockTemplateField>
+                            <Rock:RockBoundField DataField="Campus" HeaderText="Campus" SortExpression="Campus" />
                             <Rock:RockTemplateField HeaderText="Account Protection Profile" SortExpression="AccountProtectionProfile">
                                 <ItemTemplate>
                                     <%# GetAccountProtectionProfileColumnHtml((AccountProtectionProfile)Eval("DuplicatePerson.AccountProtectionProfile")) %>

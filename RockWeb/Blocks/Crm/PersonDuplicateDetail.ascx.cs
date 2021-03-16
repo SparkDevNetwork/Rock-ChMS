@@ -17,6 +17,7 @@
 using System;
 using System.Collections.Generic;
 using System.ComponentModel;
+using System.Data.Entity;
 using System.Linq;
 using System.Web.UI;
 using System.Web.UI.WebControls;
@@ -199,16 +200,6 @@ namespace RockWeb.Blocks.Crm
         }
 
         /// <summary>
-        /// Gets the campus.
-        /// </summary>
-        /// <param name="person">The person.</param>
-        /// <returns></returns>
-        public List<Campus> GetCampuses( Person person )
-        {
-            return person.GetFamilies().Select( a => a.Campus ).ToList();
-        }
-
-        /// <summary>
         /// Gets the addresses.
         /// </summary>
         /// <param name="person">The person.</param>
@@ -236,7 +227,7 @@ namespace RockWeb.Blocks.Crm
             var hasMultipleCampuses = CampusCache.All().Count( c => c.IsActive ?? true ) > 1;
             if ( !hasMultipleCampuses )
             {
-                var campustColumn = gList.Columns.OfType<RockTemplateField>().First( a => a.HeaderText == "Campus" );
+                var campustColumn = gList.Columns.OfType<RockBoundField>().First( a => a.DataField == "Campus" );
                 campustColumn.Visible = false;
             }
 
@@ -268,7 +259,8 @@ namespace RockWeb.Blocks.Crm
                 PersonDuplicateId = s.Id,
                 DuplicatePerson = s.DuplicatePersonAlias.Person,
                 s.ConfidenceScore,
-                IsComparePerson = true
+                IsComparePerson = true,
+                Campus = s.DuplicatePersonAlias.Person.PrimaryCampus.Name
             } );
 
             double? confidenceScoreLow = GetAttributeValue( AttributeKey.ConfidenceScoreLow ).AsDoubleOrNull();
@@ -282,7 +274,7 @@ namespace RockWeb.Blocks.Crm
             var gridList = qry.ToList();
 
             // put the person we are comparing the duplicates to at the top of the list
-            var person = personService.Get( personId );
+            var person = personService.Queryable().Include(p => p.PrimaryCampus).Where(p => p.Id == personId ).FirstOrDefault();
             if ( person != null )
             {
                 gridList.Insert(
@@ -293,7 +285,8 @@ namespace RockWeb.Blocks.Crm
                         PersonDuplicateId = 0,
                         DuplicatePerson = person,
                         ConfidenceScore = ( double? ) null,
-                        IsComparePerson = false
+                        IsComparePerson = false,
+                        Campus = person.PrimaryCampus?.Name
                     } );
 
                 nbNoDuplicatesMessage.Visible = gridList.Count == 1;
