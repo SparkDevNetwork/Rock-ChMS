@@ -26,15 +26,13 @@ using System.Linq;
 using System.Runtime.Serialization;
 using System.Threading.Tasks;
 using Humanizer;
-
 using Rock.Data;
+using Rock.Lava;
 using Rock.Security;
 using Rock.Tasks;
-using Rock.Transactions;
 using Rock.Web.Cache;
 
 using Z.EntityFramework.Plus;
-using Rock.Lava;
 
 namespace Rock.Model
 {
@@ -777,6 +775,22 @@ namespace Rock.Model
 
                     // NOTE, make sure to do this after UpdatePrimaryFamily
                     PersonService.UpdateGroupSalutations( this.PersonId, dbContext as RockContext );
+                }
+            }
+
+            if ( Group.IsSecurityRole )
+            {
+                if ( Group.ElevatedSecurityLevel >= Utility.Enums.ElevatedSecurityLevel.High
+                    && Person.AccountProtectionProfile < Utility.Enums.AccountProtectionProfile.Extreme )
+                {
+                    Person.AccountProtectionProfile = Utility.Enums.AccountProtectionProfile.Extreme;
+                    dbContext.SaveChanges();
+                }
+                else if ( Group.ElevatedSecurityLevel >= Utility.Enums.ElevatedSecurityLevel.Low
+                    && Person.AccountProtectionProfile < Utility.Enums.AccountProtectionProfile.High )
+                {
+                    Person.AccountProtectionProfile = Utility.Enums.AccountProtectionProfile.High;
+                    dbContext.SaveChanges();
                 }
             }
         }

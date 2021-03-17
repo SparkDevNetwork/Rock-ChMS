@@ -31,6 +31,7 @@ using Quartz;
 using Rock.Attribute;
 using Rock.Data;
 using Rock.Model;
+using Rock.Utility.Enums;
 using Rock.Web.Cache;
 
 namespace Rock.Jobs
@@ -243,6 +244,8 @@ namespace Rock.Jobs
 
             RunCleanupTask( "update sms communication preferences", () => UpdateSmsCommunicationPreferences() );
 
+            RunCleanupTask( "update user's account protection profile", () => UpdatePersonAccoutProtectionProfile() );
+            
             RunCleanupTask( "remove expired registration sessions", () => RemoveExpiredRegistrationSessions() );
 
             Rock.Web.SystemSettings.SetValue( Rock.SystemKey.SystemSetting.ROCK_CLEANUP_LAST_RUN_DATETIME, RockDateTime.Now.ToString() );
@@ -325,6 +328,79 @@ namespace Rock.Jobs
             }
         }
 
+        private int UpdatePersonAccoutProtectionProfile()
+        {
+            var rowsUpdated = 0;
+            using ( var rockContext = new RockContext() )
+            {
+                rockContext.Database.CommandTimeout = commandTimeout;
+
+                var personService = new PersonService( rockContext );
+
+                // Update people with logins
+                var peopleWithLogins = personService
+                    .Queryable()
+                    .Where( p => p.Users.Any() && p.AccountProtectionProfile < AccountProtectionProfile.Medium );
+                rowsUpdated += rockContext.BulkUpdate( peopleWithLogins, p => new Person { AccountProtectionProfile = AccountProtectionProfile.Medium } );
+
+                // Update people protection profile in groups with ElevatedSecurityLevel.High to extreme
+                var groupMemberService = new GroupMemberService( rockContext );
+
+                var peopleInGroupsWithHighSecurityLevel = groupMemberService
+                    .Queryable(false, false)
+                    .Where( gm => gm.Group.IsActive
+                        && gm.Group.IsSecurityRole
+                        && gm.Group.ElevatedSecurityLevel == ElevatedSecurityLevel.High
+                        && gm.Person.AccountProtectionProfile < AccountProtectionProfile.Extreme )
+                    .Select( gm => gm.Person );
+
+                rowsUpdated += rockContext.BulkUpdate( peopleInGroupsWithHighSecurityLevel, p => new Person { AccountProtectionProfile = AccountProtectionProfile.Extreme } );
+
+                // Update people protection profile in groups with ElevatedSecurityLevel.Low to high
+                var peopleInGroupsWithLowSecurityLevel = groupMemberService
+                    .Queryable( false, false )
+                    .Where( gm => gm.Group.IsActive
+                        && gm.Group.IsSecurityRole
+                        && gm.Group.ElevatedSecurityLevel == ElevatedSecurityLevel.Low
+                        && gm.Person.AccountProtectionProfile < AccountProtectionProfile.High )
+                    .Select( gm => gm.Person );
+
+                rowsUpdated += rockContext.BulkUpdate( peopleInGroupsWithHighSecurityLevel, p => new Person { AccountProtectionProfile = AccountProtectionProfile.High } );
+
+                // Update people protection profile for people with financial data to high
+                var financialPersonBankAccountService = new FinancialPersonBankAccountService( rockContext );
+                var peopleWithFinancialPersonBankAccount = financialPersonBankAccountService
+                    .Queryable()
+                    .Where( p => p.PersonAlias.Person.AccountProtectionProfile < AccountProtectionProfile.High )
+                    .Select(f => f.PersonAlias.Person);
+
+                rowsUpdated = rockContext.BulkUpdate( peopleWithFinancialPersonBankAccount, p => new Person { AccountProtectionProfile = AccountProtectionProfile.High } );
+
+                var financialPersonSavedAccountService = new FinancialPersonSavedAccountService( rockContext );
+                var peopleWithFinancialPersonSavedAccount = financialPersonSavedAccountService
+                    .Queryable()
+                    .Where( p => p.PersonAlias.Person.AccountProtectionProfile < AccountProtectionProfile.High )
+                    .Select( f => f.PersonAlias.Person );
+                rowsUpdated = rockContext.BulkUpdate( peopleWithFinancialPersonSavedAccount, p => new Person { AccountProtectionProfile = AccountProtectionProfile.High } );
+
+                var financialScheduledTransactionService = new FinancialScheduledTransactionService( rockContext );
+                var peopleWithFinancialScheduledTransaction = financialScheduledTransactionService
+                    .Queryable()
+                    .Where( p => p.IsActive
+                        && p.AuthorizedPersonAlias.Person.AccountProtectionProfile < AccountProtectionProfile.High )
+                    .Select( f => f.AuthorizedPersonAlias.Person );
+                rowsUpdated = rockContext.BulkUpdate( peopleWithFinancialScheduledTransaction, p => new Person { AccountProtectionProfile = AccountProtectionProfile.High } );
+
+                var financialTransactionService = new FinancialTransactionService( rockContext );
+                var peopleWithFinancialTransaction = financialTransactionService
+                    .Queryable()
+                    .Where( p => p.AuthorizedPersonAlias.Person.AccountProtectionProfile < AccountProtectionProfile.High )
+                    .Select( f => f.AuthorizedPersonAlias.Person );
+                rowsUpdated = rockContext.BulkUpdate( peopleWithFinancialTransaction, p => new Person { AccountProtectionProfile = AccountProtectionProfile.High } );
+            }
+
+            return rowsUpdated;
+        }
         /// <summary>
         /// Get a cleanup job result as a formatted string
         /// </summary>
