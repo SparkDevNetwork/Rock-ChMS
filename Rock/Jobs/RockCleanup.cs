@@ -365,7 +365,7 @@ namespace Rock.Jobs
                         && gm.Person.AccountProtectionProfile < AccountProtectionProfile.High )
                     .Select( gm => gm.Person );
 
-                rowsUpdated += rockContext.BulkUpdate( peopleInGroupsWithHighSecurityLevel, p => new Person { AccountProtectionProfile = AccountProtectionProfile.High } );
+                rowsUpdated += rockContext.BulkUpdate( peopleInGroupsWithLowSecurityLevel, p => new Person { AccountProtectionProfile = AccountProtectionProfile.High } );
 
                 // Update people protection profile for people with financial data to high
                 var financialPersonBankAccountService = new FinancialPersonBankAccountService( rockContext );

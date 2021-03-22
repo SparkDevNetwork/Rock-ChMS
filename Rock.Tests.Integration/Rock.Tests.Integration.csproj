@@ -190,6 +190,8 @@
     <Compile Include="Model\CommunicationServiceTests.cs" />
     <Compile Include="Model\PersonServiceTests.cs" />
     <Compile Include="Model\StepProgramServiceTests.cs" />
+    <Compile Include="Model\GroupMemberTests.cs" />
+    <Compile Include="Model\UserLoginTests.cs" />
     <Compile Include="Rest\ControllersTests\InteractionsControllerTests.cs" />
     <Compile Include="Rest\ControllersTests\AuthControllerTests.cs" />
     <Compile Include="Rock.Logging\RockLoggingHelpers.cs" />
