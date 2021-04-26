@@ -16,6 +16,7 @@
 //
 using System;
 using System.Collections.Generic;
+using System.ComponentModel;
 using System.Linq;
 using System.Web;
 
@@ -179,6 +180,7 @@ namespace Rock.CheckIn
 
             if ( locationId > 0 )
             {
+                // double check the locationId in the URL is valid for the Campus (just in case it was altered or is no longer valid for the campus)
                 var locationCampusId = NamedLocationCache.Get( locationId ).CampusId;
                 if ( locationCampusId != campus.Id )
                 {
@@ -194,6 +196,16 @@ namespace Rock.CheckIn
             {
                 // If still not defined, check for cookie setting.
                 locationId = CheckinManagerHelper.GetCheckinManagerConfigurationFromCookie().LocationIdFromSelectedCampusId.GetValueOrNull( campus.Id ) ?? 0;
+                
+                if ( locationId > 0 )
+                {
+                    // double check the locationId in the cookie is valid for the Campus (just in case it was altered or is no longer valid for the campus)
+                    var locationCampusId = NamedLocationCache.Get( locationId ).CampusId;
+                    if ( locationCampusId != campus.Id )
+                    {
+                        locationId = 0;
+                    }
+                }
 
                 if ( locationId <= 0 )
                 {
@@ -455,16 +467,19 @@ namespace Rock.CheckIn
         /// <summary>
         /// Status filter not set to anything yet
         /// </summary>
+        [Description( "Unknown" )]
         Unknown = 0,
 
         /// <summary>
         /// Don't filter
         /// </summary>
+        [Description( "All" )]
         All = 1,
 
         /// <summary>
         /// Only show attendees that are checked-in, but haven't been marked present
         /// </summary>
+        [Description( "Checked-in" )]
         CheckedIn = 2,
 
         /// <summary>
@@ -472,11 +487,13 @@ namespace Rock.CheckIn
         /// Note that if Presence is NOT enabled, the attendance records will automatically marked as Present.
         /// So this would be the default filter mode when Presence is not enabled
         /// </summary>
+        [Description( "Present" )]
         Present = 3,
 
         /// <summary>
         /// Only show attendees that are checked-out.
         /// </summary>
+        [Description( "Checked-out" )]
         CheckedOut = 4
     }
 

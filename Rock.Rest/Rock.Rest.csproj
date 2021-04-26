@@ -159,6 +159,9 @@
     <Compile Include="Controllers\CodeGenerated\GroupMemberScheduleTemplatesController.cs" />
     <Compile Include="Controllers\CodeGenerated\GroupSyncsController.cs" />
     <Compile Include="Controllers\CodeGenerated\LavaShortcodesController.cs" />
+    <Compile Include="Controllers\CodeGenerated\MediaAccountsController.cs" />
+    <Compile Include="Controllers\CodeGenerated\MediaElementsController.cs" />
+    <Compile Include="Controllers\CodeGenerated\MediaFoldersController.cs" />
     <Compile Include="Controllers\CodeGenerated\MetaFirstNameGenderLookupsController.cs" />
     <Compile Include="Controllers\CodeGenerated\MetaLastNameLookupsController.cs" />
     <Compile Include="Controllers\CodeGenerated\MetaNickNameLookupsController.cs" />
@@ -200,6 +203,7 @@
     <Compile Include="Controllers\FinancialBatchesController.Partial.cs" />
     <Compile Include="Controllers\FinancialGatewaysController.Partial.cs" />
     <Compile Include="Controllers\InteractionsController.Partial.cs" />
+    <Compile Include="Controllers\MediaElementsController.Partial.cs" />
     <Compile Include="Controllers\RegistrationRegistrantsController.cs" />
     <Compile Include="Controllers\RegistrationTemplatePlacementsController.cs" />
     <Compile Include="Controllers\StepProgramsController.Partial.cs" />

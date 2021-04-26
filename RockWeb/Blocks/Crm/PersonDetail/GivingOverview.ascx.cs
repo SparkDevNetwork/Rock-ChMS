@@ -29,6 +29,9 @@ using Rock.Data;
 using Rock.Model;
 using Rock.Web.Cache;
 
+using Humanizer;
+using Humanizer.Localisation;
+
 namespace RockWeb.Blocks.Crm.PersonDetail
 {
     /// <summary>
@@ -262,6 +265,13 @@ namespace RockWeb.Blocks.Crm.PersonDetail
             {
                 var givingBin = Person.GetAttributeValue( givingBinAttribute.Key ).AsInteger();
                 lGivingBin.Text = givingBin.ToString();
+            }
+
+            if ( givingBinAttribute != null && givingPercentileAttribute != null )
+            {
+                var givingPercentile = Person.GetAttributeValue( givingPercentileAttribute.Key ).AsInteger();
+
+                lHelpText.Text = Person.NickName.ToPossessive() + " giving is in the " + givingPercentile.Ordinalize() + " percentile, this is classified as Bin " + lGivingBin.Text + ".";
             }
 
             var mergeFields = Rock.Lava.LavaHelper.GetCommonMergeFields( null );
@@ -531,8 +541,7 @@ namespace RockWeb.Blocks.Crm.PersonDetail
 
         private string FormatAsCurrency( decimal value )
         {
-            var currencySymbol = GlobalAttributesCache.Value( "CurrencySymbol" );
-            return string.Format( "{0}{1:N0}", currencySymbol, value );
+            return value.FormatAsCurrencyWithDecimalPlaces(0);
         }
 
         #endregion Methods

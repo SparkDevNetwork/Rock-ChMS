@@ -21,14 +21,15 @@
                                 <ul class="trend-chart trend-chart-gap" style="height: 70px;">
                                     <asp:Repeater ID="rptGivingByMonth" runat="server">
                                         <ItemTemplate>
-                                            <li title="<%#( ( ( DateTime ) Eval( "key" ) ).ToString( "MMM yyyy" ) ) %>: <%# Rock.Web.Cache.GlobalAttributesCache.Value( "CurrencySymbol" )%><%# string.Format("{0:N}", Eval("value")) %>"><span style="<%# GetGivingByMonthPercent ( (decimal)Eval( "value" ) ) %>"></span></li>
+                                            <li title="<%#( ( ( DateTime ) Eval( "key" ) ).ToString( "MMM yyyy" ) ) %>: <%#  Rock.ExtensionMethods.FormatAsCurrency((decimal)Eval("value")) %>"><span style="<%# GetGivingByMonthPercent ( (decimal)Eval( "value" ) ) %>"></span></li>
                                         </ItemTemplate>
                                     </asp:Repeater>
                                 </ul>
                             </div>
 
                             <div class="col-xs-10 col-sm-4 col-lg-3 percentile-giving mx-auto mt-3 m-sm-0">
-                                <div class="d-flex flex-row">
+                                <div class="d-flex flex-row rollover-container">
+                                    <div class="rollover-item inset-0 z-10 bg-gray-100 p-1 small"><asp:Literal ID="lHelpText" runat="server" /></div>
                                     <div class="pr-3">
                                         <span class="stat-value-lg"><asp:Literal ID="lGivingBin" runat="server" /></span>
                                         <span class="stat-label"><asp:Literal ID="lPercent" runat="server" /> %</span>

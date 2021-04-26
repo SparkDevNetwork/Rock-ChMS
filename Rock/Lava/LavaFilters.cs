@@ -5279,9 +5279,12 @@ namespace Rock.Lava
         /// <returns></returns>
         public static object Where( object input, string filter, object filterValue = null, string comparisonType = null )
         {
+            comparisonType = comparisonType.IsNullOrWhiteSpace() ? "equal" : comparisonType.ToLower();
+            comparisonType = ( comparisonType != "equal" || comparisonType != "notequal" ) ? "equal" : comparisonType;
+
             if ( filter != null && filterValue != null )
             {
-                return WhereInternal( input, filter, filterValue, comparisonType ?? "equal" );
+                return WhereInternal( input, filter, filterValue, comparisonType );
             }
             else
             {
