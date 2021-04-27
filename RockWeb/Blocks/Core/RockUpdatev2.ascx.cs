@@ -134,10 +134,7 @@ namespace RockWeb.Blocks.Core
                     nbSqlServerVersionIssue.Visible = true;
                 }
 
-                _releases = rockUpdateService
-                    .GetReleasesList( _installedVersion )
-                    .OrderByDescending( p => new Version( p.SemanticVersion ) )
-                    .ToList();
+                _releases = GetOrderedReleaseList( rockUpdateService, _installedVersion );
 
                 if ( _releases.Count > 0 )
                 {
@@ -154,6 +151,14 @@ namespace RockWeb.Blocks.Core
 
                 FileManagementHelper.CleanUpDeletedFiles();
             }
+        }
+
+        private List<RockRelease> GetOrderedReleaseList( RockUpdateService rockUpdateService, Version installedVersion )
+        {
+            return rockUpdateService
+                .GetReleasesList( installedVersion )
+                .OrderByDescending( p => new Version( p.SemanticVersion ) )
+                .ToList();
         }
 
         #endregion
@@ -287,10 +292,11 @@ namespace RockWeb.Blocks.Core
         /// <returns>true if the update was successful; false if errors were encountered</returns>
         protected bool UpdateRockPackage( string version )
         {
-            IEnumerable<string> errors = Enumerable.Empty<string>();
+            var errors = Enumerable.Empty<string>();
+            var rockUpdateService = new RockUpdateService();
             try
             {
-                var rockInstaller = new RockInstaller( new RockUpdateService(), new Version( version ), _installedVersion );
+                var rockInstaller = new RockInstaller( rockUpdateService, new Version( version ), _installedVersion );
 
                 var installedRelease = rockInstaller.InstallVersion();
 
@@ -332,6 +338,7 @@ namespace RockWeb.Blocks.Core
             else
             {
                 pnlUpdateSuccess.Visible = true;
+                nbMoreUpdatesAvailable.Visible = GetOrderedReleaseList( rockUpdateService, new Version( version ) ).Count > 0;
                 rptPackageVersions.Visible = false;
                 return true;
             }
