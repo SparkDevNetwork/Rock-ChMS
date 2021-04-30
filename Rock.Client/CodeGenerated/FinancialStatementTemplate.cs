@@ -61,7 +61,7 @@ namespace Rock.Client
         public string Name { get; set; }
 
         /// <summary />
-        public string ReportSettings { get; set; } = @"{""TransactionSetting"":{""AccountIds"":[],""CurrencyTypesForCashGiftIds"":[],""CurrencyTypesForNonCashIds"":[],""TransactionTypeIds"":[],""HideRefundedTransaction"":false,""HideCorrectedTransactionOnSameData"":false},""PledgeSetting"":{""AccountIds"":[],""IncludeGiftsToChildAccounts"":false,""IncludeNonCashGifts"":false},""PDFObjectSettings"":{}}";
+        public string ReportSettingsJson { get; set; } = @"{""TransactionSetting"":{""AccountIds"":[],""CurrencyTypesForCashGiftIds"":[],""CurrencyTypesForNonCashIds"":[],""TransactionTypeIds"":[],""HideRefundedTransaction"":false,""HideCorrectedTransactionOnSameData"":false},""PledgeSetting"":{""AccountIds"":[],""IncludeGiftsToChildAccounts"":false,""IncludeNonCashGifts"":false},""PDFObjectSettings"":{}}";
 
         /// <summary />
         public string ReportTemplate { get; set; }
@@ -107,7 +107,7 @@ namespace Rock.Client
             this.LogoBinaryFileId = source.LogoBinaryFileId;
             this.ModifiedAuditValuesAlreadyUpdated = source.ModifiedAuditValuesAlreadyUpdated;
             this.Name = source.Name;
-            this.ReportSettings = source.ReportSettings;
+            this.ReportSettingsJson = source.ReportSettingsJson;
             this.ReportTemplate = source.ReportTemplate;
             this.CreatedDateTime = source.CreatedDateTime;
             this.ModifiedDateTime = source.ModifiedDateTime;

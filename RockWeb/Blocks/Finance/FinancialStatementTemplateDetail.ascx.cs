@@ -161,7 +161,14 @@ namespace RockWeb.Blocks.Finance
             financialStatementTemplate.FooterTemplate = ceFooterTemplate.Text;
 
             financialStatementTemplate.ReportSetting.PDFObjectSettings = kvlPDFObjectSettings.Value.AsDictionary();
-            var transactionSetting = new Rock.Finance.ReportSetting.TransactionSetting();
+
+
+            var transactionSetting = new Rock.Finance.StatementTemplate.StatementTemplateTransactionSetting();
+
+            var transactionSetting = new TransactionSetting();
+
+            var transactionSetting = new StatementTemplateTransactionSetting();
+
             transactionSetting.CurrencyTypesForCashGiftIds = dvpCurrencyTypesCashGifts.SelectedValuesAsInt;
             transactionSetting.CurrencyTypesForNonCashIds = dvpCurrencyTypesNonCashGifts.SelectedValuesAsInt;
             transactionSetting.TransactionTypeIds = dvpTransactionType.SelectedValuesAsInt;

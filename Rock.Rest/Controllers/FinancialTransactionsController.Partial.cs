@@ -196,6 +196,8 @@ namespace Rock.Rest.Controllers
         [Authenticate, Secured]
         [HttpPost]
         [System.Web.Http.Route( "api/FinancialTransactions/GetContributionPersonGroupAddress" )]
+        [Obsolete]
+        [RockObsolete("1.6.11")]
         public DataSet GetContributionPersonGroupAddress( [FromBody]ContributionStatementOptions options )
         {
             Dictionary<string, object> parameters = new Dictionary<string, object>();
@@ -289,6 +291,8 @@ namespace Rock.Rest.Controllers
         [Authenticate, Secured]
         [HttpPost]
         [System.Web.Http.Route( "api/FinancialTransactions/GetContributionTransactions/{groupId}" )]
+        [Obsolete]
+        [RockObsolete( "1.6.11" )]
         public DataSet GetContributionTransactions( int groupId, [FromBody]ContributionStatementOptions options )
         {
             return GetContributionTransactions( groupId, null, options );
@@ -305,6 +309,8 @@ namespace Rock.Rest.Controllers
         [Authenticate, Secured]
         [HttpPost]
         [System.Web.Http.Route( "api/FinancialTransactions/GetContributionTransactions/{groupId}/{personId}" )]
+        [Obsolete]
+        [RockObsolete( "1.6.11" )]
         public DataSet GetContributionTransactions( int groupId, int? personId, [FromBody]ContributionStatementOptions options )
         {
             var qry = Get().Where( a => a.TransactionDateTime >= options.StartDate );
@@ -631,6 +637,8 @@ namespace Rock.Rest.Controllers
         /// <summary>
         ///
         /// </summary>
+        [Obsolete]
+        [RockObsolete( "1.6.11" )]
         public class ContributionStatementOptions
         {
             /// <summary>

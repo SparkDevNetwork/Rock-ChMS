@@ -141,7 +141,6 @@ namespace Rock.Apps.StatementGenerator
 
             ReportOptions.Current.IncludeIndividualsWithNoAddress = ckIncludeIndividualsWithNoAddress.IsChecked ?? false;
             ReportOptions.Current.ExcludeInActiveIndividuals = ckExcludeInActiveIndividuals.IsChecked ?? false;
-            ReportOptions.Current.ExcludeOptedOutIndividuals = ckExcludeOptedOutIndividuals.IsChecked ?? false;
             ReportOptions.Current.IncludeBusinesses = ckIncludeBusinesses.IsChecked ?? false;
             return true;
         }
@@ -328,7 +327,6 @@ namespace Rock.Apps.StatementGenerator
 
             ckIncludeIndividualsWithNoAddress.IsChecked = ReportOptions.Current.IncludeIndividualsWithNoAddress;
             ckExcludeInActiveIndividuals.IsChecked = ReportOptions.Current.ExcludeInActiveIndividuals;
-            ckExcludeOptedOutIndividuals.IsChecked = ReportOptions.Current.ExcludeOptedOutIndividuals;
             ckIncludeBusinesses.IsChecked = ReportOptions.Current.IncludeBusinesses;
 
             if ( ReportOptions.Current.DataViewId.HasValue )

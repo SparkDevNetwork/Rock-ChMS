@@ -279,6 +279,9 @@
     <Compile Include="CodeGenerated\SiteDomain.cs" />
     <Compile Include="CodeGenerated\SmsAction.cs" />
     <Compile Include="CodeGenerated\SmsPipeline.cs" />
+    <Compile Include="CodeGenerated\StatementTemplatePledgeSettings.cs" />
+    <Compile Include="CodeGenerated\StatementTemplateReportSettings.cs" />
+    <Compile Include="CodeGenerated\StatementTemplateTransactionSetting.cs" />
     <Compile Include="CodeGenerated\Step.cs" />
     <Compile Include="CodeGenerated\StepProgram.cs" />
     <Compile Include="CodeGenerated\StepStatus.cs" />

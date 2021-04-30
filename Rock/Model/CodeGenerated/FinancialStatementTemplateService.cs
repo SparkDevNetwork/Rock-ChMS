@@ -95,7 +95,7 @@ namespace Rock.Model
             target.IsActive = source.IsActive;
             target.LogoBinaryFileId = source.LogoBinaryFileId;
             target.Name = source.Name;
-            target.ReportSettings = source.ReportSettings;
+            target.ReportSettingsJson = source.ReportSettingsJson;
             target.ReportTemplate = source.ReportTemplate;
             target.CreatedDateTime = source.CreatedDateTime;
             target.ModifiedDateTime = source.ModifiedDateTime;

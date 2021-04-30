@@ -16,25 +16,25 @@
 //
 using System;
 using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
-namespace Rock.Finance.ReportSetting
+using Rock.Data;
+
+namespace Rock.Financial
 {
     /// <summary>
-    /// Initializes a new instance of the <see cref="ReportSetting"/> class.
+    /// Initializes a new instance of the <see cref="FinancialStatementTemplateReportSettings"/> class.
     /// </summary>
     [Serializable]
-    public class ReportSetting
+    [RockClientInclude( "Report Settings related to the Statement Generator" )]
+    public class FinancialStatementTemplateReportSettings
     {
         /// <summary>
-        /// Initializes a new instance of the <see cref="ReportSetting"/> class.
+        /// Initializes a new instance of the <see cref="FinancialStatementTemplateReportSettings"/> class.
         /// </summary>
-        public ReportSetting()
+        public FinancialStatementTemplateReportSettings()
         {
-            this.TransactionSetting = new TransactionSetting();
-            this.PledgeSetting = new PledgeSetting();
+            this.TransactionSetting = new FinancialStatementTemplateTransactionSetting();
+            this.PledgeSetting = new FinancialStatementTemplatePledgeSettings();
             this.PDFObjectSettings = new Dictionary<string, string>();
         }
 
@@ -44,7 +44,7 @@ namespace Rock.Finance.ReportSetting
         /// <value>
         /// The transaction settings.
         /// </value>
-        public TransactionSetting TransactionSetting { get; set; }
+        public FinancialStatementTemplateTransactionSetting TransactionSetting { get; set; }
 
         /// <summary>
         /// Gets or sets the pledge settings.
@@ -52,7 +52,7 @@ namespace Rock.Finance.ReportSetting
         /// <value>
         /// The pledge settings.
         /// </value>
-        public PledgeSetting PledgeSetting { get; set; }
+        public FinancialStatementTemplatePledgeSettings PledgeSetting { get; set; }
 
         /// <summary>
         /// Gets or sets the dictionary of Key,Value for PDF Object Settings.
@@ -60,18 +60,19 @@ namespace Rock.Finance.ReportSetting
         /// <value>
         /// The Dictionary of Key,Value for PDF Object Settings.
         /// </value>
-        public Dictionary<string,string> PDFObjectSettings { get; set; }
+        public Dictionary<string, string> PDFObjectSettings { get; set; }
     }
 
     /// <summary>
-    /// Initializes a new instance of the <see cref="TransactionSetting"/> class.
+    /// Initializes a new instance of the <see cref="FinancialStatementTemplateTransactionSetting"/> class.
     /// </summary>
-    public class TransactionSetting
+    [RockClientInclude( "Transaction Settings related to the Statement Generator" )]
+    public class FinancialStatementTemplateTransactionSetting
     {
         /// <summary>
-        /// Initializes a new instance of the <see cref="TransactionSetting"/> class.
+        /// Initializes a new instance of the <see cref="FinancialStatementTemplateTransactionSetting"/> class.
         /// </summary>
-        public TransactionSetting()
+        public FinancialStatementTemplateTransactionSetting()
         {
             AccountIds = new List<int>();
             CurrencyTypesForCashGiftIds = new List<int>();
@@ -129,14 +130,15 @@ namespace Rock.Finance.ReportSetting
     }
 
     /// <summary>
-    /// Initializes a new instance of the <see cref="PledgeSetting"/> class.
+    /// Initializes a new instance of the <see cref="FinancialStatementTemplatePledgeSettings"/> class.
     /// </summary>
-    public class PledgeSetting
+    [RockClientInclude( "Pledge Settings related to the Statement Generator" )]
+    public class FinancialStatementTemplatePledgeSettings
     {
         /// <summary>
-        /// Initializes a new instance of the <see cref="PledgeSetting"/> class.
+        /// Initializes a new instance of the <see cref="FinancialStatementTemplatePledgeSettings"/> class.
         /// </summary>
-        public PledgeSetting()
+        public FinancialStatementTemplatePledgeSettings()
         {
             AccountIds = new List<int>();
         }

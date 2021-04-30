@@ -103,15 +103,6 @@
     <Compile Include="RockConfig.cs" />
     <Compile Include="RockExtensions\EnumExtensions.cs" />
     <Compile Include="RockExtensions\StringExtensions.cs" />
-    <Compile Include="SelectPledgeAccountsPage.xaml.cs">
-      <DependentUpon>SelectPledgeAccountsPage.xaml</DependentUpon>
-    </Compile>
-    <Compile Include="SelectAccountsPage.xaml.cs">
-      <DependentUpon>SelectAccountsPage.xaml</DependentUpon>
-    </Compile>
-    <Compile Include="SelectAdvancedFeaturesPage.xaml.cs">
-      <DependentUpon>SelectAdvancedFeaturesPage.xaml</DependentUpon>
-    </Compile>
     <Compile Include="SelectDateRangePage.xaml.cs">
       <DependentUpon>SelectDateRangePage.xaml</DependentUpon>
     </Compile>
@@ -157,18 +148,6 @@
       <Generator>MSBuild:Compile</Generator>
     </Page>
     <Page Include="images\statement-generator.xaml">
-      <Generator>MSBuild:Compile</Generator>
-      <SubType>Designer</SubType>
-    </Page>
-    <Page Include="SelectPledgeAccountsPage.xaml">
-      <Generator>MSBuild:Compile</Generator>
-      <SubType>Designer</SubType>
-    </Page>
-    <Page Include="SelectAccountsPage.xaml">
-      <SubType>Designer</SubType>
-      <Generator>MSBuild:Compile</Generator>
-    </Page>
-    <Page Include="SelectAdvancedFeaturesPage.xaml">
       <Generator>MSBuild:Compile</Generator>
       <SubType>Designer</SubType>
     </Page>

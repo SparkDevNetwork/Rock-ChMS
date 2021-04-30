@@ -67,11 +67,6 @@
                         IsChecked="False"
                         Style="{StaticResource checkboxStyle}" />
                     <CheckBox
-                        Name="ckExcludeOptedOutIndividuals"
-                        Content="Do not generate a statement for those opted out"
-                        IsChecked="True"
-                        Style="{StaticResource checkboxStyle}" />
-                    <CheckBox
                         Name="ckIncludeBusinesses"
                         Content="Include Businesses"
                         IsChecked="False"

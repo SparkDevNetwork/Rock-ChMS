@@ -628,6 +628,9 @@
     <Compile Include="Field\Types\AchievementTypeFieldType.cs" />
     <Compile Include="Financial\IFeeCoverageGatewayComponent.cs" />
     <Compile Include="Financial\IHostedGatewayPaymentControlCurrencyTypeEvent.cs" />
+    <Compile Include="Financial\FinancialStatementGeneratorPledgeSummary.cs" />
+    <Compile Include="Financial\FinancialStatementGeneratorOptions.cs" />
+    <Compile Include="Financial\FinancialStatementGeneratorRecipient.cs" />
     <Compile Include="Jobs\GivingAnalytics.cs" />
     <Compile Include="Jobs\AutoOpenLocations.cs" />
     <Compile Include="Jobs\CollectHostingMetrics.cs" />
@@ -745,7 +748,7 @@
     <Compile Include="Utility\KeyHelper.cs" />
     <Compile Include="Utility\ExtensionMethods\Request.cs" />
     <Compile Include="Utility\RockCurrencyCodeInfo.cs" />
-    <Compile Include="Finance\StatementTemplate\ReportSetting.cs" />
+    <Compile Include="Financial\FinancialStatementTemplateReportSettings.cs" />
     <Compile Include="Utility\Settings\GivingAnalytcis\GivingAnalyticsSetting.cs" />
     <Compile Include="Utility\TaskActivityMessageHub.cs" />
     <Compile Include="Utility\RockSerializableList.cs" />

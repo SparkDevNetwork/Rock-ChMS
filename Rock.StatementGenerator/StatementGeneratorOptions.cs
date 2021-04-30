@@ -22,6 +22,8 @@ namespace Rock.StatementGenerator
     /// <summary>
     /// 
     /// </summary>
+    [Obsolete]
+    [RockObsolete( "1.12.4" )]
     public class StatementGeneratorOptions : DotLiquid.Drop
     {
         /// <summary>
