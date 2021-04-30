@@ -61,7 +61,7 @@ namespace Rock.Client
         public string Name { get; set; }
 
         /// <summary />
-        public string ReportSettingsJson { get; set; } = @"{""TransactionSetting"":{""AccountIds"":[],""CurrencyTypesForCashGiftIds"":[],""CurrencyTypesForNonCashIds"":[],""TransactionTypeIds"":[],""HideRefundedTransaction"":false,""HideCorrectedTransactionOnSameData"":false},""PledgeSetting"":{""AccountIds"":[],""IncludeGiftsToChildAccounts"":false,""IncludeNonCashGifts"":false},""PDFObjectSettings"":{}}";
+        public string ReportSettingsJson { get; set; } = @"{""TransactionSettings"":{""AccountIds"":[],""CurrencyTypesForCashGiftIds"":[],""CurrencyTypesForNonCashIds"":[],""TransactionTypeIds"":[],""HideRefundedTransactions"":false,""HideCorrectedTransactionOnSameData"":false},""PledgeSettings"":{""AccountIds"":[],""IncludeGiftsToChildAccounts"":false,""IncludeNonCashGifts"":false},""PDFObjectSettings"":{}}";
 
         /// <summary />
         public string ReportTemplate { get; set; }
