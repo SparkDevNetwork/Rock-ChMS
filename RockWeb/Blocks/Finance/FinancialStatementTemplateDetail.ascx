@@ -37,7 +37,7 @@
                             </div>
                         </div>
                         <Rock:PanelWidget ID="pwTransactionSettings" runat="server" Title="Transaction Settings" Expanded="true">
-                            <Rock:AccountPicker ID="apTransactionAccounts" runat="server" AllowMultiSelect="true" Label="Accounts for Transactions" Required="true" />
+                            <Rock:AccountPicker ID="apTransactionAccounts" runat="server" AllowMultiSelect="true" Label="Accounts for Transactions" Required="true"  />
                             <Rock:DefinedValuesPicker ID="dvpCurrencyTypesCashGifts" runat="server" Label="Currency Types for Cash Gifts" />
                             <Rock:DefinedValuesPicker ID="dvpCurrencyTypesNonCashGifts" runat="server" Label="Currency Types for Non-Cash Gifts" />
                             <label>Filter Settings</label>

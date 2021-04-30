@@ -23,6 +23,7 @@ using System.Net.Http.Headers;
 using System.Web.Http;
 
 using Rock.Data;
+using Rock.Financial;
 using Rock.Model;
 using Rock.Rest.Filters;
 using Rock.Web.Cache;
@@ -30,56 +31,41 @@ using Rock.Web.Cache;
 namespace Rock.StatementGenerator.Rest
 {
     /// <summary>
-    /// NOTE: WebApi doesn't support Controllers with the Same Name, even if they have different namespaces, so can't call this FinancialTransactionsController
+    /// NOTE: WebApi doesn't support Controllers with the Same Name, even if they have different NameSpaces, so can't call this FinancialTransactionsController
     /// </summary>
     /// <seealso cref="Rock.Rest.ApiControllerBase" />
-    public partial class StatementGeneratorFinancialTransactionsController : Rock.Rest.ApiControllerBase
+    public class FinancialGivingStatementController : Rock.Rest.ApiControllerBase
     {
-        /// <summary>
-        /// Gets the statement generator templates.
-        /// </summary>
-        /// <returns></returns>
-        [Authenticate, Secured]
-        [HttpGet]
-        [System.Web.Http.Route( "api/FinancialTransactions/GetStatementGeneratorTemplates" )]
-        [Obsolete]
-        [RockObsolete( "1.12.4" )]
-        public List<DefinedValue> GetStatementGeneratorTemplates()
-        {
-            List<DefinedValue> result = null;
-            using ( var rockContext = new RockContext() )
-            {
-                result = new Model.DefinedValueService( rockContext )
-                    .GetByDefinedTypeGuid( Rock.StatementGenerator.SystemGuid.DefinedType.STATEMENT_GENERATOR_LAVA_TEMPLATE.AsGuid() ).AsNoTracking()
-                    .ToList();
-
-                result.ForEach( a => a.LoadAttributes( rockContext ) );
-            }
-
-            return result;
-        }
+        #region REST Endpoints
 
         /// <summary>
         /// Gets the statement generator recipients. This will be sorted based on the StatementGeneratorOptions
         /// </summary>
-        /// <param name="options">The options.</param>
+        /// <param name="financialStatementGeneratorOptions">The financial statement generator options.</param>
         /// <returns></returns>
         [Authenticate, Secured]
         [HttpPost]
-        [System.Web.Http.Route( "api/FinancialTransactions/GetStatementGeneratorRecipients" )]
-        [Obsolete]
-        [RockObsolete( "1.12.4" )]
-        public List<StatementGeneratorRecipient> GetStatementGeneratorRecipients( [FromBody] StatementGeneratorOptions options )
+        [System.Web.Http.Route( "api/FinancialGivingStatement/GetFinancialStatementGeneratorRecipients" )]
+        public List<FinancialStatementGeneratorRecipient> GetFinancialStatementGeneratorRecipients( [FromBody] Rock.Financial.FinancialStatementGeneratorOptions financialStatementGeneratorOptions )
         {
-            if ( options == null )
+            if ( financialStatementGeneratorOptions == null )
             {
-                throw new Exception( "StatementGenerationOption options must be specified" );
+                throw new Exception( "FinancialStatementGeneratorOptions options must be specified" );
             }
 
             using ( var rockContext = new RockContext() )
             {
-                var financialTransactionQry = GetFinancialTransactionQuery( options, rockContext, true );
-                var financialPledgeQry = GetFinancialPledgeQuery( options, rockContext, true );
+                FinancialStatementTemplate financialStatementTemplate = new FinancialStatementTemplateService( rockContext ).Get( financialStatementGeneratorOptions.FinancialStatementTemplateId ?? 0 );
+                if ( financialStatementTemplate == null )
+                {
+                    throw new Exception( "FinancialStatementTemplate must be specified." );
+                }
+
+                var reportSettings = financialStatementTemplate.ReportSettings;
+                var transactionSettings = reportSettings.TransactionSettings;
+
+                var financialTransactionQry = GetFinancialTransactionQuery( financialStatementGeneratorOptions, rockContext, true );
+                var financialPledgeQry = GetFinancialPledgeQuery( financialStatementGeneratorOptions, rockContext, true );
 
                 // Get distinct Giving Groups for Persons that have a specific GivingGroupId and have transactions that match the filter
                 // These are Persons that give as part of a Group.For example, Husband and Wife
@@ -115,7 +101,7 @@ namespace Rock.StatementGenerator.Rest
 
                 var unionQry = qryGivingGroupIdsThatHaveTransactions.Union( qryIndividualGiversThatHaveTransactions );
 
-                if ( options.PledgesAccountIds.Any() )
+                if ( reportSettings.PledgeSettings.AccountIds.Any() )
                 {
                     unionQry = unionQry.Union( qryGivingGroupIdsThatHavePledges ).Union( qryIndividualGiversThatHavePledges );
                 }
@@ -129,63 +115,32 @@ namespace Rock.StatementGenerator.Rest
                                            from l in u.DefaultIfEmpty()
                                            select new
                                            {
-                                               pg.PersonId,
-                                               pg.GroupId,
+                                               PersonId = pg.PersonId,
+                                               GroupId = pg.GroupId,
                                                LocationGuid = ( Guid? ) l.Location.Guid,
-                                               l.Location.PostalCode
+                                               PostalCode = l.Location.PostalCode,
                                            };
 
                 // Require that LocationId has a value unless this is for a specific person, a dataview, or the IncludeIndividualsWithNoAddress option is enabled
-                if ( options.PersonId == null && options.DataViewId == null && !options.IncludeIndividualsWithNoAddress )
+                if ( financialStatementGeneratorOptions.PersonId == null && financialStatementGeneratorOptions.DataViewId == null && !financialStatementGeneratorOptions.IncludeIndividualsWithNoAddress )
                 {
                     unionJoinLocationQry = unionJoinLocationQry.Where( a => a.LocationGuid.HasValue );
                 }
 
-                if ( options.OrderBy == OrderBy.PostalCode )
-                {
-                    unionJoinLocationQry = unionJoinLocationQry.OrderBy( a => a.PostalCode );
-                }
-                else if ( options.OrderBy == OrderBy.LastName )
-                {
-                    // get a query to look up LastName for recipients that give as a group
-                    var qryLastNameAsGroup = new PersonService( rockContext ).Queryable( false, true )
-                        .Where( a => a.GivingLeaderId == a.Id && a.GivingGroupId.HasValue )
-                        .Select( a => new
-                        {
-                            a.GivingGroupId,
-                            a.LastName,
-                            a.FirstName
-                        } );
+                var givingIdsQry = unionJoinLocationQry.Select( a => new { a.PersonId, a.GroupId, a.LocationGuid, a.PostalCode } );
 
-                    // get a query to look up LastName for recipients that give as individuals
-                    var qryLastNameAsIndividual = new PersonService( rockContext ).Queryable( false, true );
-
-                    unionJoinLocationQry = unionJoinLocationQry.Select( a => new
+                var recipientList = givingIdsQry.ToList().Select( a =>
+                    new FinancialStatementGeneratorRecipient
                     {
-                        a.PersonId,
-                        a.GroupId,
-                        a.LocationGuid,
-                        a.PostalCode,
-                        GivingLeader = a.PersonId.HasValue ?
-                            qryLastNameAsIndividual.Where( p => p.Id == a.PersonId ).Select( x => new { x.LastName, x.FirstName } ).FirstOrDefault()
-                            : qryLastNameAsGroup.Where( gl => gl.GivingGroupId == a.GroupId ).Select( x => new { x.LastName, x.FirstName } ).FirstOrDefault()
-                    } ).OrderBy( a => a.GivingLeader.LastName ).ThenBy( a => a.GivingLeader.FirstName )
-                    .Select( a => new
-                    {
-                        a.PersonId,
-                        a.GroupId,
-                        a.LocationGuid,
-                        a.PostalCode
-                    } );
-                }
+                        GroupId = a.GroupId,
+                        PersonId = a.PersonId,
+                        LocationGuid = a.LocationGuid,
+                        PostalCode = a.PostalCode
+                    } ).ToList();
 
-                var givingIdsQry = unionJoinLocationQry.Select( a => new { a.PersonId, a.GroupId, a.LocationGuid } );
-
-                var recipientList = givingIdsQry.ToList().Select( a => new StatementGeneratorRecipient { GroupId = a.GroupId, PersonId = a.PersonId, LocationGuid = a.LocationGuid } ).ToList();
-
-                if ( options.DataViewId.HasValue )
+                if ( financialStatementGeneratorOptions.DataViewId.HasValue )
                 {
-                    var dataView = new DataViewService( new RockContext() ).Get( options.DataViewId.Value );
+                    var dataView = new DataViewService( new RockContext() ).Get( financialStatementGeneratorOptions.DataViewId.Value );
                     if ( dataView != null )
                     {
                         var dataViewGetQueryArgs = new DataViewGetQueryArgs();
@@ -213,58 +168,62 @@ namespace Rock.StatementGenerator.Rest
                     }
                 }
 
+                var personGivingIdsQuery = givingIdsQry.Where( a => a.PersonId.HasValue );
+                var personQuery = new PersonService( rockContext ).Queryable( false, true );
+
+                // get a query to look up LastName for recipients that give as a group
+                var qryNickNameLastNameAsIndividual = from p in personQuery
+                                                      join gg in personGivingIdsQuery on p.Id equals gg.PersonId.Value
+                                                      select new { gg.PersonId, p.NickName, p.LastName };
+
+                var nickNameLastNameLookupByPersonId = qryNickNameLastNameAsIndividual.ToDictionary( k => k.PersonId, v => new { v.NickName, v.LastName } );
+
+                var qryNickNameLastNameAsGivingLeader = from p in personQuery.Where( a => a.GivingLeaderId == a.Id && a.GivingGroupId.HasValue )
+                                                        join gg in personGivingIdsQuery on p.GivingGroupId equals gg.GroupId
+                                                        select new { gg.GroupId, p.NickName, p.LastName };
+
+                var nickNameLastNameLookupByGivingGroupId = qryNickNameLastNameAsGivingLeader.ToDictionary( k => k.GroupId, v => new { v.NickName, v.LastName } );
+
+                foreach ( var recipient in recipientList )
+                {
+                    if ( recipient.PersonId.HasValue )
+                    {
+                        var lookupValue = nickNameLastNameLookupByPersonId.GetValueOrNull( recipient.PersonId.Value );
+                        recipient.NickName = lookupValue.NickName;
+                        recipient.LastName = lookupValue.LastName;
+                    }
+                    else
+                    {
+                        var lookupValue = nickNameLastNameLookupByGivingGroupId.GetValueOrNull( recipient.GroupId );
+                        recipient.NickName = lookupValue.NickName;
+                        recipient.LastName = lookupValue.LastName;
+                    }
+                }
+
+                // use C# to sort the recipients by specified PrimarySortOrder and SecondarySortOrder
+                if ( financialStatementGeneratorOptions.SelectedReportConfiguration.PrimarySortOrder == FinancialStatementOrderBy.LastName )
+                {
+                    var sortedRecipientList = recipientList.OrderBy( a => a.LastName ).ThenBy( a => a.NickName );
+                    if ( financialStatementGeneratorOptions.SelectedReportConfiguration.SecondarySortOrder == FinancialStatementOrderBy.PostalCode )
+                    {
+                        sortedRecipientList = sortedRecipientList.ThenBy( a => a.PostalCode );
+                    }
+
+                    recipientList = sortedRecipientList.ToList();
+                }
+                else if ( financialStatementGeneratorOptions.SelectedReportConfiguration.PrimarySortOrder == FinancialStatementOrderBy.PostalCode )
+                {
+                    var sortedRecipientList = recipientList.OrderBy( a => a.PostalCode );
+                    if ( financialStatementGeneratorOptions.SelectedReportConfiguration.SecondarySortOrder == FinancialStatementOrderBy.LastName )
+                    {
+                        sortedRecipientList = sortedRecipientList.ThenBy( a => a.LastName ).ThenBy( a => a.NickName );
+                    }
+
+                    recipientList = sortedRecipientList.ToList();
+                }
+
                 return recipientList;
             }
-        }
-
-        /// <summary>
-        /// Gets the statement generator recipient result for a GivingGroup that doesn't have an address
-        /// </summary>
-        /// <param name="groupId">The group identifier.</param>
-        /// <param name="options">The options.</param>
-        /// <returns></returns>
-        [Authenticate, Secured]
-        [HttpPost]
-        [System.Web.Http.Route( "api/FinancialTransactions/GetStatementGeneratorRecipientResult" )]
-        [Obsolete]
-        [RockObsolete( "1.12.4" )]
-        public StatementGeneratorRecipientResult GetStatementGeneratorRecipientResult( int groupId, [FromBody] StatementGeneratorOptions options )
-        {
-            return GetStatementGeneratorRecipientResult( groupId, ( int? ) null, ( Guid? ) null, options );
-        }
-
-        /// <summary>
-        /// Gets the statement generator recipient result for an individual that doesn't have an address
-        /// </summary>
-        /// <param name="groupId">The group identifier.</param>
-        /// <param name="personId">The person identifier.</param>
-        /// <param name="options">The options.</param>
-        /// <returns></returns>
-        [Authenticate, Secured]
-        [HttpPost]
-        [System.Web.Http.Route( "api/FinancialTransactions/GetStatementGeneratorRecipientResult" )]
-        [Obsolete]
-        [RockObsolete( "1.12.4" )]
-        public StatementGeneratorRecipientResult GetStatementGeneratorRecipientResult( int groupId, int? personId, [FromBody] StatementGeneratorOptions options )
-        {
-            return GetStatementGeneratorRecipientResult( groupId, personId, ( Guid? ) null, options );
-        }
-
-        /// <summary>
-        /// Gets the statement generator recipient result for a GivingGroup with the specified address (locationGuid)
-        /// </summary>
-        /// <param name="groupId">The group identifier.</param>
-        /// <param name="locationGuid">The location unique identifier.</param>
-        /// <param name="options">The options.</param>
-        /// <returns></returns>
-        [Authenticate, Secured]
-        [HttpPost]
-        [System.Web.Http.Route( "api/FinancialTransactions/GetStatementGeneratorRecipientResult" )]
-        [Obsolete]
-        [RockObsolete( "1.12.4" )]
-        public StatementGeneratorRecipientResult GetStatementGeneratorRecipientResult( int groupId, Guid? locationGuid, [FromBody] StatementGeneratorOptions options )
-        {
-            return GetStatementGeneratorRecipientResult( groupId, ( int? ) null, locationGuid, options );
         }
 
         /// <summary>
@@ -274,38 +233,44 @@ namespace Rock.StatementGenerator.Rest
         /// <param name="groupId">The group identifier.</param>
         /// <param name="personId">The person identifier.</param>
         /// <param name="locationGuid">The location unique identifier.</param>
-        /// <param name="options">The options.</param>
+        /// <param name="financialStatementGeneratorOptions">The financial statement generator options.</param>
         /// <returns></returns>
-        /// <exception cref="Exception">
-        /// StatementGenerationOption options must be specified
+        /// <exception cref="Exception">StatementGenerationOption options must be specified
         /// or
-        /// LayoutDefinedValueGuid option must be specified
-        /// </exception>
+        /// LayoutDefinedValueGuid option must be specified</exception>
         [Authenticate, Secured]
         [HttpPost]
-        [System.Web.Http.Route( "api/FinancialTransactions/GetStatementGeneratorRecipientResult" )]
-        [Obsolete]
-        [RockObsolete( "1.12.4" )]
-        public StatementGeneratorRecipientResult GetStatementGeneratorRecipientResult( int groupId, int? personId, Guid? locationGuid, [FromBody] StatementGeneratorOptions options )
+        [System.Web.Http.Route( "api/FinancialGivingStatement/GetStatementGeneratorRecipientResult" )]
+        public FinancialStatementGeneratorRecipientResult GetStatementGeneratorRecipientResult( int groupId, int? personId, Guid? locationGuid, [FromBody] Rock.Financial.FinancialStatementGeneratorOptions financialStatementGeneratorOptions )
         {
-            if ( options == null )
+            if ( financialStatementGeneratorOptions == null )
             {
-                throw new Exception( "StatementGenerationOption options must be specified" );
+                throw new Exception( "FinancialStatementGeneratorOptions options must be specified" );
             }
 
-            if ( options.LayoutDefinedValueGuid == null )
-            {
-                throw new Exception( "LayoutDefinedValueGuid option must be specified" );
-            }
-
-            var result = new StatementGeneratorRecipientResult();
+            var result = new FinancialStatementGeneratorRecipientResult();
             result.GroupId = groupId;
             result.PersonId = personId;
 
             using ( var rockContext = new RockContext() )
             {
-                var financialTransactionQry = this.GetFinancialTransactionQuery( options, rockContext, false );
-                var financialPledgeQry = GetFinancialPledgeQuery( options, rockContext, false );
+                FinancialStatementTemplate financialStatementTemplate = new FinancialStatementTemplateService( rockContext ).Get( financialStatementGeneratorOptions.FinancialStatementTemplateId ?? 0 );
+                if ( financialStatementTemplate == null )
+                {
+                    throw new Exception( "FinancialStatementTemplate must be specified." );
+                }
+
+                var reportSettings = financialStatementTemplate.ReportSettings;
+                var transactionSettings = reportSettings.TransactionSettings;
+                var financialTransactionQry = this.GetFinancialTransactionQuery( financialStatementGeneratorOptions, rockContext, false );
+                var financialPledgeQry = GetFinancialPledgeQuery( financialStatementGeneratorOptions, rockContext, false );
+
+                var financialStatementReportConfiguration = financialStatementGeneratorOptions.SelectedReportConfiguration;
+
+                if ( financialStatementReportConfiguration == null )
+                {
+                    throw new Exception( "SelectedReportConfiguration must be specified." );
+                }
 
                 var personList = new List<Person>();
                 Person person = null;
@@ -322,7 +287,7 @@ namespace Rock.StatementGenerator.Rest
                     person = personList.FirstOrDefault();
                 }
 
-                if ( options.ExcludeOptedOutIndividuals == true && !options.DataViewId.HasValue )
+                if ( financialStatementReportConfiguration.ExcludeOptedOutIndividuals == true && !financialStatementGeneratorOptions.DataViewId.HasValue )
                 {
                     int? doNotSendGivingStatementAttributeId = AttributeCache.Get( Rock.StatementGenerator.SystemGuid.Attribute.PERSON_DO_NOT_SEND_GIVING_STATEMENT.AsGuid() )?.Id;
                     if ( doNotSendGivingStatementAttributeId.HasValue )
@@ -383,25 +348,24 @@ namespace Rock.StatementGenerator.Rest
 
                 foreach ( var financialTransaction in financialTransactionsList )
                 {
-                    if ( options.TransactionAccountIds != null )
+                    if ( transactionSettings.AccountIds != null )
                     {
                         // remove any Accounts that were not included (in case there was a mix of included and not included accounts in the transaction)
-                        financialTransaction.TransactionDetails = financialTransaction.TransactionDetails.Where( a => options.TransactionAccountIds.Contains( a.AccountId ) ).ToList();
+                        financialTransaction.TransactionDetails = financialTransaction.TransactionDetails.Where( a => transactionSettings.AccountIds.Contains( a.AccountId ) ).ToList();
                     }
 
                     financialTransaction.TransactionDetails = financialTransaction.TransactionDetails.OrderBy( a => a.Account.Order ).ThenBy( a => a.Account.PublicName ).ToList();
                 }
 
-                var lavaTemplateValue = DefinedValueCache.Get( options.LayoutDefinedValueGuid.Value );
-                var lavaTemplateLava = lavaTemplateValue.GetAttributeValue( "LavaTemplate" );
-                var lavaTemplateFooterLava = lavaTemplateValue.GetAttributeValue( "FooterHtml" );
+                var lavaTemplateLava = financialStatementTemplate.ReportTemplate;
+                var lavaTemplateFooterLava = financialStatementTemplate.FooterTemplate;
 
                 var mergeFields = Rock.Lava.LavaHelper.GetCommonMergeFields( null, null, new Lava.CommonMergeFieldsOptions { GetLegacyGlobalMergeFields = false, GetDeviceFamily = false, GetOSFamily = false, GetPageContext = false, GetPageParameters = false, GetCampuses = true, GetCurrentPerson = true } );
-                mergeFields.Add( "LavaTemplate", lavaTemplateValue );
+                mergeFields.Add( "FinancialStatementTemplate", financialStatementTemplate );
 
                 mergeFields.Add( "PersonList", personList );
-                mergeFields.Add( "StatementStartDate", options.StartDate );
-                var humanFriendlyEndDate = options.EndDate.HasValue ? options.EndDate.Value.AddDays( -1 ) : RockDateTime.Now.Date;
+                mergeFields.Add( "StatementStartDate", financialStatementGeneratorOptions.StartDate );
+                var humanFriendlyEndDate = financialStatementGeneratorOptions.EndDate.HasValue ? financialStatementGeneratorOptions.EndDate.Value.AddDays( -1 ) : RockDateTime.Now.Date;
                 mergeFields.Add( "StatementEndDate", humanFriendlyEndDate );
 
                 string familyTitle;
@@ -461,7 +425,7 @@ namespace Rock.StatementGenerator.Rest
 
                 var transactionDetailListAll = financialTransactionsList.SelectMany( a => a.TransactionDetails ).ToList();
 
-                if ( options.HideRefundedTransactions && transactionDetailListAll.Any( a => a.Amount < 0 ) )
+                if ( transactionSettings.HideRefundedTransactions && transactionDetailListAll.Any( a => a.Amount < 0 ) )
                 {
                     var allRefunds = transactionDetailListAll.SelectMany( a => a.Transaction.Refunds ).ToList();
                     foreach ( var refund in allRefunds )
@@ -486,7 +450,7 @@ namespace Rock.StatementGenerator.Rest
                     }
                 }
 
-                if ( options.HideCorrectedTransactions && transactionDetailListAll.Any( a => a.Amount < 0 ) )
+                if ( transactionSettings.HideCorrectedTransactionOnSameData && transactionDetailListAll.Any( a => a.Amount < 0 ) )
                 {
                     // Hide transactions that are corrected on the same date. Transactions that have a matching negative dollar amount on the same date and same account will not be shown.
 
@@ -498,7 +462,6 @@ namespace Rock.StatementGenerator.Rest
                     } )
                     .Where( a => a.TransactionDetails.Any( x => x.Amount < 0 ) )
                     .ToList();
-
 
                     foreach ( var transactionsByDate in transactionsByDateList )
                     {
@@ -522,20 +485,20 @@ namespace Rock.StatementGenerator.Rest
                 List<FinancialTransactionDetail> transactionDetailListCash = transactionDetailListAll;
                 List<FinancialTransactionDetail> transactionDetailListNonCash = new List<FinancialTransactionDetail>();
 
-                if ( options.CurrencyTypeIdsCash != null )
+                if ( transactionSettings.CurrencyTypesForCashGiftIds != null )
                 {
                     // NOTE: if there isn't a FinancialPaymentDetail record, assume it is Cash
                     transactionDetailListCash = transactionDetailListCash.Where( a =>
                         ( a.Transaction.FinancialPaymentDetailId == null ) ||
-                        ( a.Transaction.FinancialPaymentDetail.CurrencyTypeValueId.HasValue && options.CurrencyTypeIdsCash.Contains( a.Transaction.FinancialPaymentDetail.CurrencyTypeValueId.Value ) ) ).ToList();
+                        ( a.Transaction.FinancialPaymentDetail.CurrencyTypeValueId.HasValue && transactionSettings.CurrencyTypesForCashGiftIds.Contains( a.Transaction.FinancialPaymentDetail.CurrencyTypeValueId.Value ) ) ).ToList();
                 }
 
-                if ( options.CurrencyTypeIdsNonCash != null )
+                if ( transactionSettings.CurrencyTypesForNonCashIds != null )
                 {
                     transactionDetailListNonCash = transactionDetailListAll.Where( a =>
                         a.Transaction.FinancialPaymentDetailId.HasValue &&
                         a.Transaction.FinancialPaymentDetail.CurrencyTypeValueId.HasValue
-                        && options.CurrencyTypeIdsNonCash.Contains( a.Transaction.FinancialPaymentDetail.CurrencyTypeValueId.Value ) ).ToList();
+                        && transactionSettings.CurrencyTypesForNonCashIds.Contains( a.Transaction.FinancialPaymentDetail.CurrencyTypeValueId.Value ) ).ToList();
                 }
 
                 // Add Merge Fields for Transactions for custom Statements that might want to organize the output by Transaction instead of TransactionDetail
@@ -578,7 +541,9 @@ namespace Rock.StatementGenerator.Rest
                         } )
                         .OrderBy( s => s.Order ) );
 
-                if ( options.PledgesAccountIds != null && options.PledgesAccountIds.Any() )
+                var pledgeSettings = reportSettings.PledgeSettings;
+
+                if ( pledgeSettings.AccountIds != null && pledgeSettings.AccountIds.Any() )
                 {
                     var pledgeList = financialPledgeQry
                                         .Where( p => p.PersonAliasId.HasValue && personAliasIds.Contains( p.PersonAliasId.Value ) )
@@ -614,15 +579,15 @@ namespace Rock.StatementGenerator.Rest
                     // add detailed pledge information
                     if ( pledgeSummaryList.Any() )
                     {
-                        int statementPledgeYear = options.StartDate.Value.Year;
+                        int statementPledgeYear = financialStatementGeneratorOptions.StartDate.Value.Year;
 
                         List<int> pledgeCurrencyTypeIds = null;
-                        if ( options.CurrencyTypeIdsCash != null )
+                        if ( transactionSettings.CurrencyTypesForCashGiftIds != null )
                         {
-                            pledgeCurrencyTypeIds = options.CurrencyTypeIdsCash;
-                            if ( options.PledgesIncludeNonCashGifts && options.CurrencyTypeIdsNonCash != null )
+                            pledgeCurrencyTypeIds = transactionSettings.CurrencyTypesForCashGiftIds;
+                            if ( pledgeSettings.IncludeNonCashGifts && transactionSettings.CurrencyTypesForNonCashIds != null )
                             {
-                                pledgeCurrencyTypeIds = options.CurrencyTypeIdsCash.Union( options.CurrencyTypeIdsNonCash ).ToList();
+                                pledgeCurrencyTypeIds = transactionSettings.CurrencyTypesForCashGiftIds.Union( transactionSettings.CurrencyTypesForNonCashIds ).ToList();
                             }
                         }
 
@@ -634,11 +599,11 @@ namespace Rock.StatementGenerator.Rest
                                 adjustedPledgeEndDate = pledgeSummary.PledgeEndDate.Value.Date.AddDays( 1 );
                             }
 
-                            if ( options.EndDate.HasValue )
+                            if ( financialStatementGeneratorOptions.EndDate.HasValue )
                             {
-                                if ( adjustedPledgeEndDate > options.EndDate.Value )
+                                if ( adjustedPledgeEndDate > financialStatementGeneratorOptions.EndDate.Value )
                                 {
-                                    adjustedPledgeEndDate = options.EndDate.Value;
+                                    adjustedPledgeEndDate = financialStatementGeneratorOptions.EndDate.Value;
                                 }
                             }
 
@@ -647,14 +612,13 @@ namespace Rock.StatementGenerator.Rest
                                                              && t.Transaction.TransactionDateTime >= pledgeSummary.PledgeStartDate
                                                              && t.Transaction.TransactionDateTime < adjustedPledgeEndDate );
 
-                            if ( options.PledgesIncludeChildAccounts )
+                            if ( pledgeSettings.IncludeGiftsToChildAccounts )
                             {
                                 // If PledgesIncludeChildAccounts = true, we'll include transactions to those child accounts as part of the pledge (but only one level deep)
                                 pledgeFinancialTransactionDetailQry = pledgeFinancialTransactionDetailQry.Where( t =>
                                     t.AccountId == pledgeSummary.AccountId
                                     ||
-                                    ( t.Account.ParentAccountId.HasValue && t.Account.ParentAccountId == pledgeSummary.AccountId )
-                                );
+                                    ( t.Account.ParentAccountId.HasValue && t.Account.ParentAccountId == pledgeSummary.AccountId ) );
                             }
                             else
                             {
@@ -676,7 +640,7 @@ namespace Rock.StatementGenerator.Rest
                     mergeFields.Add( "Pledges", pledgeSummaryList );
                 }
 
-                mergeFields.Add( "Options", options );
+                mergeFields.Add( "Options", financialStatementGeneratorOptions );
 
                 var currentPerson = this.GetPerson();
                 result.Html = lavaTemplateLava.ResolveMergeFields( mergeFields, currentPerson );
@@ -692,30 +656,169 @@ namespace Rock.StatementGenerator.Rest
         }
 
         /// <summary>
+        /// Render and return a giving statement for the specified person.
+        /// </summary>
+        /// <param name="personId">The person that made the contributions. That person's entire
+        /// giving group is included, which is typically the family.</param>
+        /// <param name="year">The contribution calendar year. ie 2019.  If not specified, the
+        /// current year is assumed.</param>
+        /// <param name="templateDefinedValueId">[Obsolete] The defined value ID that represents the statement
+        /// lava. This defined value should be a part of the Statement Generator Lava Template defined
+        /// type. If no ID is specified, then the default defined value for the Statement Generator Lava
+        /// Template defined type is assumed.</param>
+        /// <param name="financialStatementTemplateId"></param>
+        /// <param name="hideRefundedTransactions">if set to <c>true</c> transactions that have any
+        /// refunds will be hidden.</param>
+        /// <returns>
+        /// The rendered giving statement
+        /// </returns>
+        [System.Web.Http.Route( "api/GivingStatement/{personId}" )]
+        [System.Web.Http.Route( "api/FinancialGivingStatement/{personId}" )]
+        [HttpGet]
+        [Authenticate, Secured]
+        public HttpResponseMessage RenderGivingStatement(
+            int personId,
+            [FromUri] int? year = null,
+            [FromUri] int? templateDefinedValueId = null,
+            [FromUri] int? financialStatementTemplateId = null,
+            [FromUri] bool hideRefundedTransactions = true )
+        {
+            if ( templateDefinedValueId.HasValue )
+            {
+                // if they specified templateDefinedValueId, they are wanting the obsolete version of api/GivingStatement. So call the obsolete version of it
+#pragma warning disable CS0618
+
+                var legacyHtml = StatementGeneratorFinancialTransactionsController.GetGivingStatementHTML( personId, year, templateDefinedValueId, hideRefundedTransactions, this.GetPerson() );
+
+#pragma warning restore CS0618
+
+                // Render the statement as HTML and send back to the user
+                var legacyResponse = new HttpResponseMessage();
+                legacyResponse.Content = new StringContent( legacyHtml );
+                legacyResponse.Content.Headers.ContentType = new MediaTypeHeaderValue( "text/html" );
+                return legacyResponse;
+            }
+
+            // Assume the current year if no year is specified
+            var currentYear = RockDateTime.Now.Year;
+            year = year ?? currentYear;
+            var isCurrentYear = year == currentYear;
+            var startDate = new DateTime( year.Value, 1, 1 );
+            var endDate = isCurrentYear ? RockDateTime.Now : new DateTime( year.Value + 1, 1, 1 );
+
+            // Declare the necessary services
+            var rockContext = new RockContext();
+            var personService = new PersonService( rockContext );
+
+            // Get the family ID
+            var person = personService.Get( personId );
+            if ( person == null )
+            {
+                throw new Exception( string.Format( "The person with ID {0} could not be found", personId ) );
+            }
+
+            if ( !person.PrimaryFamilyId.HasValue )
+            {
+                throw new Exception( string.Format( "The person with ID {0} does not have a primary family ID", personId ) );
+            }
+
+            // Build the options for the generator
+            var options = new FinancialStatementGeneratorOptions
+            {
+                EndDate = endDate,
+                FinancialStatementTemplateId = financialStatementTemplateId,
+                StartDate = startDate,
+                SelectedReportConfiguration = new FinancialStatementGeneratorOptions.FinancialStatementReportConfiguration
+                {
+                    ExcludeOptedOutIndividuals = false,
+                },
+            };
+
+            // Get the generator result
+            FinancialStatementGeneratorRecipientResult result = GetStatementGeneratorRecipientResult( person.PrimaryFamilyId.Value, person.Id, null, options );
+
+            // Render the statement as HTML and send back to the user
+            var response = new HttpResponseMessage();
+            response.Content = new StringContent( result.Html );
+            response.Content.Headers.ContentType = new MediaTypeHeaderValue( "text/html" );
+            return response;
+        }
+
+        #endregion REST Endpoints
+
+        #region Private Methods
+
+        /// <summary>
+        /// Gets the group location query.
+        /// </summary>
+        /// <param name="rockContext">The rock context.</param>
+        /// <returns></returns>
+        private static IQueryable<GroupLocation> GetGroupLocationQuery( RockContext rockContext )
+        {
+            var groupLocationTypeIdHome = DefinedValueCache.Get( Rock.SystemGuid.DefinedValue.GROUP_LOCATION_TYPE_HOME.AsGuid() )?.Id;
+            var groupLocationTypeIdWork = DefinedValueCache.Get( Rock.SystemGuid.DefinedValue.GROUP_LOCATION_TYPE_WORK.AsGuid() )?.Id;
+            var groupLocationTypeIds = new List<int>();
+            if ( groupLocationTypeIdHome.HasValue )
+            {
+                groupLocationTypeIds.Add( groupLocationTypeIdHome.Value );
+            }
+
+            if ( groupLocationTypeIdWork.HasValue )
+            {
+                groupLocationTypeIds.Add( groupLocationTypeIdWork.Value );
+            }
+
+            IQueryable<GroupLocation> groupLocationsQry = null;
+
+            if ( groupLocationTypeIds.Count == 2 )
+            {
+                groupLocationsQry = new GroupLocationService( rockContext ).Queryable()
+                    .Where( a => a.IsMailingLocation && a.GroupLocationTypeValueId.HasValue )
+                    .Where( a => a.GroupLocationTypeValueId == groupLocationTypeIdHome.Value || a.GroupLocationTypeValueId == groupLocationTypeIdWork.Value );
+            }
+            else
+            {
+                groupLocationsQry = new GroupLocationService( rockContext ).Queryable()
+                    .Where( a => a.IsMailingLocation && a.GroupLocationTypeValueId.HasValue && groupLocationTypeIds.Contains( a.GroupLocationTypeValueId.Value ) );
+            }
+
+            return groupLocationsQry;
+        }
+
+        /// <summary>
         /// Gets the financial pledge query.
         /// </summary>
-        /// <param name="options">The options.</param>
+        /// <param name="financialStatementGeneratorOptions">The financial statement generator options.</param>
         /// <param name="rockContext">The rock context.</param>
         /// <param name="usePersonFilters">if set to <c>true</c> [use person filters].</param>
         /// <returns></returns>
-        [Obsolete]
-        [RockObsolete( "1.12.4" )]
-        private IQueryable<FinancialPledge> GetFinancialPledgeQuery( StatementGeneratorOptions options, RockContext rockContext, bool usePersonFilters )
+        /// <exception cref="Exception">FinancialStatementTemplate must be specified.</exception>
+        private IQueryable<FinancialPledge> GetFinancialPledgeQuery( Rock.Financial.FinancialStatementGeneratorOptions financialStatementGeneratorOptions, RockContext rockContext, bool usePersonFilters )
         {
+            FinancialStatementTemplate financialStatementTemplate = new FinancialStatementTemplateService( rockContext ).Get( financialStatementGeneratorOptions.FinancialStatementTemplateId ?? 0 );
+            if ( financialStatementTemplate == null )
+            {
+                throw new Exception( "FinancialStatementTemplate must be specified." );
+            }
+
+            var reportSettings = financialStatementTemplate.ReportSettings;
+            var transactionSettings = reportSettings.TransactionSettings;
+            var pledgeSettings = reportSettings.PledgeSettings;
+
             // pledge information
             var pledgeQry = new FinancialPledgeService( rockContext ).Queryable();
 
             // only include pledges that started *before* the enddate of the statement ( we don't want pledges that start AFTER the statement end date )
-            if ( options.EndDate.HasValue )
+            if ( financialStatementGeneratorOptions.EndDate.HasValue )
             {
-                pledgeQry = pledgeQry.Where( p => p.StartDate < options.EndDate.Value );
+                pledgeQry = pledgeQry.Where( p => p.StartDate < financialStatementGeneratorOptions.EndDate.Value );
             }
 
             // also only include pledges that ended *after* the statement start date ( we don't want pledges that ended BEFORE the statement start date )
-            pledgeQry = pledgeQry.Where( p => p.EndDate >= options.StartDate.Value );
+            pledgeQry = pledgeQry.Where( p => p.EndDate >= financialStatementGeneratorOptions.StartDate.Value );
 
             // Filter to specified AccountIds (if specified)
-            if ( options.PledgesAccountIds == null || !options.PledgesAccountIds.Any() )
+            if ( pledgeSettings.AccountIds == null || !pledgeSettings.AccountIds.Any() )
             {
                 // if no PledgeAccountIds where specified, don't include any pledges
                 pledgeQry = pledgeQry.Where( a => false );
@@ -724,16 +827,16 @@ namespace Rock.StatementGenerator.Rest
             {
                 // NOTE: Only get the Pledges that were specifically pledged to the selected accounts
                 // If the PledgesIncludeChildAccounts = true, we'll include transactions to those child accounts as part of the pledge (but only one level deep)
-                var selectedAccountIds = options.PledgesAccountIds;
+                var selectedAccountIds = pledgeSettings.AccountIds;
                 pledgeQry = pledgeQry.Where( a => a.AccountId.HasValue && selectedAccountIds.Contains( a.AccountId.Value ) );
             }
 
             if ( usePersonFilters )
             {
-                if ( options.PersonId.HasValue )
+                if ( financialStatementGeneratorOptions.PersonId.HasValue )
                 {
                     // If PersonId is specified, then this statement is for a specific person, so don't do any other filtering
-                    string personGivingId = new PersonService( rockContext ).Queryable().Where( a => a.Id == options.PersonId.Value ).Select( a => a.GivingId ).FirstOrDefault();
+                    string personGivingId = new PersonService( rockContext ).Queryable().Where( a => a.Id == financialStatementGeneratorOptions.PersonId.Value ).Select( a => a.GivingId ).FirstOrDefault();
                     if ( personGivingId != null )
                     {
                         pledgeQry = pledgeQry.Where( a => a.PersonAlias.Person.GivingId == personGivingId );
@@ -747,15 +850,15 @@ namespace Rock.StatementGenerator.Rest
                 else
                 {
                     // unless we are using a DataView for filtering, filter based on the IncludeBusiness and ExcludeInActiveIndividuals options
-                    if ( !options.DataViewId.HasValue )
+                    if ( !financialStatementGeneratorOptions.DataViewId.HasValue )
                     {
-                        if ( !options.IncludeBusinesses )
+                        if ( !financialStatementGeneratorOptions.IncludeBusinesses )
                         {
                             int recordTypeValueIdPerson = DefinedValueCache.Get( Rock.SystemGuid.DefinedValue.PERSON_RECORD_TYPE_PERSON.AsGuid() ).Id;
                             pledgeQry = pledgeQry.Where( a => a.PersonAlias.Person.RecordTypeValueId == recordTypeValueIdPerson );
                         }
 
-                        if ( options.ExcludeInActiveIndividuals )
+                        if ( financialStatementGeneratorOptions.ExcludeInActiveIndividuals )
                         {
                             int recordStatusValueIdActive = DefinedValueCache.Get( Rock.SystemGuid.DefinedValue.PERSON_RECORD_STATUS_ACTIVE.AsGuid() ).Id;
                             pledgeQry = pledgeQry.Where( a => a.PersonAlias.Person.RecordStatusValueId == recordStatusValueIdActive );
@@ -773,64 +876,72 @@ namespace Rock.StatementGenerator.Rest
         /// <summary>
         /// Gets the financial transaction query.
         /// </summary>
-        /// <param name="options">The options.</param>
+        /// <param name="financialStatementGeneratorOptions">The financial statement generator options.</param>
         /// <param name="rockContext">The rock context.</param>
         /// <param name="usePersonFilters">if set to <c>true</c> [use person filters].</param>
         /// <returns></returns>
-        [Obsolete]
-        [RockObsolete( "1.12.4" )]
-        private IQueryable<FinancialTransaction> GetFinancialTransactionQuery( StatementGeneratorOptions options, RockContext rockContext, bool usePersonFilters )
+        /// <exception cref="System.Exception">FinancialStatementTemplate must be specified.</exception>
+        private IQueryable<FinancialTransaction> GetFinancialTransactionQuery( FinancialStatementGeneratorOptions financialStatementGeneratorOptions, RockContext rockContext, bool usePersonFilters )
         {
             var financialTransactionService = new FinancialTransactionService( rockContext );
             var financialTransactionQry = financialTransactionService.Queryable();
 
             // filter to specified date range
-            financialTransactionQry = financialTransactionQry.Where( a => a.TransactionDateTime >= options.StartDate );
+            financialTransactionQry = financialTransactionQry.Where( a => a.TransactionDateTime >= financialStatementGeneratorOptions.StartDate );
 
-            if ( options.EndDate.HasValue )
+            if ( financialStatementGeneratorOptions.EndDate.HasValue )
             {
-                financialTransactionQry = financialTransactionQry.Where( a => a.TransactionDateTime < options.EndDate.Value );
+                financialTransactionQry = financialTransactionQry.Where( a => a.TransactionDateTime < financialStatementGeneratorOptions.EndDate.Value );
             }
+
+            FinancialStatementTemplate financialStatementTemplate = new FinancialStatementTemplateService( rockContext ).Get( financialStatementGeneratorOptions.FinancialStatementTemplateId ?? 0 );
+            if ( financialStatementTemplate == null )
+            {
+                throw new Exception( "FinancialStatementTemplate must be specified." );
+            }
+
+            var reportSettings = financialStatementTemplate.ReportSettings;
+            var transactionSettings = reportSettings.TransactionSettings;
 
             // default to Contributions if nothing specified
             var transactionTypeContribution = DefinedValueCache.Get( Rock.SystemGuid.DefinedValue.TRANSACTION_TYPE_CONTRIBUTION.AsGuid() );
-            if ( options.TransactionTypeIds == null || !options.TransactionTypeIds.Any() )
+            if ( transactionSettings.TransactionTypeIds == null || !transactionSettings.TransactionTypeIds.Any() )
             {
-                options.TransactionTypeIds = new List<int>();
+                transactionSettings.TransactionTypeIds = new List<int>();
                 if ( transactionTypeContribution != null )
                 {
-                    options.TransactionTypeIds.Add( transactionTypeContribution.Id );
+                    transactionSettings.TransactionTypeIds.Add( transactionTypeContribution.Id );
                 }
             }
 
-            if ( options.TransactionTypeIds.Count() == 1 )
+            if ( transactionSettings.TransactionTypeIds.Count() == 1 )
             {
-                int selectedTransactionTypeId = options.TransactionTypeIds[0];
+                int selectedTransactionTypeId = transactionSettings.TransactionTypeIds[0];
                 financialTransactionQry = financialTransactionQry.Where( a => a.TransactionTypeValueId == selectedTransactionTypeId );
             }
             else
             {
-                financialTransactionQry = financialTransactionQry.Where( a => options.TransactionTypeIds.Contains( a.TransactionTypeValueId ) );
+                financialTransactionQry = financialTransactionQry.Where( a => transactionSettings.TransactionTypeIds.Contains( a.TransactionTypeValueId ) );
             }
 
             // Filter to specified AccountIds (if specified)
-            if ( options.TransactionAccountIds == null )
+            if ( transactionSettings.AccountIds == null )
             {
                 // if TransactionAccountIds wasn't supplied, don't filter on AccountId
             }
             else
             {
                 // narrow it down to recipients that have transactions involving any of the AccountIds
-                var selectedAccountIds = options.TransactionAccountIds;
+                var selectedAccountIds = transactionSettings.AccountIds;
                 financialTransactionQry = financialTransactionQry.Where( a => a.TransactionDetails.Any( x => selectedAccountIds.Contains( x.AccountId ) ) );
             }
 
             if ( usePersonFilters )
             {
-                if ( options.PersonId.HasValue )
+                if ( financialStatementGeneratorOptions.PersonId.HasValue )
                 {
                     // If PersonId is specified, then this statement is for a specific person, so don't do any other filtering
-                    string personGivingId = new PersonService( rockContext ).Queryable().Where( a => a.Id == options.PersonId.Value ).Select( a => a.GivingId ).FirstOrDefault();
+                    string personGivingId = new PersonService( rockContext ).Queryable().Where( a => a.Id == financialStatementGeneratorOptions.PersonId.Value ).Select( a => a.GivingId ).FirstOrDefault();
                     if ( personGivingId != null )
                     {
                         financialTransactionQry = financialTransactionQry.Where( a => a.AuthorizedPersonAlias.Person.GivingId == personGivingId );
@@ -844,15 +955,15 @@ namespace Rock.StatementGenerator.Rest
                 else
                 {
                     // unless we are using a DataView for filtering, filter based on the IncludeBusiness and ExcludeInActiveIndividuals options
-                    if ( !options.DataViewId.HasValue )
+                    if ( !financialStatementGeneratorOptions.DataViewId.HasValue )
                     {
-                        if ( !options.IncludeBusinesses )
+                        if ( !financialStatementGeneratorOptions.IncludeBusinesses )
                         {
                             int recordTypeValueIdPerson = DefinedValueCache.Get( Rock.SystemGuid.DefinedValue.PERSON_RECORD_TYPE_PERSON.AsGuid() ).Id;
                             financialTransactionQry = financialTransactionQry.Where( a => a.AuthorizedPersonAlias.Person.RecordTypeValueId == recordTypeValueIdPerson );
                         }
 
-                        if ( options.ExcludeInActiveIndividuals )
+                        if ( financialStatementGeneratorOptions.ExcludeInActiveIndividuals )
                         {
                             int recordStatusValueIdActive = DefinedValueCache.Get( Rock.SystemGuid.DefinedValue.PERSON_RECORD_STATUS_ACTIVE.AsGuid() ).Id;
                             financialTransactionQry = financialTransactionQry.Where( a => a.AuthorizedPersonAlias.Person.RecordStatusValueId == recordStatusValueIdActive );
@@ -866,5 +977,7 @@ namespace Rock.StatementGenerator.Rest
 
             return financialTransactionQry;
         }
+
+        #endregion Private Methods
     }
 }

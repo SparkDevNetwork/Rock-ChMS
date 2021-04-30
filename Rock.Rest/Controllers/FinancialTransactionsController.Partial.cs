@@ -48,7 +48,7 @@ namespace Rock.Rest.Controllers
         [Authenticate, Secured]
         [HttpPost]
         [System.Web.Http.Route( "api/FinancialTransactions/PostScanned" )]
-        public HttpResponseMessage PostScanned( [FromBody]FinancialTransactionScannedCheck financialTransactionScannedCheck )
+        public HttpResponseMessage PostScanned( [FromBody] FinancialTransactionScannedCheck financialTransactionScannedCheck )
         {
             FinancialTransaction financialTransaction = financialTransactionScannedCheck.FinancialTransaction;
             financialTransaction.CheckMicrEncrypted = Encryption.EncryptString( financialTransactionScannedCheck.ScannedCheckMicrData );
@@ -73,10 +73,10 @@ namespace Rock.Rest.Controllers
         [Authenticate, Secured]
         [HttpPost]
         [System.Web.Http.Route( "api/FinancialTransactions/Process" )]
-        public virtual HttpResponseMessage ProcessPayment( [FromBody]AutomatedPaymentArgs automatedPaymentArgs, [FromUri]bool enableDuplicateChecking = true, [FromUri]bool enableScheduleAdherenceProtection = true )
+        public virtual HttpResponseMessage ProcessPayment( [FromBody] AutomatedPaymentArgs automatedPaymentArgs, [FromUri] bool enableDuplicateChecking = true, [FromUri] bool enableScheduleAdherenceProtection = true )
         {
             var errorMessage = string.Empty;
-            
+
             var rockContext = Service.Context as RockContext;
             var automatedPaymentProcessor = new AutomatedPaymentProcessor( GetPersonAliasId( rockContext ), automatedPaymentArgs, rockContext, enableDuplicateChecking, enableScheduleAdherenceProtection );
 
@@ -179,7 +179,7 @@ namespace Rock.Rest.Controllers
         /// <returns></returns>
         [HttpPost]
         [System.Web.Http.Route( "api/FinancialTransactions/AlreadyScanned" )]
-        public bool AlreadyScanned( [FromBody]string scannedCheckMicr )
+        public bool AlreadyScanned( [FromBody] string scannedCheckMicr )
         {
             // NOTE: scannedCheckMicr param is [FromBody] so that it will be encrypted when using SSL
             string checkMicrHash = Encryption.GetSHA1Hash( scannedCheckMicr );
@@ -196,9 +196,9 @@ namespace Rock.Rest.Controllers
         [Authenticate, Secured]
         [HttpPost]
         [System.Web.Http.Route( "api/FinancialTransactions/GetContributionPersonGroupAddress" )]
-        [Obsolete]
-        [RockObsolete("1.6.11")]
-        public DataSet GetContributionPersonGroupAddress( [FromBody]ContributionStatementOptions options )
+        [Obsolete( "Became obsolete in 1.7.0. Marked obsolete in 1.12.4. Use ~/api/FinancialGivingStatement/ endpoints instead" )]
+        [RockObsolete( "1.12.4" )]
+        public DataSet GetContributionPersonGroupAddress( [FromBody] ContributionStatementOptions options )
         {
             Dictionary<string, object> parameters = new Dictionary<string, object>();
             parameters.Add( "startDate", options.StartDate );
@@ -291,9 +291,9 @@ namespace Rock.Rest.Controllers
         [Authenticate, Secured]
         [HttpPost]
         [System.Web.Http.Route( "api/FinancialTransactions/GetContributionTransactions/{groupId}" )]
-        [Obsolete]
-        [RockObsolete( "1.6.11" )]
-        public DataSet GetContributionTransactions( int groupId, [FromBody]ContributionStatementOptions options )
+        [Obsolete( "Became obsolete in 1.7.0. Marked obsolete in 1.12.4. Use ~/api/FinancialGivingStatement/ endpoints instead" )]
+        [RockObsolete( "1.12.4" )]
+        public DataSet GetContributionTransactions( int groupId, [FromBody] ContributionStatementOptions options )
         {
             return GetContributionTransactions( groupId, null, options );
         }
@@ -309,9 +309,9 @@ namespace Rock.Rest.Controllers
         [Authenticate, Secured]
         [HttpPost]
         [System.Web.Http.Route( "api/FinancialTransactions/GetContributionTransactions/{groupId}/{personId}" )]
-        [Obsolete]
-        [RockObsolete( "1.6.11" )]
-        public DataSet GetContributionTransactions( int groupId, int? personId, [FromBody]ContributionStatementOptions options )
+        [Obsolete( "Became obsolete in 1.7.0. Marked obsolete in 1.12.4. Use ~/api/FinancialGivingStatement/ endpoints instead" )]
+        [RockObsolete( "1.12.4" )]
+        public DataSet GetContributionTransactions( int groupId, int? personId, [FromBody] ContributionStatementOptions options )
         {
             var qry = Get().Where( a => a.TransactionDateTime >= options.StartDate );
 
@@ -507,8 +507,8 @@ namespace Rock.Rest.Controllers
         [Authenticate, Secured]
         [HttpGet]
         [System.Web.Http.Route( "api/FinancialTransactions/GivingHistory" )]
-        public virtual List<Gift> GetGivingHistoryForTheCurrentPerson( [FromUri]int? year = null, [FromUri]bool includeGivingGroup = true, [FromUri]Guid? transactionTypeGuid = null,
-            [FromUri]string excludedStatus = null, [FromUri]Guid? excludedSourceTypeGuid = null )
+        public virtual List<Gift> GetGivingHistoryForTheCurrentPerson( [FromUri] int? year = null, [FromUri] bool includeGivingGroup = true, [FromUri] Guid? transactionTypeGuid = null,
+            [FromUri] string excludedStatus = null, [FromUri] Guid? excludedSourceTypeGuid = null )
         {
             var personAliasId = GetPersonAliasId( Service.Context as RockContext );
 
@@ -535,8 +535,8 @@ namespace Rock.Rest.Controllers
         [HttpGet]
         [System.Web.Http.Route( "api/FinancialTransactions/GivingHistory/{personAliasId}" )]
         public virtual List<Gift> GetGivingHistory( int personAliasId,
-            [FromUri]int? year = null, [FromUri]bool includeGivingGroup = true, [FromUri]Guid? transactionTypeGuid = null,
-            [FromUri]string excludedStatus = null, [FromUri]Guid? excludedSourceTypeGuid = null )
+            [FromUri] int? year = null, [FromUri] bool includeGivingGroup = true, [FromUri] Guid? transactionTypeGuid = null,
+            [FromUri] string excludedStatus = null, [FromUri] Guid? excludedSourceTypeGuid = null )
         {
             // Get all of the query filters ready
             var yearFilter = year ?? RockDateTime.Now.Year;
@@ -637,8 +637,8 @@ namespace Rock.Rest.Controllers
         /// <summary>
         ///
         /// </summary>
-        [Obsolete]
-        [RockObsolete( "1.6.11" )]
+        [Obsolete( "Became obsolete in 1.7.0. Marked obsolete in 1.12.4. Use ~/api/FinancialGivingStatement/ endpoints instead" )]
+        [RockObsolete( "1.12.4" )]
         public class ContributionStatementOptions
         {
             /// <summary>

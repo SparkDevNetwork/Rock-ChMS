@@ -33,8 +33,8 @@ namespace Rock.Financial
         /// </summary>
         public FinancialStatementTemplateReportSettings()
         {
-            this.TransactionSetting = new FinancialStatementTemplateTransactionSetting();
-            this.PledgeSetting = new FinancialStatementTemplatePledgeSettings();
+            this.TransactionSettings = new FinancialStatementTemplateTransactionSetting();
+            this.PledgeSettings = new FinancialStatementTemplatePledgeSettings();
             this.PDFObjectSettings = new Dictionary<string, string>();
         }
 
@@ -44,7 +44,7 @@ namespace Rock.Financial
         /// <value>
         /// The transaction settings.
         /// </value>
-        public FinancialStatementTemplateTransactionSetting TransactionSetting { get; set; }
+        public FinancialStatementTemplateTransactionSetting TransactionSettings { get; set; }
 
         /// <summary>
         /// Gets or sets the pledge settings.
@@ -52,7 +52,7 @@ namespace Rock.Financial
         /// <value>
         /// The pledge settings.
         /// </value>
-        public FinancialStatementTemplatePledgeSettings PledgeSetting { get; set; }
+        public FinancialStatementTemplatePledgeSettings PledgeSettings { get; set; }
 
         /// <summary>
         /// Gets or sets the dictionary of Key,Value for PDF Object Settings.
@@ -118,7 +118,7 @@ namespace Rock.Financial
         /// <value>
         ///   <c>true</c> if refunded transaction should be hidden; otherwise, <c>false</c>.
         /// </value>
-        public bool HideRefundedTransaction { get; set; }
+        public bool HideRefundedTransactions { get; set; }
 
         /// <summary>
         /// Gets or sets a value indicating whether corrected transaction on same date should be hidden.

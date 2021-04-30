@@ -26,7 +26,7 @@ namespace Rock.Financial
     /// </summary>
     /// <seealso cref="FinancialStatementGeneratorRecipient" />
     [RockClientInclude( "Recipient Result Information for the Statement Generator" )]
-    public class StatementGeneratorRecipientResult : FinancialStatementGeneratorRecipient
+    public class FinancialStatementGeneratorRecipientResult : FinancialStatementGeneratorRecipient
     {
         /// <summary>
         /// Gets or sets the HTML.
@@ -86,5 +86,28 @@ namespace Rock.Financial
         /// The location identifier.
         /// </value>
         public Guid? LocationGuid { get; set; }
+
+        /// <summary>
+        /// Gets or sets the postal code.
+        /// </summary>
+        /// <value>
+        /// The postal code.
+        /// </value>
+        public string PostalCode { get; set; }
+
+        /// <summary>
+        /// Gets or sets the last name.
+        /// </summary>
+        /// <value>
+        /// The last name.
+        /// </value>
+        public string LastName { get; set; }
+        /// <summary>
+        /// Gets or sets the name of the nick.
+        /// </summary>
+        /// <value>
+        /// The name of the nick.
+        /// </value>
+        public string NickName { get; set; }
     }
 }

@@ -23,6 +23,7 @@ using System.Web.UI.WebControls;
 using Rock;
 using Rock.Constants;
 using Rock.Data;
+using Rock.Financial;
 using Rock.Model;
 using Rock.Security;
 using Rock.Web;
@@ -35,7 +36,7 @@ namespace RockWeb.Blocks.Finance
     [Category( "Finance" )]
     [Description( "Displays the details of the statement template." )]
 
-    public partial class FinancialStatementTemplateDetail : Rock.Web.UI.RockBlock, IDetailBlock
+    public partial class FinancialStatementTemplateDetail : RockBlock, IDetailBlock
     {
         #region Page Parameter Keys
 
@@ -160,28 +161,24 @@ namespace RockWeb.Blocks.Finance
             financialStatementTemplate.ReportTemplate = ceReportTemplate.Text;
             financialStatementTemplate.FooterTemplate = ceFooterTemplate.Text;
 
-            financialStatementTemplate.ReportSetting.PDFObjectSettings = kvlPDFObjectSettings.Value.AsDictionary();
+            financialStatementTemplate.ReportSettings.PDFObjectSettings = kvlPDFObjectSettings.Value.AsDictionary();
 
-
-            var transactionSetting = new Rock.Finance.StatementTemplate.StatementTemplateTransactionSetting();
-
-            var transactionSetting = new TransactionSetting();
-
-            var transactionSetting = new StatementTemplateTransactionSetting();
+            var transactionSetting = new FinancialStatementTemplateTransactionSetting();
+            
 
             transactionSetting.CurrencyTypesForCashGiftIds = dvpCurrencyTypesCashGifts.SelectedValuesAsInt;
             transactionSetting.CurrencyTypesForNonCashIds = dvpCurrencyTypesNonCashGifts.SelectedValuesAsInt;
             transactionSetting.TransactionTypeIds = dvpTransactionType.SelectedValuesAsInt;
-            transactionSetting.HideRefundedTransaction = cbHideRefundedTransactions.Checked;
+            transactionSetting.HideRefundedTransactions = cbHideRefundedTransactions.Checked;
             transactionSetting.HideCorrectedTransactionOnSameData = cbHideModifiedTransactions.Checked;
             transactionSetting.AccountIds = apTransactionAccounts.SelectedValuesAsInt().ToList();
-            financialStatementTemplate.ReportSetting.TransactionSetting = transactionSetting;
+            financialStatementTemplate.ReportSettings.TransactionSettings = transactionSetting;
 
-            var pledgeSetting = new Rock.Finance.ReportSetting.PledgeSetting();
+            var pledgeSetting = new FinancialStatementTemplatePledgeSettings();
             pledgeSetting.IncludeGiftsToChildAccounts = cbIncludeGiftsToChildAccounts.Checked;
             pledgeSetting.IncludeNonCashGifts = cbIncludeNonCashGifts.Checked;
             pledgeSetting.AccountIds = apPledgeAccounts.SelectedValuesAsInt().ToList();
-            financialStatementTemplate.ReportSetting.PledgeSetting = pledgeSetting;
+            financialStatementTemplate.ReportSettings.PledgeSettings = pledgeSetting;
 
             int? existingLogoId = null;
             if ( financialStatementTemplate.LogoBinaryFileId != imgTemplateLogo.BinaryFileId )
@@ -304,7 +301,7 @@ namespace RockWeb.Blocks.Finance
                 hlInactive.Visible = !financialStatementTemplate.IsActive;
                 lAccountDescription.Text = financialStatementTemplate.Description;
 
-                var transactionSettings = financialStatementTemplate.ReportSetting.TransactionSetting;
+                var transactionSettings = financialStatementTemplate.ReportSettings.TransactionSettings;
                 var detailsDescription = new DescriptionList();
                 if ( transactionSettings.AccountIds.Any() )
                 {
@@ -353,10 +350,10 @@ namespace RockWeb.Blocks.Finance
             ceReportTemplate.Text = financialStatementTemplate.ReportTemplate;
             ceFooterTemplate.Text = financialStatementTemplate.FooterTemplate;
             imgTemplateLogo.BinaryFileId = financialStatementTemplate.LogoBinaryFileId;
-            kvlPDFObjectSettings.Value = financialStatementTemplate.ReportSetting.PDFObjectSettings.Select( a => string.Format( "{0}^{1}", a.Key, a.Value ) ).ToList().AsDelimited( "|" );
+            kvlPDFObjectSettings.Value = financialStatementTemplate.ReportSettings.PDFObjectSettings.Select( a => string.Format( "{0}^{1}", a.Key, a.Value ) ).ToList().AsDelimited( "|" );
 
-            var transactionSetting = financialStatementTemplate.ReportSetting.TransactionSetting;
-            cbHideRefundedTransactions.Checked = transactionSetting.HideRefundedTransaction;
+            var transactionSetting = financialStatementTemplate.ReportSettings.TransactionSettings;
+            cbHideRefundedTransactions.Checked = transactionSetting.HideRefundedTransactions;
             cbHideModifiedTransactions.Checked = transactionSetting.HideCorrectedTransactionOnSameData;
             dvpCurrencyTypesCashGifts.SetValues( transactionSetting.CurrencyTypesForCashGiftIds );
             dvpCurrencyTypesNonCashGifts.SetValues( transactionSetting.CurrencyTypesForNonCashIds );
@@ -370,7 +367,7 @@ namespace RockWeb.Blocks.Finance
                 apTransactionAccounts.SetValues( accountList );
             }
 
-            var pledgeSetting = financialStatementTemplate.ReportSetting.PledgeSetting;
+            var pledgeSetting = financialStatementTemplate.ReportSettings.PledgeSettings;
             cbIncludeGiftsToChildAccounts.Checked = pledgeSetting.IncludeGiftsToChildAccounts;
             cbIncludeNonCashGifts.Checked = pledgeSetting.IncludeNonCashGifts;
             if ( pledgeSetting.AccountIds.Any() )
