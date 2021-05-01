@@ -53,10 +53,10 @@ namespace Rock.Client
         public bool PreventSplittingPrimarySortValuesAcrossChapters { get; set; }
 
         /// <summary />
-        public int /* FinancialStatementOrderBy*/ PrimarySortOrder { get; set; }
+        public Rock.Client.Enums.FinancialStatementOrderBy PrimarySortOrder { get; set; }
 
         /// <summary />
-        public int /* FinancialStatementOrderBy*/ SecondarySortOrder { get; set; } = Rock.Client.Enums.FinancialStatementOrderBy.LastName;
+        public Rock.Client.Enums.FinancialStatementOrderBy SecondarySortOrder { get; set; } = Rock.Client.Enums.FinancialStatementOrderBy.LastName;
 
         /// <summary />
         public bool SplitFilesOnPrimarySortValue { get; set; }

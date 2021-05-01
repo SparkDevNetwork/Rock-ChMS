@@ -154,7 +154,15 @@
     <Compile Include="CodeGenerated\FinancialPledge.cs" />
     <Compile Include="CodeGenerated\FinancialScheduledTransaction.cs" />
     <Compile Include="CodeGenerated\FinancialScheduledTransactionDetail.cs" />
+    <Compile Include="CodeGenerated\FinancialStatementGeneratorOptions.cs" />
+    <Compile Include="CodeGenerated\FinancialStatementGeneratorRecipient.cs" />
+    <Compile Include="CodeGenerated\FinancialStatementGeneratorRecipientRequest.cs" />
+    <Compile Include="CodeGenerated\FinancialStatementGeneratorRecipientResult.cs" />
+    <Compile Include="CodeGenerated\FinancialStatementReportConfiguration.cs" />
     <Compile Include="CodeGenerated\FinancialStatementTemplate.cs" />
+    <Compile Include="CodeGenerated\FinancialStatementTemplatePledgeSettings.cs" />
+    <Compile Include="CodeGenerated\FinancialStatementTemplateReportSettings.cs" />
+    <Compile Include="CodeGenerated\FinancialStatementTemplateTransactionSetting.cs" />
     <Compile Include="CodeGenerated\FinancialTransaction.cs" />
     <Compile Include="CodeGenerated\FinancialTransactionAlert.cs" />
     <Compile Include="CodeGenerated\FinancialTransactionAlertType.cs" />
@@ -279,9 +287,6 @@
     <Compile Include="CodeGenerated\SiteDomain.cs" />
     <Compile Include="CodeGenerated\SmsAction.cs" />
     <Compile Include="CodeGenerated\SmsPipeline.cs" />
-    <Compile Include="CodeGenerated\StatementTemplatePledgeSettings.cs" />
-    <Compile Include="CodeGenerated\StatementTemplateReportSettings.cs" />
-    <Compile Include="CodeGenerated\StatementTemplateTransactionSetting.cs" />
     <Compile Include="CodeGenerated\Step.cs" />
     <Compile Include="CodeGenerated\StepProgram.cs" />
     <Compile Include="CodeGenerated\StepStatus.cs" />

@@ -179,7 +179,7 @@ namespace Rock.StatementGenerator.Rest
                 var nickNameLastNameLookupByPersonId = qryNickNameLastNameAsIndividual.ToDictionary( k => k.PersonId, v => new { v.NickName, v.LastName } );
 
                 var qryNickNameLastNameAsGivingLeader = from p in personQuery.Where( a => a.GivingLeaderId == a.Id && a.GivingGroupId.HasValue )
-                                                        join gg in personGivingIdsQuery on p.GivingGroupId equals gg.GroupId
+                                                        join gg in givingIdsQry on p.GivingGroupId equals gg.GroupId
                                                         select new { gg.GroupId, p.NickName, p.LastName };
 
                 var nickNameLastNameLookupByGivingGroupId = qryNickNameLastNameAsGivingLeader.ToDictionary( k => k.GroupId, v => new { v.NickName, v.LastName } );
@@ -230,10 +230,7 @@ namespace Rock.StatementGenerator.Rest
         /// Gets the statement generator recipient result for a specific person and associated group (family) with the specified address (locationGuid)
         /// NOTE: If a person is in multiple families, call this for each of the families so that the statement will go to the address of each family
         /// </summary>
-        /// <param name="groupId">The group identifier.</param>
-        /// <param name="personId">The person identifier.</param>
-        /// <param name="locationGuid">The location unique identifier.</param>
-        /// <param name="financialStatementGeneratorOptions">The financial statement generator options.</param>
+        /// <param name="financialStatementGeneratorRecipientRequest">The financial statement generator recipient request.</param>
         /// <returns></returns>
         /// <exception cref="Exception">StatementGenerationOption options must be specified
         /// or
@@ -241,12 +238,28 @@ namespace Rock.StatementGenerator.Rest
         [Authenticate, Secured]
         [HttpPost]
         [System.Web.Http.Route( "api/FinancialGivingStatement/GetStatementGeneratorRecipientResult" )]
-        public FinancialStatementGeneratorRecipientResult GetStatementGeneratorRecipientResult( int groupId, int? personId, Guid? locationGuid, [FromBody] Rock.Financial.FinancialStatementGeneratorOptions financialStatementGeneratorOptions )
+        public FinancialStatementGeneratorRecipientResult GetStatementGeneratorRecipientResult( [FromBody] Rock.Financial.FinancialStatementGeneratorRecipientRequest financialStatementGeneratorRecipientRequest )
         {
+            if ( financialStatementGeneratorRecipientRequest == null )
+            {
+                throw new Exception( "FinancialStatementGeneratorRecipientRequest must be specified" );
+            }
+
+            var financialStatementGeneratorOptions = financialStatementGeneratorRecipientRequest?.FinancialStatementGeneratorOptions;
+
             if ( financialStatementGeneratorOptions == null )
             {
-                throw new Exception( "FinancialStatementGeneratorOptions options must be specified" );
+                throw new Exception( "FinancialStatementGeneratorOptions must be specified" );
             }
+
+            if ( financialStatementGeneratorRecipientRequest.FinancialStatementGeneratorRecipient  == null )
+            {
+                throw new Exception( "FinancialStatementGeneratorRecipient must be specified" );
+            }
+
+            var groupId = financialStatementGeneratorRecipientRequest.FinancialStatementGeneratorRecipient.GroupId;
+            var personId = financialStatementGeneratorRecipientRequest.FinancialStatementGeneratorRecipient.PersonId;
+            var locationGuid = financialStatementGeneratorRecipientRequest.FinancialStatementGeneratorRecipient.LocationGuid;
 
             var result = new FinancialStatementGeneratorRecipientResult();
             result.GroupId = groupId;
@@ -380,7 +393,7 @@ namespace Rock.StatementGenerator.Rest
                     familyTitle = new GroupService( rockContext ).GetSelect( groupId, s => s.GroupSalutation );
                 }
 
-                if ( familyTitle.IsNotNullOrWhiteSpace() )
+                if ( familyTitle.IsNullOrWhiteSpace() )
                 {
                     // shouldn't happen, just in case the familyTitle is blank, just return the person's name
                     familyTitle = person.FullName;
@@ -734,8 +747,13 @@ namespace Rock.StatementGenerator.Rest
                 },
             };
 
+            var financialStatementGeneratorRecipientRequest = new FinancialStatementGeneratorRecipientRequest( options )
+            {
+                FinancialStatementGeneratorRecipient = new FinancialStatementGeneratorRecipient { GroupId = person.PrimaryFamilyId.Value, PersonId = person.Id }
+            };
+
             // Get the generator result
-            FinancialStatementGeneratorRecipientResult result = GetStatementGeneratorRecipientResult( person.PrimaryFamilyId.Value, person.Id, null, options );
+            FinancialStatementGeneratorRecipientResult result = GetStatementGeneratorRecipientResult( financialStatementGeneratorRecipientRequest );
 
             // Render the statement as HTML and send back to the user
             var response = new HttpResponseMessage();

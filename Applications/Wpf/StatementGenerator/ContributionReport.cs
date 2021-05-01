@@ -21,10 +21,18 @@ using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Text;
+using System.Threading;
 using System.Threading.Tasks;
-using OpenHtmlToPdf;
-using PdfSharp.Pdf;
-using PdfSharp.Pdf.IO;
+
+using IronPdf;
+using IronPdf.Threading;
+
+using Newtonsoft.Json;
+
+using RestSharp;
+
+using Rock.Apps.StatementGenerator.RestSharpRequests;
+using Rock.Client;
 using Rock.Net;
 
 namespace Rock.Apps.StatementGenerator
@@ -37,7 +45,7 @@ namespace Rock.Apps.StatementGenerator
         /// <summary>
         /// Initializes a new instance of the <see cref="ContributionReport"/> class.
         /// </summary>
-        public ContributionReport( Rock.StatementGenerator.StatementGeneratorOptions options )
+        public ContributionReport( Rock.Client.FinancialStatementGeneratorOptions options )
         {
             this.Options = options;
         }
@@ -48,12 +56,12 @@ namespace Rock.Apps.StatementGenerator
         /// <value>
         /// The options.
         /// </value>
-        public Rock.StatementGenerator.StatementGeneratorOptions Options { get; set; }
+        public Rock.Client.FinancialStatementGeneratorOptions Options { get; set; }
 
         /// <summary>
         /// The _rock rest client
         /// </summary>
-        private RockRestClient _rockRestClient = null;
+        private RestClient _rockRestClient = null;
 
         /// <summary>
         /// Gets or sets the record count.
@@ -63,24 +71,13 @@ namespace Rock.Apps.StatementGenerator
         /// </value>
         private int RecordCount { get; set; }
 
-        /// <summary>
-        /// Gets or sets the index of the record.
-        /// </summary>
-        /// <value>
-        /// The index of the record.
-        /// </value>
-        private int RecordIndex { get; set; }
-
-        /// <summary>
-        /// Show debug outout in the debug console?
-        /// </summary>
-        private const bool DEBUG = false;
+        private static long RecordsCompleted = 0;
 
         /// <summary>
         /// Runs the report returning the number of statements that were generated
         /// </summary>
         /// <returns></returns>
-        public int RunReport()
+        public int RunReport( FinancialStatementReportConfiguration financialStatementReportConfiguration )
         {
             var stopWatch = new Stopwatch();
             stopWatch.Start();
@@ -90,126 +87,102 @@ namespace Rock.Apps.StatementGenerator
             // Login and setup options for REST calls
             RockConfig rockConfig = RockConfig.Load();
 
-            _rockRestClient = new RockRestClient( rockConfig.RockBaseUrl );
-            _rockRestClient.Login( rockConfig.Username, rockConfig.Password );
+            _rockRestClient = new RestClient( rockConfig.RockBaseUrl );
+            _rockRestClient.CookieContainer = new System.Net.CookieContainer();
+            var rockLoginRequest = new RockLoginRequest( rockConfig.Username, rockConfig.Password );
+            var rockLoginResponse = _rockRestClient.Execute( rockLoginRequest );
 
-            var lavaTemplateDefineValues = _rockRestClient.GetData<List<Rock.Client.DefinedValue>>( "api/FinancialTransactions/GetStatementGeneratorTemplates" );
-            var lavaTemplateDefineValue = lavaTemplateDefineValues?.FirstOrDefault( a => a.Guid == this.Options.LayoutDefinedValueGuid );
+            Rock.Client.FinancialStatementTemplate financialStatementTemplate = new FinancialStatementTemplate();
 
-            Dictionary<string, string> pdfObjectSettings = null;
+            var reportSettings = JsonConvert.DeserializeObject<Rock.Client.FinancialStatementTemplateReportSettings>( financialStatementTemplate.ReportSettingsJson );
 
-            if ( lavaTemplateDefineValue?.Attributes?.ContainsKey( "PDFObjectSettings" ) == true )
-            {
-                pdfObjectSettings = lavaTemplateDefineValue.AttributeValues["PDFObjectSettings"].Value.AsDictionaryOrNull();
-            }
-
-            pdfObjectSettings = pdfObjectSettings ?? new Dictionary<string, string>();
+            var pdfObjectSettings = reportSettings.PDFObjectSettings;
+            this.Options.SelectedReportConfiguration = financialStatementReportConfiguration;
 
             UpdateProgress( "Getting Recipients..." );
-            var recipientList = _rockRestClient.PostDataWithResult<Rock.StatementGenerator.StatementGeneratorOptions, List<Rock.StatementGenerator.StatementGeneratorRecipient>>( "api/FinancialTransactions/GetStatementGeneratorRecipients", this.Options );
+
+            var financialStatementGeneratorRecipientsRequest = new RestRequest( "api/FinancialGivingStatement/GetFinancialStatementGeneratorRecipients", Method.POST );
+            financialStatementGeneratorRecipientsRequest.AddJsonBody( this.Options );
+            var financialStatementGeneratorRecipientsResponse = _rockRestClient.Execute<List<Client.FinancialStatementGeneratorRecipient>>( financialStatementGeneratorRecipientsRequest );
+            List<Client.FinancialStatementGeneratorRecipient> recipientList = financialStatementGeneratorRecipientsResponse.Data;
 
             this.RecordCount = recipientList.Count;
-            this.RecordIndex = 0;
+            RecordsCompleted = 0;
 
             var tasks = new List<Task>();
 
-            // initialize the pdfStreams list for all the recipients so that it can be populated safely in the pdf generation threads
-            List<Stream> pdfDataStreams = recipientList.Select( a => ( Stream ) null ).ToList();
+            List<StatementGeneratorRecipientPdfResult> statementGeneratorRecipientPdfResults = new List<StatementGeneratorRecipientPdfResult>();
 
             bool cancel = false;
 
+
+            Task lastTask = null;
+
             UpdateProgress( "Getting Statements..." );
-            foreach ( var recipent in recipientList )
+            foreach ( var recipient in recipientList )
             {
-                StringBuilder sbUrl = new StringBuilder();
-                sbUrl.Append( $"api/FinancialTransactions/GetStatementGeneratorRecipientResult?GroupId={recipent.GroupId}" );
-                if ( recipent.PersonId.HasValue )
+                FinancialStatementGeneratorRecipientRequest financialStatementGeneratorRecipientRequest = new FinancialStatementGeneratorRecipientRequest()
                 {
-                    sbUrl.Append( $"&PersonId={recipent.PersonId.Value}" );
-                }
+                    FinancialStatementGeneratorOptions = this.Options,
+                    FinancialStatementGeneratorRecipient = recipient
+                };
 
-                if ( recipent.LocationGuid.HasValue )
-                {
-                    sbUrl.Append( $"&LocationGuid={recipent.LocationGuid.Value}" );
-                }
+                var financialStatementGeneratorRecipientResultRequest = new RestRequest( "api/FinancialGivingStatement/GetStatementGeneratorRecipientResult", Method.POST );
+                financialStatementGeneratorRecipientResultRequest.AddJsonBody( financialStatementGeneratorRecipientRequest );
+                var financialStatementGeneratorRecipientResultResponse = _rockRestClient.Execute<Client.FinancialStatementGeneratorRecipientResult>( financialStatementGeneratorRecipientResultRequest );
+                FinancialStatementGeneratorRecipientResult financialStatementGeneratorRecipientResult = financialStatementGeneratorRecipientResultResponse.Data;
 
-                var recipentResult = _rockRestClient.PostDataWithResult<Rock.StatementGenerator.StatementGeneratorOptions, Rock.StatementGenerator.StatementGeneratorRecipientResult>( sbUrl.ToString(), this.Options );
-
-                int documentNumber = this.RecordIndex;
-                if ( ( this.Options.ExcludeOptedOutIndividuals && recipentResult.OptedOut ) || ( string.IsNullOrWhiteSpace( recipentResult.Html ) ) )
+                var statementGeneratorPdfResult = new StatementGeneratorRecipientPdfResult( financialStatementGeneratorRecipientResult );
+                statementGeneratorRecipientPdfResults.Add( statementGeneratorPdfResult );
+                
+                if ( ( financialStatementReportConfiguration.ExcludeOptedOutIndividuals && financialStatementGeneratorRecipientResult.OptedOut ) || ( string.IsNullOrWhiteSpace( financialStatementGeneratorRecipientResult.Html ) ) )
                 {
                     // don't generate a statement if opted out or no statement html
-                    pdfDataStreams[documentNumber] = null;
+                    statementGeneratorPdfResult.PdfTempFileName = null;
                 }
                 else
                 {
-                    var html = recipentResult.Html;
-                    var footerHtml = recipentResult.FooterHtml;
+                    var html = financialStatementGeneratorRecipientResult.Html;
+                    var footerHtml = financialStatementGeneratorRecipientResult.FooterHtml;
 
-                    var task = Task.Run( () =>
+                    // We were able to fetch the HTML for the next state while waiting for the PDF task to finish,
+                    // but it'll lock up if we don't wait for it to complete
+                    lastTask?.Wait();
+
+                    lastTask = Task.Run( () =>
                     {
-                        var pdfGenerator = Pdf.From( html );
+                        Stopwatch generatePdfStopWatch = Stopwatch.StartNew();
+                        var pdfOptions = GetPdfPrintOptions( pdfObjectSettings, statementGeneratorPdfResult.StatementGeneratorRecipientResult );
+                        bool useUniversalRenderJob = true;
 
-                        string footerHtmlPath = Path.ChangeExtension( Path.GetTempFileName(), "html" );
-                        string footerUrl = null;
-
-                        if ( !string.IsNullOrEmpty( footerHtml ) )
+                        if ( useUniversalRenderJob )
                         {
-                            File.WriteAllText( footerHtmlPath, footerHtml );
-                            footerUrl = "file:///" + footerHtmlPath.Replace( '\\', '/' );
-                        }
-
-                        foreach ( var pdfObjectSetting in pdfObjectSettings )
-                        {
-                            if ( pdfObjectSetting.Key.StartsWith( "margin." ) || pdfObjectSetting.Key.StartsWith( "size." ) )
-                            {
-                                pdfGenerator = pdfGenerator.WithGlobalSetting( pdfObjectSetting.Key, pdfObjectSetting.Value );
-                            }
-                            else
-                            {
-                                pdfGenerator = pdfGenerator.WithObjectSetting( pdfObjectSetting.Key, pdfObjectSetting.Value );
-                            }
-                        }
-
-                        if ( !pdfObjectSettings.ContainsKey( "footer.fontSize" ) )
-                        {
-                            pdfGenerator = pdfGenerator.WithObjectSetting( "footer.fontSize", "10" );
-                        }
-
-                        if ( footerUrl != null )
-                        {
-                            pdfGenerator = pdfGenerator.WithObjectSetting( "footer.htmlUrl", footerUrl );
+                            UniversalRenderJob universalRenderJob = new UniversalRenderJob();
+                            universalRenderJob.Options = pdfOptions;
+                            universalRenderJob.Html = statementGeneratorPdfResult.StatementGeneratorRecipientResult.Html;
+                            var pdfBytes = universalRenderJob.DoRemoteRender();
+                            statementGeneratorPdfResult.PdfTempFileName = Path.GetTempFileName();
+                            File.WriteAllBytes( statementGeneratorPdfResult.PdfTempFileName, pdfBytes );
                         }
                         else
                         {
-                            if ( !pdfObjectSettings.ContainsKey( "footer.right" ) )
-                            {
-                                pdfGenerator = pdfGenerator.WithObjectSetting( "footer.right", "Page [page] of [topage]" );
-                            }
+                            var pdfDoc = HtmlToPdf.StaticRenderHtmlAsPdf( statementGeneratorPdfResult.StatementGeneratorRecipientResult.Html, pdfOptions );
+                            statementGeneratorPdfResult.PdfTempFileName = Path.GetTempFileName();
+                            pdfDoc.SaveAs( statementGeneratorPdfResult.PdfTempFileName );
                         }
 
-                        var pdfBytes = pdfGenerator
-                            .WithoutOutline()
-                            .Portrait()
-                            .Content();
+                        Interlocked.Increment( ref RecordsCompleted );
+                        Debug.WriteLine( $"{generatePdfStopWatch.Elapsed.TotalMilliseconds}ms, generatePdf" );
+                        Debug.WriteLine( $"RecordsCompleted:{Interlocked.Read( ref RecordsCompleted ) }\n" );
 
-                        var pdfStream = new MemoryStream( pdfBytes );
-                        System.Diagnostics.Debug.Assert( pdfDataStreams[documentNumber] == null, "Threading issue: pdfStream shouldn't already be assigned" );
-                        pdfDataStreams[documentNumber] = pdfStream;
-
-                        if ( File.Exists( footerHtmlPath ) )
-                        {
-                            File.Delete( footerHtmlPath );
-                        }
 
                     } );
 
-                    tasks.Add( task );
+                    tasks.Add( lastTask );
 
                     tasks = tasks.Where( a => a.Status != TaskStatus.RanToCompletion ).ToList();
                 }
-
-                this.RecordIndex++;
+                
                 UpdateProgress( "Processing..." );
                 if ( cancel )
                 {
@@ -220,16 +193,14 @@ namespace Rock.Apps.StatementGenerator
             Task.WaitAll( tasks.ToArray() );
 
             UpdateProgress( "Creating PDF..." );
-            this.RecordIndex = 0;
 
-            // remove any statements that didn't get generated due to OptedOut
-            pdfDataStreams = pdfDataStreams.Where( a => a != null ).ToList();
-            this.RecordCount = pdfDataStreams.Count();
+            statementGeneratorRecipientPdfResults = statementGeneratorRecipientPdfResults.Where( a => a.PdfTempFileName != null ).ToList();
+            this.RecordCount = statementGeneratorRecipientPdfResults.Count();
             int? maxStatementsPerChapter = null;
 
-            if ( this.Options.StatementsPerChapter.HasValue )
+            if ( financialStatementReportConfiguration.MaxStatementsPerChapter.HasValue )
             {
-                maxStatementsPerChapter = this.Options.StatementsPerChapter.Value;
+                maxStatementsPerChapter = financialStatementReportConfiguration.MaxStatementsPerChapter.Value;
             }
 
             if ( maxStatementsPerChapter.HasValue && maxStatementsPerChapter < 1 )
@@ -238,39 +209,89 @@ namespace Rock.Apps.StatementGenerator
                 maxStatementsPerChapter = null;
             }
 
-            var pdfDocumentList = pdfDataStreams.Select( a => PdfReader.Open( a, PdfDocumentOpenMode.Import ) ).ToList();
+            IEnumerable<IronPdf.PdfDocument> pdfDocumentList = statementGeneratorRecipientPdfResults.Select( a => PdfDocument.FromFile( a.PdfTempFileName ) ).ToList();
 
-            if ( this.Options.OrderBy == Rock.StatementGenerator.OrderBy.PageCount )
+            foreach ( var tempFile in statementGeneratorRecipientPdfResults.Select( a => a.PdfTempFileName ) )
             {
-                pdfDocumentList = pdfDocumentList.OrderBy( a => a.PageCount ).ToList();
-            }
-
-            var groupByPageCount = Options.GroupByPageCount;
-
-            if ( !groupByPageCount )
-            {
-                WriteGroupOfStatementsToDocument( string.Empty, pdfDocumentList, maxStatementsPerChapter );
-            }
-            else
-            {
-                var groups = pdfDocumentList.GroupBy( a => a.PageCount );
-
-                foreach ( var group in groups )
+                if ( File.Exists( tempFile ) )
                 {
-                    var groupName = $"PageCount{group.Key}-";
-                    WriteGroupOfStatementsToDocument( groupName, group.ToList(), maxStatementsPerChapter );
+                    File.Delete( tempFile );
                 }
             }
+           
+
+            WriteStatementPDFs( financialStatementReportConfiguration, pdfDocumentList );
 
             UpdateProgress( "Complete" );
 
             stopWatch.Stop();
             var elapsedSeconds = stopWatch.ElapsedMilliseconds / 1000;
-            Debug( $"{elapsedSeconds:n0} seconds" );
-            Debug( $"{RecordCount:n0} statements" );
-            Debug( $"{( stopWatch.ElapsedMilliseconds / RecordCount ):n0}ms per statement" );
+            Debug.WriteLine( $"{elapsedSeconds:n0} seconds" );
+            Debug.WriteLine( $"{RecordCount:n0} statements" );
+            if ( RecordCount > 0 )
+            {
+                Debug.WriteLine( $"{( stopWatch.ElapsedMilliseconds / RecordCount ):n0}ms per statement" );
+            }
 
             return this.RecordCount;
+        }
+
+        /// <summary>
+        /// Gets the PDF print options.
+        /// </summary>
+        /// <param name="pdfObjectSettings">The PDF object settings.</param>
+        /// <param name="statementGeneratorRecipientResult">The statement generator recipient result.</param>
+        /// <returns></returns>
+        private static PdfPrintOptions GetPdfPrintOptions( Dictionary<string, string> pdfObjectSettings, FinancialStatementGeneratorRecipientResult statementGeneratorRecipientResult )
+        {
+            string value;
+            PdfPrintOptions pdfPrintOptions = new PdfPrintOptions();
+
+            if ( pdfObjectSettings.TryGetValue( "margin.left", out value ) )
+            {
+                pdfPrintOptions.MarginLeft = value.AsDouble();
+            }
+
+            if ( pdfObjectSettings.TryGetValue( "margin.top", out value ) )
+            {
+                pdfPrintOptions.MarginTop = value.AsDouble();
+            }
+
+            if ( pdfObjectSettings.TryGetValue( "margin.right", out value ) )
+            {
+                pdfPrintOptions.MarginRight = value.AsDouble();
+            }
+
+            if ( pdfObjectSettings.TryGetValue( "margin.bottom", out value ) )
+            {
+                pdfPrintOptions.MarginBottom = value.AsDouble();
+            }
+
+            if ( pdfObjectSettings.TryGetValue( "footer.fontSize", out value ) )
+            {
+                pdfPrintOptions.Footer.FontSize = value.AsIntegerOrNull() ?? 10;
+            }
+            else
+            {
+                pdfPrintOptions.Footer.FontSize = 10;
+            }
+
+            var footerHtml = statementGeneratorRecipientResult.FooterHtml;
+
+            if ( footerHtml != null )
+            {
+                // see https://ironpdf.com/examples/html-headers-and-footers/
+                pdfPrintOptions.Footer = new HtmlHeaderFooter()
+                {
+                    //Height = 15,
+                    HtmlFragment = footerHtml,
+                    //DrawDividerLine = true
+                };
+            }
+
+            return pdfPrintOptions;
+
+
         }
 
         /// <summary>
@@ -279,60 +300,54 @@ namespace Rock.Apps.StatementGenerator
         /// <param name="fileNamePrefix">The file name prefix.</param>
         /// <param name="pdfDocumentList">The PDF document list.</param>
         /// <param name="maxStatementsPerChapter">The maximum statements per chapter.</param>
-        private void WriteGroupOfStatementsToDocument( string fileNamePrefix, List<PdfDocument> pdfDocumentList, int? maxStatementsPerChapter )
+        private void WriteStatementPDFs( FinancialStatementReportConfiguration financialStatementReportConfiguration, IEnumerable<IronPdf.PdfDocument> pdfDocumentList )
         {
-            var useChapters = maxStatementsPerChapter.HasValue;
-            var statementsInChapter = 0;
+            var maxStatementsPerChapter = financialStatementReportConfiguration.MaxStatementsPerChapter;
+            var fileNamePrefix = financialStatementReportConfiguration.FilenamePrefix;
+            var useChapters = financialStatementReportConfiguration.MaxStatementsPerChapter.HasValue;
+            var saveDirectory = financialStatementReportConfiguration.DestinationFolder;
+            var baseFileName = $"_baseFileName_{DateTime.Now.Ticks}";
+
+            //var statementsInChapter = 0;
             var chapterIndex = 1;
-            var resultPdf = new PdfDocument();
 
-            try
+            if ( pdfDocumentList.Any() )
             {
-                if ( pdfDocumentList.Any() )
+                var lastPdfDocument = pdfDocumentList.LastOrDefault();
+                List<IronPdf.PdfDocument> chapterDocs = new List<IronPdf.PdfDocument>();
+                foreach ( var pdfDocument in pdfDocumentList )
                 {
-                    var lastPdfDocument = pdfDocumentList.LastOrDefault();
-                    foreach ( var pdfDocument in pdfDocumentList )
+                    UpdateProgress( "Creating PDF..." );
+
+                    chapterDocs.Add( pdfDocument );
+
+                    if ( useChapters && ( ( chapterDocs.Count() >= maxStatementsPerChapter ) || pdfDocument == lastPdfDocument ) )
                     {
-                        UpdateProgress( "Creating PDF..." );
-                        this.RecordIndex++;
-
-                        foreach ( var pdfPage in pdfDocument.Pages.OfType<PdfPage>() )
-                        {
-                            resultPdf.Pages.Add( pdfPage );
-                        }
-
-                        statementsInChapter++;
-
-                        if ( useChapters && ( ( statementsInChapter >= maxStatementsPerChapter ) || pdfDocument == lastPdfDocument ) )
-                        {
-                            var filePath = GetFileName( Options.SaveDirectory, fileNamePrefix, Options.BaseFileName, chapterIndex );
-                            SavePdfFile( resultPdf, filePath );
-                            resultPdf.Dispose();
-                            resultPdf = new PdfDocument();
-                            statementsInChapter = 0;
-                            chapterIndex++;
-                        }
-                    }
-
-                    if ( useChapters )
-                    {
-                        // just in case we still have statements that haven't been written to a pdf
-                        if ( statementsInChapter > 0 )
-                        {
-                            var filePath = GetFileName( Options.SaveDirectory, fileNamePrefix, Options.BaseFileName, chapterIndex );
-                            SavePdfFile( resultPdf, filePath );
-                        }
-                    }
-                    else
-                    {
-                        var filePath = GetFileName( Options.SaveDirectory, fileNamePrefix, Options.BaseFileName, null );
-                        SavePdfFile( resultPdf, filePath );
+                        var chapterDoc = IronPdf.PdfDocument.Merge( chapterDocs );
+                        var filePath = GetFileName( financialStatementReportConfiguration.DestinationFolder, fileNamePrefix, baseFileName, chapterIndex );
+                        SavePdfFile( chapterDoc, filePath );
+                        chapterDocs.Clear();
+                        chapterIndex++;
                     }
                 }
-            }
-            finally
-            {
-                resultPdf.Dispose();
+
+                if ( useChapters )
+                {
+                    // just in case we still have statements that haven't been written to a pdf
+                    if ( chapterDocs.Any() )
+                    {
+
+                        var filePath = GetFileName( saveDirectory, fileNamePrefix, baseFileName, chapterIndex );
+                        var chapterDoc = IronPdf.PdfDocument.Merge( chapterDocs );
+                        SavePdfFile( chapterDoc, filePath );
+                    }
+                }
+                else
+                {
+                    var chapterDoc = IronPdf.PdfDocument.Merge( chapterDocs );
+                    var filePath = GetFileName( saveDirectory, fileNamePrefix, baseFileName, null );
+                    SavePdfFile( chapterDoc, filePath );
+                }
             }
         }
 
@@ -357,18 +372,6 @@ namespace Rock.Apps.StatementGenerator
         }
 
         /// <summary>
-        /// Debugs the specified message.
-        /// </summary>
-        /// <param name="message">The message.</param>
-        private static void Debug( string message )
-        {
-            if ( DEBUG )
-            {
-                System.Diagnostics.Debug.WriteLine( $"{DateTime.Now:mm.ss.f} - {message}" );
-            }
-        }
-
-        /// <summary>
         /// Saves the PDF file and Prompts if the file seems to be open
         /// </summary>
         /// <param name="resultPdf">The result PDF.</param>
@@ -387,7 +390,7 @@ namespace Rock.Apps.StatementGenerator
                 }
             }
 
-            resultPdf.Save( filePath );
+            resultPdf.SaveAs( filePath );
         }
 
         /// <summary>
@@ -396,7 +399,9 @@ namespace Rock.Apps.StatementGenerator
         /// <param name="progressMessage">The message.</param>
         private void UpdateProgress( string progressMessage )
         {
-            OnProgress?.Invoke( this, new ProgressEventArgs { ProgressMessage = progressMessage, Position = RecordIndex, Max = RecordCount } );
+            var position = Interlocked.Read( ref RecordsCompleted );
+            OnProgress?.Invoke( this, new ProgressEventArgs { ProgressMessage = progressMessage, Position = ( int ) position, Max = RecordCount } );
+
         }
 
         /// <summary>
@@ -433,5 +438,22 @@ namespace Rock.Apps.StatementGenerator
         /// The progress message.
         /// </value>
         public string ProgressMessage { get; set; }
+    }
+
+    internal class StatementGeneratorRecipientPdfResult
+    {
+        public StatementGeneratorRecipientPdfResult( FinancialStatementGeneratorRecipientResult statementGeneratorRecipientResult )
+        {
+            StatementGeneratorRecipientResult = statementGeneratorRecipientResult;
+        }
+
+
+
+        public FinancialStatementGeneratorRecipientResult StatementGeneratorRecipientResult { get; private set; }
+        //public IronPdf.PdfDocument PdfDoc { get; internal set; }
+        public string PdfTempFileName { get; set; }
+        public int GroupId => StatementGeneratorRecipientResult.GroupId;
+
+        //public byte[] PdfBytes { get; internal set; }
     }
 }

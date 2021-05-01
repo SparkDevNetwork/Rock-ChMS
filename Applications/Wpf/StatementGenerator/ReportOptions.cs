@@ -135,7 +135,7 @@ namespace Rock.Apps.StatementGenerator
         /// <value>
         /// The current report options.
         /// </value>
-        public static Rock.StatementGenerator.StatementGeneratorOptions Current
+        public static Rock.Client.FinancialStatementGeneratorOptions Current
         {
             get
             {
@@ -146,6 +146,6 @@ namespace Rock.Apps.StatementGenerator
         /// <summary>
         /// The current
         /// </summary>
-        private static Rock.StatementGenerator.StatementGeneratorOptions _current = new Rock.StatementGenerator.StatementGeneratorOptions();
+        private static Rock.Client.FinancialStatementGeneratorOptions _current = new Rock.Client.FinancialStatementGeneratorOptions();
     }
 }

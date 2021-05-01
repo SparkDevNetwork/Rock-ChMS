@@ -15,6 +15,7 @@ using System.Text;
 using System.Text.RegularExpressions;
 using System.Windows.Forms;
 using System.Xml;
+
 using Rock;
 
 namespace Rock.CodeGeneration
@@ -352,7 +353,7 @@ namespace Rock.CodeGeneration
             }
 
             StringBuilder warnings = new StringBuilder();
-            if (entityPropertyShouldBeVirtualWarnings.Count > 0)
+            if ( entityPropertyShouldBeVirtualWarnings.Count > 0 )
             {
                 warnings.AppendLine( "Model Properties that should be marked virtual" );
                 foreach ( var warning in entityPropertyShouldBeVirtualWarnings )
@@ -374,7 +375,7 @@ namespace Rock.CodeGeneration
 
             if ( missingDbSetWarnings.Length > 0 )
             {
-                
+
                 warnings.AppendLine( "RockContext missing DbSet<T>s" );
                 warnings.Append( missingDbSetWarnings );
             }
@@ -1095,7 +1096,7 @@ GO
         {
             if ( type.IsEnum )
             {
-                if ( type.Namespace == "Rock.Model" )
+                if ( type.Namespace == "Rock.Model" || type.GetCustomAttribute<Rock.Data.RockClientIncludeAttribute>() != null )
                 {
                     return "Rock.Client.Enums." + type.Name;
                 }
@@ -1226,7 +1227,10 @@ GO
 
             foreach ( var enumType in rockAssembly.GetTypes().Where( a => a.IsEnum ).OrderBy( a => a.Name ) )
             {
-                if ( enumType.Namespace == "Rock.Model" )
+                bool rockModelGenerateClientEnum = enumType.Namespace == "Rock.Model";
+                bool rockClientIncludeAttributeEnum = enumType.GetCustomAttribute<Rock.Data.RockClientIncludeAttribute>() != null;
+
+                if ( rockModelGenerateClientEnum || rockClientIncludeAttributeEnum )
                 {
                     sb.AppendLine( "    /// <summary>" );
                     sb.AppendLine( "    /// </summary>" );
@@ -1695,7 +1699,7 @@ GO
             //updatedFileCount += FixupCopyrightHeaders( rockDirectory + "Rock.Specs\\" );
             updatedFileCount += FixupCopyrightHeaders( rockDirectory + "Rock.StatementGenerator\\" );
             //updatedFileCount += FixupCopyrightHeaders( rockDirectory + "Rock.Tests\\" );
-            
+
             updatedFileCount += FixupCopyrightHeaders( rockDirectory + "Rock.Version\\" );
             updatedFileCount += FixupCopyrightHeaders( rockDirectory + "Rock.WebStartup\\" );
             updatedFileCount += FixupCopyrightHeaders( rockDirectory + "Applications\\" );
@@ -1709,7 +1713,7 @@ GO
         {
             int result = 0;
 
-            if (!Directory.Exists(searchDirectory))
+            if ( !Directory.Exists( searchDirectory ) )
             {
                 return 0;
             }

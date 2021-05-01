@@ -33,9 +33,9 @@ namespace Rock.Apps.StatementGenerator
         {
             InitializeComponent();
 
-            txtFolderLocation.Text = ReportOptions.Current.SaveDirectory ?? Path.Combine( Environment.GetFolderPath( Environment.SpecialFolder.Desktop ), "Statements" );
-            txtFileName.Text = ReportOptions.Current.BaseFileName ?? "contribution-statements";
-            txtChapterSize.Text = ReportOptions.Current.StatementsPerChapter.ToString();
+            //txtFolderLocation.Text = ReportOptions.Current.SelectedReportConfiguration.DestinationFolder  ?? Path.Combine( Environment.GetFolderPath( Environment.SpecialFolder.Desktop ), "Statements" );
+            //txtFileName.Text = ReportOptions.Current.BaseFileName ?? "contribution-statements";
+            //txtChapterSize.Text = ReportOptions.Current.StatementsPerChapter.ToString();
         }
 
         /// <summary>
@@ -61,57 +61,6 @@ namespace Rock.Apps.StatementGenerator
         /// <returns></returns>
         private bool SaveChanges( bool showWarnings )
         {
-            if ( showWarnings )
-            {
-                if ( txtFolderLocation.Text.Trim() == string.Empty )
-                {
-                    MessageBoxResult result = MessageBox.Show( "Please select a folder to save contribution statements to.", "Folder Location Required", MessageBoxButton.OK, MessageBoxImage.Warning );
-                    return false;
-                }
-
-                if ( !Directory.Exists( txtFolderLocation.Text ) )
-                {
-                    try
-                    {
-                        System.IO.Directory.CreateDirectory( txtFolderLocation.Text );
-                    }
-                    catch ( Exception )
-                    {
-                        MessageBoxResult result = MessageBox.Show( "Couldn't create the directory provided. Please double-check that it is a valid path.", "Path Not Valid", MessageBoxButton.OK, MessageBoxImage.Exclamation );
-                        return false;
-                    }
-                }
-
-                if ( txtFileName.Text == string.Empty )
-                {
-                    MessageBoxResult result = MessageBox.Show( "Please provide a base file name.", "Filename Required", MessageBoxButton.OK, MessageBoxImage.Warning );
-                    return false;
-                }
-            }
-
-            ReportOptions.Current.BaseFileName = txtFileName.Text;
-            ReportOptions.Current.SaveDirectory = txtFolderLocation.Text;
-
-            int? chapterSize = txtChapterSize.Text.AsIntegerOrNull();
-
-            if ( showWarnings )
-            {
-                if ( txtChapterSize.Text.Trim() != string.Empty && chapterSize == null )
-                {
-                    MessageBoxResult result = MessageBox.Show( "Please provide a number for the chapter size or leave blank.", "Invalid Chapter Size", MessageBoxButton.OK, MessageBoxImage.Warning );
-                    return false;
-                }
-            }
-
-            if ( chapterSize > 0 )
-            {
-                ReportOptions.Current.StatementsPerChapter = chapterSize;
-            }
-            else
-            {
-                ReportOptions.Current.StatementsPerChapter = null;
-            }
-
             return true;
         }
 

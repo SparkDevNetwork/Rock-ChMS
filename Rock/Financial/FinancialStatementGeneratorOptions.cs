@@ -24,6 +24,44 @@ namespace Rock.Financial
     /// <summary>
     /// 
     /// </summary>
+    [RockClientInclude( "The Request body for ~api/FinancialGivingStatement/GetStatementGeneratorRecipientResult" )]
+    public class FinancialStatementGeneratorRecipientRequest
+    {
+        /// <summary>
+        /// Initializes a new instance of the <see cref="FinancialStatementGeneratorRecipientRequest"/> class.
+        /// </summary>
+        public FinancialStatementGeneratorRecipientRequest()
+        {
+        }
+
+        /// <summary>
+        /// Initializes a new instance of the <see cref="FinancialStatementGeneratorRecipientRequest"/> class.
+        /// </summary>
+        /// <param name="financialStatementGeneratorOptions">The financial statement generator options.</param>
+        public FinancialStatementGeneratorRecipientRequest ( FinancialStatementGeneratorOptions financialStatementGeneratorOptions )
+        {
+            FinancialStatementGeneratorOptions = financialStatementGeneratorOptions;
+        }
+
+        /// <summary>
+        /// Gets or sets the financial statement generator recipient.
+        /// </summary>
+        /// <value>
+        /// The financial statement generator recipient.
+        /// </value>
+        public FinancialStatementGeneratorRecipient FinancialStatementGeneratorRecipient { get; set; }
+        /// <summary>
+        /// Gets or sets the financial statement generator options.
+        /// </summary>
+        /// <value>
+        /// The financial statement generator options.
+        /// </value>
+        public FinancialStatementGeneratorOptions FinancialStatementGeneratorOptions { get; set; }
+    }
+
+    /// <summary>
+    /// 
+    /// </summary>
     [RockClientInclude( "The FinancialStatementGeneratorOptions that are configured on the Statement Generator WPF application" )]
     public class FinancialStatementGeneratorOptions
     {
@@ -116,7 +154,7 @@ namespace Rock.Financial
         /// <summary>
         /// 
         /// </summary>
-        [RockClientInclude( "Report configuration for the StatementGeneratorOptions ReportConfigurationList." ) ]
+        [RockClientInclude( "Report configuration for the StatementGeneratorOptions ReportConfigurationList." )]
         public class FinancialStatementReportConfiguration
         {
             /// <summary>
@@ -225,6 +263,7 @@ namespace Rock.Financial
     /// <summary>
     /// 
     /// </summary>
+    [RockClientInclude( "FinancialStatement OrderBy options" )]
     public enum FinancialStatementOrderBy
     {
         /// <summary>

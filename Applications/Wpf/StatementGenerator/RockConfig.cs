@@ -149,16 +149,16 @@ namespace Rock.Apps.StatementGenerator
         /// </value>
         [DefaultSettingValueAttribute( "" )]
         [UserScopedSetting]
-        public Guid? LayoutDefinedValueGuid
+        public Guid? FinancialStatementTemplateGuid
         {
             get
             {
-                return this["LayoutDefinedValueGuid"] as Guid?;
+                return this["FinancialStatementTemplateGuid"] as Guid?;
             }
 
             set
             {
-                this["LayoutDefinedValueGuid"] = value;
+                this["FinancialStatementTemplateGuid"] = value;
             }
         }
 

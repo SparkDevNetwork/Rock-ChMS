@@ -24,19 +24,16 @@ using Rock.Net;
 namespace Rock.Apps.StatementGenerator
 {
     /// <summary>
-    /// Interaction logic for SelectLavaTemplatePage.xaml
+    /// Interaction logic for SelectFinancialStatementTemplatePage.xaml
     /// </summary>
-    public partial class SelectLavaTemplatePage : Page
+    public partial class SelectFinancialStatementTemplatePage : Page
     {
         /// <summary>
         /// The _rock rest client
         /// </summary>
         private RockRestClient _rockRestClient;
-
-        /// <summary>
-        /// Initializes a new instance of the <see cref="SelectLavaTemplatePage"/> class.
-        /// </summary>
-        public SelectLavaTemplatePage()
+      
+        public SelectFinancialStatementTemplatePage()
         {
             InitializeComponent();
 
@@ -45,28 +42,25 @@ namespace Rock.Apps.StatementGenerator
             _rockRestClient = new RockRestClient( rockConfig.RockBaseUrl );
             _rockRestClient.Login( rockConfig.Username, rockConfig.Password );
 
-            LoadLavaTemplates();
+            LoadFinancialStatementTemplates();
         }
-
-        /// <summary>
-        /// Loads the lava templates.
-        /// </summary>
-        public void LoadLavaTemplates()
+      
+        public void LoadFinancialStatementTemplates()
         {
             var rockConfig = RockConfig.Load();
 
-            var lavaTemplateDefineValues = _rockRestClient.GetData<List<Rock.Client.DefinedValue>>( "api/FinancialTransactions/GetStatementGeneratorTemplates" );
+            List<Client.FinancialStatementTemplate> financialStatementTemplateList = _rockRestClient.GetData<List<Rock.Client.FinancialStatementTemplate>>( "api/FinancialStatementTemplates" );
 
             List<RadioButton> radioButtonList = new List<RadioButton>();
-            foreach ( var lavaTemplateDefineValue in lavaTemplateDefineValues.OrderBy( a => a.Order ).ThenBy( a => a.Value ) )
+            foreach ( var financialStatementTemplate in financialStatementTemplateList.OrderBy(a => a.Name) )
             {
-                RadioButton radLavaTemplate = new RadioButton();
-                radLavaTemplate.Tag = lavaTemplateDefineValue;
-                radLavaTemplate.Content = lavaTemplateDefineValue.Value;
-                radLavaTemplate.ToolTip = lavaTemplateDefineValue.Description;
+                RadioButton radFinancialStatementTemplate = new RadioButton();
+                radFinancialStatementTemplate.Tag = financialStatementTemplate;
+                radFinancialStatementTemplate.Content = financialStatementTemplate.Name;
+                radFinancialStatementTemplate.ToolTip = financialStatementTemplate.Description;
 
-                radLavaTemplate.IsChecked = rockConfig.LayoutDefinedValueGuid == lavaTemplateDefineValue.Guid;
-                radioButtonList.Add( radLavaTemplate );
+                radFinancialStatementTemplate.IsChecked = rockConfig.FinancialStatementTemplateGuid == financialStatementTemplate.Guid;
+                radioButtonList.Add( radFinancialStatementTemplate );
             }
 
             if ( !radioButtonList.Any( a => a.IsChecked ?? false ) )
@@ -77,10 +71,10 @@ namespace Rock.Apps.StatementGenerator
                 }
             }
 
-            lstLavaTemplates.Items.Clear();
+            lstFinancialStatementTemplates.Items.Clear();
             foreach ( var item in radioButtonList )
             {
-                lstLavaTemplates.Items.Add( item );
+                lstFinancialStatementTemplates.Items.Add( item );
             }
         }
 
@@ -91,7 +85,7 @@ namespace Rock.Apps.StatementGenerator
         /// <returns></returns>
         private bool SaveChanges( bool showWarnings )
         {
-            var selected = lstLavaTemplates.Items.OfType<RadioButton>().First( a => a.IsChecked == true );
+            var selected = lstFinancialStatementTemplates.Items.OfType<RadioButton>().First( a => a.IsChecked == true );
             if ( selected == null )
             {
                 if ( showWarnings )
@@ -101,11 +95,11 @@ namespace Rock.Apps.StatementGenerator
             }
 
             var rockConfig = RockConfig.Load();
-            var lavaDefinedValue = selected?.Tag as Rock.Client.DefinedValue;
-            rockConfig.LayoutDefinedValueGuid = lavaDefinedValue?.Guid;
+            var financialStatementTemplate = selected?.Tag as Rock.Client.FinancialStatementTemplate;
+            rockConfig.FinancialStatementTemplateGuid = financialStatementTemplate?.Guid;
             rockConfig.Save();
 
-            ReportOptions.Current.LayoutDefinedValueGuid = lavaDefinedValue?.Guid;
+            ReportOptions.Current.FinancialStatementTemplateId = financialStatementTemplate?.Id;
             
             return true;
         }

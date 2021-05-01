@@ -98,7 +98,17 @@ namespace Rock.Apps.StatementGenerator
             ContributionReport contributionReport = new ContributionReport( ReportOptions.Current );
             contributionReport.OnProgress += ContributionReport_OnProgress;
 
-            _statementCount = contributionReport.RunReport();
+            // TODO
+            Rock.Client.FinancialStatementReportConfiguration financialStatementReportConfiguration = new Client.FinancialStatementReportConfiguration()
+            {
+                DestinationFolder = @"C:\Users\mvhsd\OneDrive\Desktop\Statements",
+                FilenamePrefix = "IronPDFTest_",
+                PrimarySortOrder = Client.Enums.FinancialStatementOrderBy.LastName,
+                SecondarySortOrder = Client.Enums.FinancialStatementOrderBy.PostalCode,
+            };
+
+
+            _statementCount = contributionReport.RunReport( financialStatementReportConfiguration );
 
             e.Result = _statementCount > 0;
         }
@@ -192,17 +202,10 @@ namespace Rock.Apps.StatementGenerator
         /// <param name="e">The <see cref="System.Windows.Input.MouseButtonEventArgs"/> instance containing the event data.</param>
         private void lblReportProgress_MouseDoubleClick( object sender, System.Windows.Input.MouseButtonEventArgs e )
         {
-            if ( ReportOptions.Current.StatementsPerChapter > 1 )
-            {
-                // open the folder that the pdfs are in
-                System.Diagnostics.Process.Start( ReportOptions.Current.SaveDirectory );
-            }
-            else
-            {
-                // open the pdf
-                string filePath = string.Format( @"{0}\{1}.pdf", ReportOptions.Current.SaveDirectory, ReportOptions.Current.BaseFileName );
-                System.Diagnostics.Process.Start( filePath );
-            }
+            
+                // todo
+                
+            
         }
     }
 }
