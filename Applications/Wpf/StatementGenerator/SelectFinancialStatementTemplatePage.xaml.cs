@@ -19,7 +19,10 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Windows;
 using System.Windows.Controls;
-using Rock.Net;
+
+using RestSharp;
+
+using Rock.Apps.StatementGenerator.RestSharpRequests;
 
 namespace Rock.Apps.StatementGenerator
 {
@@ -28,28 +31,34 @@ namespace Rock.Apps.StatementGenerator
     /// </summary>
     public partial class SelectFinancialStatementTemplatePage : Page
     {
-        /// <summary>
-        /// The _rock rest client
-        /// </summary>
-        private RockRestClient _rockRestClient;
       
         public SelectFinancialStatementTemplatePage()
         {
             InitializeComponent();
 
-            RockConfig rockConfig = RockConfig.Load();
-
-            _rockRestClient = new RockRestClient( rockConfig.RockBaseUrl );
-            _rockRestClient.Login( rockConfig.Username, rockConfig.Password );
+            
 
             LoadFinancialStatementTemplates();
         }
       
         public void LoadFinancialStatementTemplates()
         {
-            var rockConfig = RockConfig.Load();
+            RockConfig rockConfig = RockConfig.Load();
 
-            List<Client.FinancialStatementTemplate> financialStatementTemplateList = _rockRestClient.GetData<List<Rock.Client.FinancialStatementTemplate>>( "api/FinancialStatementTemplates" );
+            var restClient = new RestClient( rockConfig.RockBaseUrl );
+            restClient.CookieContainer = new System.Net.CookieContainer();
+            var rockLoginRequest = new RockLoginRequest( rockConfig.Username, rockConfig.Password );
+            var rockLoginResponse = restClient.Execute( rockLoginRequest );
+            var getFinancialStatementTemplatesRequest = new RestRequest( "api/FinancialStatementTemplates" );
+            var getFinancialStatementTemplatesResponse = restClient.Execute<List<Client.FinancialStatementTemplate>>( getFinancialStatementTemplatesRequest );
+
+            if ( getFinancialStatementTemplatesResponse.ErrorException != null )
+            {
+                throw getFinancialStatementTemplatesResponse.ErrorException;
+            }
+
+
+            List<Client.FinancialStatementTemplate> financialStatementTemplateList = getFinancialStatementTemplatesResponse.Data;
 
             List<RadioButton> radioButtonList = new List<RadioButton>();
             foreach ( var financialStatementTemplate in financialStatementTemplateList.OrderBy(a => a.Name) )

@@ -9,7 +9,7 @@
     <AppDesignerFolder>Properties</AppDesignerFolder>
     <RootNamespace>Rock.Apps.StatementGenerator</RootNamespace>
     <AssemblyName>StatementGenerator</AssemblyName>
-    <TargetFrameworkVersion>v4.5.2</TargetFrameworkVersion>
+    <TargetFrameworkVersion>v4.7.2</TargetFrameworkVersion>
     <FileAlignment>512</FileAlignment>
     <ProjectTypeGuids>{60dc8134-eba5-43b8-bcc9-bb4bc16c2548};{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}</ProjectTypeGuids>
     <WarningLevel>4</WarningLevel>
@@ -193,17 +193,9 @@
     <None Include="packages.config" />
   </ItemGroup>
   <ItemGroup>
-    <ProjectReference Include="..\..\..\DotLiquid\DotLiquid.csproj">
-      <Project>{00edcb8d-ef33-459c-ad62-02876bd24dff}</Project>
-      <Name>DotLiquid</Name>
-    </ProjectReference>
     <ProjectReference Include="..\..\..\Rock.Client\Rock.Client.csproj">
       <Project>{6ea64bb9-9740-453a-939b-df43ad9ac164}</Project>
       <Name>Rock.Client</Name>
-    </ProjectReference>
-    <ProjectReference Include="..\..\..\Rock.RestClient\Rock.RestClient.csproj">
-      <Project>{7794b7f5-b449-46d5-94cc-1c58eb726d3f}</Project>
-      <Name>Rock.RestClient</Name>
     </ProjectReference>
     <ProjectReference Include="..\Rock.Wpf\Rock.Wpf.csproj">
       <Project>{90440596-fa0a-45e7-8872-3da47786f6a7}</Project>

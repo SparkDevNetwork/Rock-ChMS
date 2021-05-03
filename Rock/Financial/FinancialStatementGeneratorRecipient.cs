@@ -52,6 +52,30 @@ namespace Rock.Financial
         ///   <c>true</c> if [opted out]; otherwise, <c>false</c>.
         /// </value>
         public bool OptedOut { get; set; }
+
+        /// <summary>
+        /// The total amount of contributions reported on the statement.
+        /// </summary>
+        /// <value>
+        /// The contribution total.
+        /// </value>
+        public decimal ContributionTotal { get; set; }
+
+        /// <summary>
+        /// The total amount of pledges reported on the statement.
+        /// </summary>
+        /// <value>
+        /// The pledge total.
+        /// </value>
+        public decimal? PledgeTotal { get; set; }
+
+        /// <summary>
+        /// The country (if any) for the address on the statement.
+        /// </summary>
+        /// <value>
+        /// The country.
+        /// </value>
+        public string Country { get; set; }
     }
 
     /// <summary>
@@ -63,7 +87,7 @@ namespace Rock.Financial
     {
         /// <summary>
         /// Gets or sets the GroupId of the Family to use as the Address.
-        /// if PersonId is null, this is also the GivingGroupId to use when fetching transactions
+        /// if PersonId is null, this is also the GivingGroupId to use when fetching transactions.
         /// </summary>
         /// <value>
         /// The group identifier.
@@ -71,7 +95,7 @@ namespace Rock.Financial
         public int GroupId { get; set; }
 
         /// <summary>
-        /// Gets or sets the person identifier for people that give as Individuals. If this is null, get the Transactions based on the GivingGroupId
+        /// Gets or sets the person identifier for people that give as Individuals. If this is null, get the Transactions based on the GivingGroupId.
         /// </summary>
         /// <value>
         /// The person identifier.
@@ -80,7 +104,7 @@ namespace Rock.Financial
 
         /// <summary>
         /// Gets or sets the location identifier.
-        /// This is the Mailing Address that the statement should be sent to
+        /// This is the Mailing Address that the statement should be sent to.
         /// </summary>
         /// <value>
         /// The location identifier.
@@ -95,19 +119,28 @@ namespace Rock.Financial
         /// </value>
         public string PostalCode { get; set; }
 
-        /// <summary>
-        /// Gets or sets the last name.
-        /// </summary>
-        /// <value>
-        /// The last name.
-        /// </value>
+        /// <inheritdoc cref="Rock.Model.Person.LastName"/>
         public string LastName { get; set; }
+
+        /// <inheritdoc cref="Rock.Model.Person.NickName"/>
+        public string NickName { get; set; }
+
         /// <summary>
-        /// Gets or sets the name of the nick.
+        /// The number of PDFs pages that resulted when generating the statement.
+        /// If "Enable Page Count Pre-Determination" is enabled, the statement for this person will be run a 2nd time so that the RenderedPageCount.
+        /// can be passed as a MergeField when generating the HTML
         /// </summary>
         /// <value>
-        /// The name of the nick.
+        /// The rendered page count.
         /// </value>
-        public string NickName { get; set; }
+        public int? RenderedPageCount { get; set; }
+
+        /// <summary>
+        /// Determines that this statement has been processed by the StatementGenerator. This is needed for the restart logic in the StatementGenerator application.
+        /// </summary>
+        /// <value>
+        ///   <c>true</c> if this instance is complete; otherwise, <c>false</c>.
+        /// </value>
+        public bool IsComplete { get; set; }
     }
 }

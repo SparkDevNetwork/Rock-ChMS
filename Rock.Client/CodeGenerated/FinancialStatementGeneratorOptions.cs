@@ -56,7 +56,7 @@ namespace Rock.Client
         public int? PersonId { get; set; }
 
         /// <summary />
-        public FinancialStatementReportConfiguration SelectedReportConfiguration { get; set; }
+        public List<FinancialStatementReportConfiguration> ReportConfigurationList { get; set; }
 
         /// <summary />
         public DateTime? StartDate { get; set; }
@@ -75,7 +75,7 @@ namespace Rock.Client
             this.IncludeBusinesses = source.IncludeBusinesses;
             this.IncludeIndividualsWithNoAddress = source.IncludeIndividualsWithNoAddress;
             this.PersonId = source.PersonId;
-            this.SelectedReportConfiguration = source.SelectedReportConfiguration;
+            this.ReportConfigurationList = source.ReportConfigurationList;
             this.StartDate = source.StartDate;
 
         }

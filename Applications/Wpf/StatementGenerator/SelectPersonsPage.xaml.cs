@@ -24,19 +24,21 @@ using System.Windows.Controls;
 using System.Windows.Documents;
 using System.Windows.Input;
 using System.Xml;
-using Rock.Net;
+
+using RestSharp;
+
+using Rock.Apps.StatementGenerator.RestSharpRequests;
+using Rock.Client;
 
 namespace Rock.Apps.StatementGenerator
 {
     /// <summary>
     /// Interaction logic for SelectPersonsPage.xaml
     /// </summary>
-    public partial class SelectPersonsPage : Page
+    public partial class SelectPersonsPage : System.Windows.Controls.Page
     {
-        /// <summary>
-        /// The _rock rest client
-        /// </summary>
-        private RockRestClient _rockRestClient;
+
+        private RestClient _restClient;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="SelectPersonsPage"/> class.
@@ -46,10 +48,21 @@ namespace Rock.Apps.StatementGenerator
             InitializeComponent();
             RockConfig rockConfig = RockConfig.Load();
 
-            _rockRestClient = new RockRestClient( rockConfig.RockBaseUrl );
-            _rockRestClient.Login( rockConfig.Username, rockConfig.Password );
+            _restClient = new RestClient( rockConfig.RockBaseUrl );
+            _restClient.CookieContainer = new System.Net.CookieContainer();
+            var rockLoginRequest = new RockLoginRequest( rockConfig.Username, rockConfig.Password );
+            var rockLoginResponse = _restClient.Execute( rockLoginRequest );
 
-            var dataViews = _rockRestClient.GetData<List<Rock.Client.DataView>>( "api/DataViews", "EntityType/Name eq 'Rock.Model.Person'" ).OrderBy( a => a.Name );
+            string queryParam = "?$filter=" + "EntityType/Name eq 'Rock.Model.Person'";
+            var getDataViewsRequest = new RestRequest( "api/DataViews" + queryParam );
+            var getDataViewsResponse = _restClient.Execute<List<Rock.Client.DataView>>( getDataViewsRequest );
+
+            if ( getDataViewsResponse.ErrorException != null )
+            {
+                throw getDataViewsResponse.ErrorException;
+            }
+
+            var dataViews = getDataViewsResponse.Data;
 
             ddlDataView.DisplayMemberPath = "Name";
             ddlDataView.ItemsSource = dataViews;
@@ -197,17 +210,22 @@ namespace Rock.Apps.StatementGenerator
         {
             if ( e.Error != null )
             {
+
+                // if there was an error, re-create a new RestClient
                 RockConfig rockConfig = RockConfig.Load();
 
-                _rockRestClient = new RockRestClient( rockConfig.RockBaseUrl );
-                _rockRestClient.Login( rockConfig.Username, rockConfig.Password );
+                _restClient = new RestClient( rockConfig.RockBaseUrl );
+                _restClient.CookieContainer = new System.Net.CookieContainer();
+                var rockLoginRequest = new RockLoginRequest( rockConfig.Username, rockConfig.Password );
+                var rockLoginResponse = _restClient.Execute( rockLoginRequest );
+
 
                 throw e.Error;
             }
 
             if ( !e.Cancelled )
             {
-                grdPersons.DataContext = e.Result as List<object>;
+                grdPersons.DataContext = e.Result;
             }
 
             activeSearchBackgroundWorkers = new ConcurrentBag<BackgroundWorker>( activeSearchBackgroundWorkers.Where( a => a != sender as BackgroundWorker ) );
@@ -220,8 +238,6 @@ namespace Rock.Apps.StatementGenerator
         /// <param name="e">The <see cref="DoWorkEventArgs"/> instance containing the event data.</param>
         protected void bw_DoWork( object sender, DoWorkEventArgs e )
         {
-            List<object> personResults = new List<object>();
-
             //// sleep a few ms to make sure they are done typing, then only fire off the query if this bw was launched with the most recent search term
             //// this helps reduce the chance that the webclient will get overloaded with multiple requested
             System.Threading.Thread.Sleep( 50 );
@@ -238,45 +254,30 @@ namespace Rock.Apps.StatementGenerator
 
             if ( searchValue.Length < 3 )
             {
-                e.Result = personResults;
+                e.Result = new List<PersonSearchResult>();
                 return;
             }
 
-            string uriFormat = "api/People/Search?name={0}&includeHtml=false&includeDetails=true&includeBusinesses=true&includeDeceased=true";
-            var searchResult = _rockRestClient.GetXml( string.Format( uriFormat, HttpUtility.UrlEncode( searchValue ) ), 10000 );
+            string searchUrl =$"api/People/Search?name={HttpUtility.UrlEncode( searchValue )}&includeHtml=false&includeDetails=true&includeBusinesses=true&includeDeceased=true";
+            var getSearchRequest = new RestRequest( searchUrl );
+            getSearchRequest.Timeout = 10000;
+            var getSearchResponse = _restClient.Execute<List<PersonSearchResult>>( getSearchRequest );
 
-            // if the search term has changed and new backgroundworker is doing a search, cancel this one
+            if ( getSearchResponse.ErrorException != null )
+            {
+                throw getSearchResponse.ErrorException;
+            }
+
+            var personResults = getSearchResponse.Data;
+
+            // if the search term has changed and new BackgroundWorker is doing a search, cancel this one
             if ( backgroundWorker.CancellationPending )
             {
                 e.Cancel = true;
                 return;
             }
 
-            if ( searchResult != null )
-            {
-                XmlDocument doc = new XmlDocument();
-                doc.LoadXml( searchResult );
-                XmlNode root = doc.DocumentElement;
-                foreach ( var node in root.ChildNodes.OfType<XmlNode>() )
-                {
-                    personResults.Add( new PersonSearchResult
-                    {
-                        Id = node["Id"].InnerText.AsInteger(),
-                        FullName = node["Name"].InnerText,
-                        Age = node["Age"].InnerText == "-1" ? "" : node["Age"].InnerText,
-                        Gender = node["Gender"].InnerText,
-                        ToolTip = string.Format(
-                             string.IsNullOrWhiteSpace( node["SpouseName"].InnerText ) ? "-" : node["SpouseName"].InnerText,
-                             node["Email"].InnerText,
-                             node["Address"].InnerText ),
-                        SpouseName = node["SpouseName"].InnerText,
-                        Email = node["Email"].InnerText,
-                        Address = node["Address"].InnerText
-                    } );
-                }
-            }
-
-            // if the search term has changed and new backgroundworker is doing a search, cancel this one
+            // if the search term has changed and new BackgroundWorker is doing a search, cancel this one
             if ( backgroundWorker.CancellationPending )
             {
                 e.Cancel = true;
@@ -337,17 +338,5 @@ namespace Rock.Apps.StatementGenerator
             radPersons_Checked( sender, e );
             lblWarning.Visibility = Visibility.Collapsed;
         }
-    }
-
-    internal class PersonSearchResult
-    {
-        public int Id { get; set; }
-        public string FullName { get; set; }
-        public string Age { get; set; }
-        public string Gender { get; set; }
-        public string ToolTip { get; set; }
-        public string SpouseName { get; set; }
-        public string Email { get; set; }
-        public string Address { get; set; }
     }
 }

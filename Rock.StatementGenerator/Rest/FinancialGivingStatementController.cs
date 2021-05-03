@@ -200,26 +200,34 @@ namespace Rock.StatementGenerator.Rest
                     }
                 }
 
-                // use C# to sort the recipients by specified PrimarySortOrder and SecondarySortOrder
-                if ( financialStatementGeneratorOptions.SelectedReportConfiguration.PrimarySortOrder == FinancialStatementOrderBy.LastName )
-                {
-                    var sortedRecipientList = recipientList.OrderBy( a => a.LastName ).ThenBy( a => a.NickName );
-                    if ( financialStatementGeneratorOptions.SelectedReportConfiguration.SecondarySortOrder == FinancialStatementOrderBy.PostalCode )
-                    {
-                        sortedRecipientList = sortedRecipientList.ThenBy( a => a.PostalCode );
-                    }
+                // A statement Generator can have more than report configuration. If they have more than one, then
+                // the generator will be in charge of sorting. However, let's take care of sorting the first
+                // Report Configuration. That'll help in cases where the caller doesn't support more than one report configuration
+                var defaultReportConfiguration = financialStatementGeneratorOptions.ReportConfigurationList?.FirstOrDefault();
 
-                    recipientList = sortedRecipientList.ToList();
-                }
-                else if ( financialStatementGeneratorOptions.SelectedReportConfiguration.PrimarySortOrder == FinancialStatementOrderBy.PostalCode )
+                if ( defaultReportConfiguration != null )
                 {
-                    var sortedRecipientList = recipientList.OrderBy( a => a.PostalCode );
-                    if ( financialStatementGeneratorOptions.SelectedReportConfiguration.SecondarySortOrder == FinancialStatementOrderBy.LastName )
+                    // use C# to sort the recipients by specified PrimarySortOrder and SecondarySortOrder
+                    if ( defaultReportConfiguration.PrimarySortOrder == FinancialStatementOrderBy.LastName )
                     {
-                        sortedRecipientList = sortedRecipientList.ThenBy( a => a.LastName ).ThenBy( a => a.NickName );
-                    }
+                        var sortedRecipientList = recipientList.OrderBy( a => a.LastName ).ThenBy( a => a.NickName );
+                        if ( defaultReportConfiguration.SecondarySortOrder == FinancialStatementOrderBy.PostalCode )
+                        {
+                            sortedRecipientList = sortedRecipientList.ThenBy( a => a.PostalCode );
+                        }
 
-                    recipientList = sortedRecipientList.ToList();
+                        recipientList = sortedRecipientList.ToList();
+                    }
+                    else if ( defaultReportConfiguration.PrimarySortOrder == FinancialStatementOrderBy.PostalCode )
+                    {
+                        var sortedRecipientList = recipientList.OrderBy( a => a.PostalCode );
+                        if ( defaultReportConfiguration.SecondarySortOrder == FinancialStatementOrderBy.LastName )
+                        {
+                            sortedRecipientList = sortedRecipientList.ThenBy( a => a.LastName ).ThenBy( a => a.NickName );
+                        }
+
+                        recipientList = sortedRecipientList.ToList();
+                    }
                 }
 
                 return recipientList;
@@ -252,7 +260,7 @@ namespace Rock.StatementGenerator.Rest
                 throw new Exception( "FinancialStatementGeneratorOptions must be specified" );
             }
 
-            if ( financialStatementGeneratorRecipientRequest.FinancialStatementGeneratorRecipient  == null )
+            if ( financialStatementGeneratorRecipientRequest.FinancialStatementGeneratorRecipient == null )
             {
                 throw new Exception( "FinancialStatementGeneratorRecipient must be specified" );
             }
@@ -261,9 +269,9 @@ namespace Rock.StatementGenerator.Rest
             var personId = financialStatementGeneratorRecipientRequest.FinancialStatementGeneratorRecipient.PersonId;
             var locationGuid = financialStatementGeneratorRecipientRequest.FinancialStatementGeneratorRecipient.LocationGuid;
 
-            var result = new FinancialStatementGeneratorRecipientResult();
-            result.GroupId = groupId;
-            result.PersonId = personId;
+            var recipientResult = new FinancialStatementGeneratorRecipientResult();
+            recipientResult.GroupId = groupId;
+            recipientResult.PersonId = personId;
 
             using ( var rockContext = new RockContext() )
             {
@@ -276,14 +284,7 @@ namespace Rock.StatementGenerator.Rest
                 var reportSettings = financialStatementTemplate.ReportSettings;
                 var transactionSettings = reportSettings.TransactionSettings;
                 var financialTransactionQry = this.GetFinancialTransactionQuery( financialStatementGeneratorOptions, rockContext, false );
-                var financialPledgeQry = GetFinancialPledgeQuery( financialStatementGeneratorOptions, rockContext, false );
-
-                var financialStatementReportConfiguration = financialStatementGeneratorOptions.SelectedReportConfiguration;
-
-                if ( financialStatementReportConfiguration == null )
-                {
-                    throw new Exception( "SelectedReportConfiguration must be specified." );
-                }
+                
 
                 var personList = new List<Person>();
                 Person person = null;
@@ -300,44 +301,19 @@ namespace Rock.StatementGenerator.Rest
                     person = personList.FirstOrDefault();
                 }
 
-                if ( financialStatementReportConfiguration.ExcludeOptedOutIndividuals == true && !financialStatementGeneratorOptions.DataViewId.HasValue )
+                var optedOutPersonIds = GetOptedOutPersonIds( personList );
+
+                if ( optedOutPersonIds.Any() )
                 {
-                    int? doNotSendGivingStatementAttributeId = AttributeCache.Get( Rock.StatementGenerator.SystemGuid.Attribute.PERSON_DO_NOT_SEND_GIVING_STATEMENT.AsGuid() )?.Id;
-                    if ( doNotSendGivingStatementAttributeId.HasValue )
+                    bool givingLeaderOptedOut = personList.Any( a => optedOutPersonIds.Contains( a.Id ) && a.GivingLeaderId == a.Id );
+
+                    var remaingPersonIds = personList.Where( a => !optedOutPersonIds.Contains( a.Id ) ).ToList();
+
+                    if ( givingLeaderOptedOut || !remaingPersonIds.Any() )
                     {
-                        var personIds = personList.Select( a => a.Id ).ToList();
-                        var optedOutPersonQry = new AttributeValueService( rockContext ).Queryable().Where( a => a.AttributeId == doNotSendGivingStatementAttributeId );
-                        if ( personIds.Count == 1 )
-                        {
-                            int entityPersonId = personIds[0];
-                            optedOutPersonQry = optedOutPersonQry.Where( a => a.EntityId == entityPersonId );
-                        }
-                        else
-                        {
-                            optedOutPersonQry = optedOutPersonQry.Where( a => personIds.Contains( a.EntityId.Value ) );
-                        }
-
-                        var optedOutPersonIds = optedOutPersonQry
-                            .Select( a => new
-                            {
-                                PersonId = a.EntityId.Value,
-                                a.Value
-                            } ).ToList().Where( a => a.Value.AsBoolean() == true ).Select( a => a.PersonId ).ToList();
-
-                        if ( optedOutPersonIds.Any() )
-                        {
-                            bool givingLeaderOptedOut = personList.Any( a => optedOutPersonIds.Contains( a.Id ) && a.GivingLeaderId == a.Id );
-
-                            var remaingPersonIds = personList.Where( a => !optedOutPersonIds.Contains( a.Id ) ).ToList();
-
-                            if ( givingLeaderOptedOut || !remaingPersonIds.Any() )
-                            {
-                                // If the giving leader opted out, or if there aren't any people in the giving statement that haven't opted out, return NULL and OptedOut = true
-                                result.OptedOut = true;
-                                result.Html = null;
-                                return result;
-                            }
-                        }
+                        // If the giving leader opted out, or if there aren't any people in the giving statement that haven't opted out, marked the result as Opted Out
+                        // this will indicate if the Generator should include the opted out person (based on the Generator's Include Opted Out option)
+                        recipientResult.OptedOut = true;
                     }
                 }
 
@@ -375,6 +351,7 @@ namespace Rock.StatementGenerator.Rest
 
                 var mergeFields = Rock.Lava.LavaHelper.GetCommonMergeFields( null, null, new Lava.CommonMergeFieldsOptions { GetLegacyGlobalMergeFields = false, GetDeviceFamily = false, GetOSFamily = false, GetPageContext = false, GetPageParameters = false, GetCampuses = true, GetCurrentPerson = true } );
                 mergeFields.Add( "FinancialStatementTemplate", financialStatementTemplate );
+                mergeFields.Add( "RenderedPageCount", financialStatementGeneratorRecipientRequest.FinancialStatementGeneratorRecipient.RenderedPageCount );
 
                 mergeFields.Add( "PersonList", personList );
                 mergeFields.Add( "StatementStartDate", financialStatementGeneratorOptions.StartDate );
@@ -425,6 +402,7 @@ namespace Rock.StatementGenerator.Rest
                     mergeFields.Add( "State", mailingAddress.State );
                     mergeFields.Add( "PostalCode", mailingAddress.PostalCode );
                     mergeFields.Add( "Country", mailingAddress.Country );
+                    recipientResult.Country = mailingAddress.Country;
                 }
                 else
                 {
@@ -530,6 +508,8 @@ namespace Rock.StatementGenerator.Rest
                 mergeFields.Add( "TotalContributionAmountNonCash", transactionDetailListNonCash.Sum( a => a.Amount ) );
                 mergeFields.Add( "TotalContributionCountNonCash", transactionDetailListNonCash.Count() );
 
+                recipientResult.ContributionTotal = transactionDetailListCash.Sum( a => a.Amount );
+
                 mergeFields.Add(
                     "AccountSummary",
                     transactionDetailListCash
@@ -558,97 +538,8 @@ namespace Rock.StatementGenerator.Rest
 
                 if ( pledgeSettings.AccountIds != null && pledgeSettings.AccountIds.Any() )
                 {
-                    var pledgeList = financialPledgeQry
-                                        .Where( p => p.PersonAliasId.HasValue && personAliasIds.Contains( p.PersonAliasId.Value ) )
-                                        .Include( a => a.Account )
-                                        .OrderBy( a => a.Account.Order )
-                                        .ThenBy( a => a.Account.PublicName )
-                                        .ToList();
-
-                    var pledgeSummaryByPledgeList = pledgeList
-                                        .Select( p => new
-                                        {
-                                            p.Account,
-                                            Pledge = p
-                                        } )
-                                        .ToList();
-
-                    //// Pledges but organized by Account (in case more than one pledge goes to the same account)
-                    //// NOTE: In the case of multiple pledges to the same account (just in case they accidently or intentionally had multiple pledges to the same account)
-                    ////  -- Date Range
-                    ////    -- StartDate: Earliest StartDate of all the pledges for that account 
-                    ////    -- EndDate: Lastest EndDate of all the pledges for that account
-                    ////  -- Amount Pledged: Sum of all Pledges to that account
-                    ////  -- Amount Given: 
-                    ////    --  The sum of transaction amounts to that account between
-                    ////      -- Start Date: Earliest Start Date of all the pledges to that account
-                    ////      -- End Date: Whatever is earlier (Statement End Date or Pledges' End Date)
-                    var pledgeSummaryList = pledgeSummaryByPledgeList.GroupBy( a => a.Account ).Select( a => new PledgeSummary
-                    {
-                        Account = a.Key,
-                        PledgeList = a.Select( x => x.Pledge ).ToList()
-                    } ).ToList();
-
-                    // add detailed pledge information
-                    if ( pledgeSummaryList.Any() )
-                    {
-                        int statementPledgeYear = financialStatementGeneratorOptions.StartDate.Value.Year;
-
-                        List<int> pledgeCurrencyTypeIds = null;
-                        if ( transactionSettings.CurrencyTypesForCashGiftIds != null )
-                        {
-                            pledgeCurrencyTypeIds = transactionSettings.CurrencyTypesForCashGiftIds;
-                            if ( pledgeSettings.IncludeNonCashGifts && transactionSettings.CurrencyTypesForNonCashIds != null )
-                            {
-                                pledgeCurrencyTypeIds = transactionSettings.CurrencyTypesForCashGiftIds.Union( transactionSettings.CurrencyTypesForNonCashIds ).ToList();
-                            }
-                        }
-
-                        foreach ( var pledgeSummary in pledgeSummaryList )
-                        {
-                            DateTime adjustedPledgeEndDate = pledgeSummary.PledgeEndDate.Value.Date;
-                            if ( pledgeSummary.PledgeEndDate.Value.Date < DateTime.MaxValue.Date )
-                            {
-                                adjustedPledgeEndDate = pledgeSummary.PledgeEndDate.Value.Date.AddDays( 1 );
-                            }
-
-                            if ( financialStatementGeneratorOptions.EndDate.HasValue )
-                            {
-                                if ( adjustedPledgeEndDate > financialStatementGeneratorOptions.EndDate.Value )
-                                {
-                                    adjustedPledgeEndDate = financialStatementGeneratorOptions.EndDate.Value;
-                                }
-                            }
-
-                            var pledgeFinancialTransactionDetailQry = new FinancialTransactionDetailService( rockContext ).Queryable().Where( t =>
-                                                             t.Transaction.AuthorizedPersonAliasId.HasValue && personAliasIds.Contains( t.Transaction.AuthorizedPersonAliasId.Value )
-                                                             && t.Transaction.TransactionDateTime >= pledgeSummary.PledgeStartDate
-                                                             && t.Transaction.TransactionDateTime < adjustedPledgeEndDate );
-
-                            if ( pledgeSettings.IncludeGiftsToChildAccounts )
-                            {
-                                // If PledgesIncludeChildAccounts = true, we'll include transactions to those child accounts as part of the pledge (but only one level deep)
-                                pledgeFinancialTransactionDetailQry = pledgeFinancialTransactionDetailQry.Where( t =>
-                                    t.AccountId == pledgeSummary.AccountId
-                                    ||
-                                    ( t.Account.ParentAccountId.HasValue && t.Account.ParentAccountId == pledgeSummary.AccountId ) );
-                            }
-                            else
-                            {
-                                pledgeFinancialTransactionDetailQry = pledgeFinancialTransactionDetailQry.Where( t => t.AccountId == pledgeSummary.AccountId );
-                            }
-
-                            if ( pledgeCurrencyTypeIds != null )
-                            {
-                                pledgeFinancialTransactionDetailQry = pledgeFinancialTransactionDetailQry.Where( t =>
-                                    t.Transaction.FinancialPaymentDetailId.HasValue &&
-                                    t.Transaction.FinancialPaymentDetail.CurrencyTypeValueId.HasValue && pledgeCurrencyTypeIds.Contains( t.Transaction.FinancialPaymentDetail.CurrencyTypeValueId.Value ) );
-                            }
-
-                            pledgeSummary.AmountGiven = pledgeFinancialTransactionDetailQry.Sum( t => ( decimal? ) t.Amount ) ?? 0;
-                        }
-                    }
-
+                    var pledgeSummaryList = GetPledgeSummaryData( financialStatementGeneratorOptions, financialStatementTemplate, rockContext, personAliasIds );
+                    recipientResult.PledgeTotal = pledgeSummaryList.Sum( s => s.AmountPledged );
                     // Pledges ( organized by each Account in case an account is used by more than one pledge )
                     mergeFields.Add( "Pledges", pledgeSummaryList );
                 }
@@ -656,16 +547,158 @@ namespace Rock.StatementGenerator.Rest
                 mergeFields.Add( "Options", financialStatementGeneratorOptions );
 
                 var currentPerson = this.GetPerson();
-                result.Html = lavaTemplateLava.ResolveMergeFields( mergeFields, currentPerson );
+                recipientResult.Html = lavaTemplateLava.ResolveMergeFields( mergeFields, currentPerson );
                 if ( !string.IsNullOrEmpty( lavaTemplateFooterLava ) )
                 {
-                    result.FooterHtml = lavaTemplateFooterLava.ResolveMergeFields( mergeFields, currentPerson );
+                    recipientResult.FooterHtml = lavaTemplateFooterLava.ResolveMergeFields( mergeFields, currentPerson );
                 }
 
-                result.Html = result.Html.Trim();
+                recipientResult.Html = recipientResult.Html.Trim();
             }
 
-            return result;
+            return recipientResult;
+        }
+
+        /// <summary>
+        /// Gets the pledge summary data.
+        /// </summary>
+        /// <param name="financialStatementGeneratorOptions">The financial statement generator options.</param>
+        /// <param name="financialStatementTemplate">The financial statement template.</param>
+        /// <param name="rockContext">The rock context.</param>
+        /// <param name="personAliasIds">The person alias ids.</param>
+        /// <returns></returns>
+        private List<PledgeSummary> GetPledgeSummaryData( FinancialStatementGeneratorOptions financialStatementGeneratorOptions, FinancialStatementTemplate financialStatementTemplate, RockContext rockContext, List<int> personAliasIds )
+        {
+            var financialPledgeQry = GetFinancialPledgeQuery( financialStatementGeneratorOptions, rockContext, false );
+            var pledgeList = financialPledgeQry.Where( p => p.PersonAliasId.HasValue && personAliasIds.Contains( p.PersonAliasId.Value ) ).Include( a => a.Account ).OrderBy( a => a.Account.Order ).ThenBy( a => a.Account.PublicName ).ToList();
+
+            var pledgeSummaryByPledgeList = pledgeList
+                                .Select( p => new
+                                {
+                                    p.Account,
+                                    Pledge = p
+                                } )
+                                .ToList();
+
+            //// Pledges but organized by Account (in case more than one pledge goes to the same account)
+            //// NOTE: In the case of multiple pledges to the same account (just in case they accidentally or intentionally had multiple pledges to the same account)
+            ////  -- Date Range
+            ////    -- StartDate: Earliest StartDate of all the pledges for that account 
+            ////    -- EndDate: Latest EndDate of all the pledges for that account
+            ////  -- Amount Pledged: Sum of all Pledges to that account
+            ////  -- Amount Given: 
+            ////    --  The sum of transaction amounts to that account between
+            ////      -- Start Date: Earliest Start Date of all the pledges to that account
+            ////      -- End Date: Whatever is earlier (Statement End Date or Pledges' End Date)
+            var pledgeSummaryList = pledgeSummaryByPledgeList.GroupBy( a => a.Account ).Select( a => new PledgeSummary
+            {
+                Account = a.Key,
+                PledgeList = a.Select( x => x.Pledge ).ToList()
+            } ).ToList();
+
+            // add detailed pledge information
+            if ( pledgeSummaryList.Any() )
+            {
+                int statementPledgeYear = financialStatementGeneratorOptions.StartDate.Value.Year;
+
+                var transactionSettings = financialStatementTemplate.ReportSettings.TransactionSettings;
+                var pledgeSettings = financialStatementTemplate.ReportSettings.PledgeSettings;
+
+                List<int> pledgeCurrencyTypeIds = null;
+                if ( transactionSettings.CurrencyTypesForCashGiftIds != null )
+                {
+                    pledgeCurrencyTypeIds = transactionSettings.CurrencyTypesForCashGiftIds;
+                    if ( pledgeSettings.IncludeNonCashGifts && transactionSettings.CurrencyTypesForNonCashIds != null )
+                    {
+                        pledgeCurrencyTypeIds = transactionSettings.CurrencyTypesForCashGiftIds.Union( transactionSettings.CurrencyTypesForNonCashIds ).ToList();
+                    }
+                }
+
+                foreach ( var pledgeSummary in pledgeSummaryList )
+                {
+                    DateTime adjustedPledgeEndDate = pledgeSummary.PledgeEndDate.Value.Date;
+                    if ( pledgeSummary.PledgeEndDate.Value.Date < DateTime.MaxValue.Date )
+                    {
+                        adjustedPledgeEndDate = pledgeSummary.PledgeEndDate.Value.Date.AddDays( 1 );
+                    }
+
+                    if ( financialStatementGeneratorOptions.EndDate.HasValue )
+                    {
+                        if ( adjustedPledgeEndDate > financialStatementGeneratorOptions.EndDate.Value )
+                        {
+                            adjustedPledgeEndDate = financialStatementGeneratorOptions.EndDate.Value;
+                        }
+                    }
+
+                    var pledgeFinancialTransactionDetailQry = new FinancialTransactionDetailService( rockContext ).Queryable().Where( t =>
+                                                     t.Transaction.AuthorizedPersonAliasId.HasValue && personAliasIds.Contains( t.Transaction.AuthorizedPersonAliasId.Value )
+                                                     && t.Transaction.TransactionDateTime >= pledgeSummary.PledgeStartDate
+                                                     && t.Transaction.TransactionDateTime < adjustedPledgeEndDate );
+
+                    if ( pledgeSettings.IncludeGiftsToChildAccounts )
+                    {
+                        // If PledgesIncludeChildAccounts = true, we'll include transactions to those child accounts as part of the pledge (but only one level deep)
+                        pledgeFinancialTransactionDetailQry = pledgeFinancialTransactionDetailQry.Where( t =>
+                            t.AccountId == pledgeSummary.AccountId
+                            ||
+                            ( t.Account.ParentAccountId.HasValue && t.Account.ParentAccountId == pledgeSummary.AccountId ) );
+                    }
+                    else
+                    {
+                        pledgeFinancialTransactionDetailQry = pledgeFinancialTransactionDetailQry.Where( t => t.AccountId == pledgeSummary.AccountId );
+                    }
+
+                    if ( pledgeCurrencyTypeIds != null )
+                    {
+                        pledgeFinancialTransactionDetailQry = pledgeFinancialTransactionDetailQry.Where( t =>
+                            t.Transaction.FinancialPaymentDetailId.HasValue &&
+                            t.Transaction.FinancialPaymentDetail.CurrencyTypeValueId.HasValue && pledgeCurrencyTypeIds.Contains( t.Transaction.FinancialPaymentDetail.CurrencyTypeValueId.Value ) );
+                    }
+
+                    pledgeSummary.AmountGiven = pledgeFinancialTransactionDetailQry.Sum( t => ( decimal? ) t.Amount ) ?? 0;
+                }
+            }
+
+
+
+            return pledgeSummaryList;
+
+
+        }
+
+        /// <summary>
+        /// Gets the opted out person ids.
+        /// </summary>
+        /// <param name="personList">The person list.</param>
+        /// <returns></returns>
+        private static int[] GetOptedOutPersonIds( List<Person> personList )
+        {
+            int? doNotSendGivingStatementAttributeId = AttributeCache.Get( Rock.StatementGenerator.SystemGuid.Attribute.PERSON_DO_NOT_SEND_GIVING_STATEMENT.AsGuid() )?.Id;
+            if ( !doNotSendGivingStatementAttributeId.HasValue )
+            {
+                return new int[0];
+            }
+
+            var personIds = personList.Select( a => a.Id ).ToList();
+            var optedOutPersonQry = new AttributeValueService( new RockContext() ).Queryable().Where( a => a.AttributeId == doNotSendGivingStatementAttributeId );
+            if ( personIds.Count == 1 )
+            {
+                int entityPersonId = personIds[0];
+                optedOutPersonQry = optedOutPersonQry.Where( a => a.EntityId == entityPersonId );
+            }
+            else
+            {
+                optedOutPersonQry = optedOutPersonQry.Where( a => personIds.Contains( a.EntityId.Value ) );
+            }
+
+            var optedOutPersonIds = optedOutPersonQry
+                .Select( a => new
+                {
+                    PersonId = a.EntityId.Value,
+                    a.Value
+                } ).ToList().Where( a => a.Value.AsBoolean() == true ).Select( a => a.PersonId ).ToArray();
+
+            return optedOutPersonIds;
         }
 
         /// <summary>
@@ -741,10 +774,6 @@ namespace Rock.StatementGenerator.Rest
                 EndDate = endDate,
                 FinancialStatementTemplateId = financialStatementTemplateId,
                 StartDate = startDate,
-                SelectedReportConfiguration = new FinancialStatementGeneratorOptions.FinancialStatementReportConfiguration
-                {
-                    ExcludeOptedOutIndividuals = false,
-                },
             };
 
             var financialStatementGeneratorRecipientRequest = new FinancialStatementGeneratorRecipientRequest( options )

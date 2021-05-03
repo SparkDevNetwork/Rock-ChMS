@@ -35,6 +35,9 @@ namespace Rock.Client
         public int GroupId { get; set; }
 
         /// <summary />
+        public bool IsComplete { get; set; }
+
+        /// <summary />
         public string LastName { get; set; }
 
         /// <summary />
@@ -49,6 +52,9 @@ namespace Rock.Client
         /// <summary />
         public string PostalCode { get; set; }
 
+        /// <summary />
+        public int? RenderedPageCount { get; set; }
+
         /// <summary>
         /// Copies the base properties from a source FinancialStatementGeneratorRecipient object
         /// </summary>
@@ -56,11 +62,13 @@ namespace Rock.Client
         public void CopyPropertiesFrom( FinancialStatementGeneratorRecipient source )
         {
             this.GroupId = source.GroupId;
+            this.IsComplete = source.IsComplete;
             this.LastName = source.LastName;
             this.LocationGuid = source.LocationGuid;
             this.NickName = source.NickName;
             this.PersonId = source.PersonId;
             this.PostalCode = source.PostalCode;
+            this.RenderedPageCount = source.RenderedPageCount;
 
         }
     }

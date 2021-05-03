@@ -141,7 +141,7 @@
                         <DataGrid.Columns>
                             <DataGridTextColumn
                                 Width="*"
-                                Binding="{Binding FullName}"
+                                Binding="{Binding Name}"
                                 CanUserResize="True"
                                 CanUserSort="False"
                                 CellStyle="{StaticResource gridCellStyle}"

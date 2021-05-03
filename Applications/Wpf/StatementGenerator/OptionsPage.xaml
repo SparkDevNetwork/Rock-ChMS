@@ -22,6 +22,10 @@
                 <TextBox Name="txtRockUrl"
                          Style="{StaticResource textboxStyleUrl}" />
 
+                <Label Style="{StaticResource labelStyle}">Temporary Directory</Label>
+                <TextBox Name="txtTemporaryDirectory"
+                         Style="{StaticResource textboxStyleUrl}" />
+
 
                 <rockWpfControls:AlertLabel Name="lblAlert"
                        AlertType="Danger"

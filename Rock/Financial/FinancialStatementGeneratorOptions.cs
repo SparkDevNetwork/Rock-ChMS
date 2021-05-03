@@ -142,14 +142,12 @@ namespace Rock.Financial
         public bool EnablePageCountPredetermination { get; set; } = false;
 
         /// <summary>
-        /// Gets or sets the selected financial statement report configuration.
+        /// Gets or sets the report configuration list.
         /// </summary>
         /// <value>
-        /// The selected financial statement report configuration.
+        /// The report configuration list.
         /// </value>
-        public FinancialStatementReportConfiguration SelectedReportConfiguration { get; set; }
-
-        //public List<FinancialStatementReportConfiguration> ReportConfigurationList { get; set; }
+        public List<FinancialStatementReportConfiguration> ReportConfigurationList { get; set; }
 
         /// <summary>
         /// 

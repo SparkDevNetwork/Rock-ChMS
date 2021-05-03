@@ -98,17 +98,7 @@ namespace Rock.Apps.StatementGenerator
             ContributionReport contributionReport = new ContributionReport( ReportOptions.Current );
             contributionReport.OnProgress += ContributionReport_OnProgress;
 
-            // TODO
-            Rock.Client.FinancialStatementReportConfiguration financialStatementReportConfiguration = new Client.FinancialStatementReportConfiguration()
-            {
-                DestinationFolder = @"C:\Users\mvhsd\OneDrive\Desktop\Statements",
-                FilenamePrefix = "IronPDFTest_",
-                PrimarySortOrder = Client.Enums.FinancialStatementOrderBy.LastName,
-                SecondarySortOrder = Client.Enums.FinancialStatementOrderBy.PostalCode,
-            };
-
-
-            _statementCount = contributionReport.RunReport( financialStatementReportConfiguration );
+            _statementCount = contributionReport.RunReport();
 
             e.Result = _statementCount > 0;
         }
