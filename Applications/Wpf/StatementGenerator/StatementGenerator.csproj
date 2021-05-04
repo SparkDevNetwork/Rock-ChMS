@@ -84,6 +84,7 @@
     <Compile Include="..\..\..\Rock.Version\AssemblySharedInfo.cs">
       <Link>Properties\AssemblySharedInfo.cs</Link>
     </Compile>
+    <Compile Include="GeneratorConfig.cs" />
     <Compile Include="LoginPage.xaml.cs">
       <DependentUpon>LoginPage.xaml</DependentUpon>
     </Compile>
@@ -110,8 +111,8 @@
     <Compile Include="SelectPersonsPage.xaml.cs">
       <DependentUpon>SelectPersonsPage.xaml</DependentUpon>
     </Compile>
-    <Compile Include="SelectSavedLocationPage.xaml.cs">
-      <DependentUpon>SelectSavedLocationPage.xaml</DependentUpon>
+    <Compile Include="IndividualSaveSettings.xaml.cs">
+      <DependentUpon>IndividualSaveSettings.xaml</DependentUpon>
     </Compile>
     <Compile Include="StartPage.xaml.cs">
       <DependentUpon>StartPage.xaml</DependentUpon>
@@ -161,7 +162,7 @@
       <SubType>Designer</SubType>
       <Generator>MSBuild:Compile</Generator>
     </Page>
-    <Page Include="SelectSavedLocationPage.xaml">
+    <Page Include="IndividualSaveSettings.xaml">
       <Generator>MSBuild:Compile</Generator>
       <SubType>Designer</SubType>
     </Page>

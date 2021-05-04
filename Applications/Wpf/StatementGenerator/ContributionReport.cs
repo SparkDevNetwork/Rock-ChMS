@@ -400,7 +400,6 @@ namespace Rock.Apps.StatementGenerator
             var baseFileName = $"_baseFileName_{DateTime.Now.Ticks}";
             var chapterIndex = 1;
 
-
             List<IronPdf.PdfDocument> pdfDocumentList = new List<IronPdf.PdfDocument>();
             foreach ( var result in statementGeneratorRecipientPdfResults )
             {
@@ -574,16 +573,6 @@ namespace Rock.Apps.StatementGenerator
         /// </value>
         public string PdfTempFileName { get; set; }
 
-        
-
-        /// <summary>
-        /// The number of pages the resulting statement was rendered as.This will be used in creating merged reports.
-        /// </summary>
-        /// <value>
-        /// The page count.
-        /// </value>
-        public int PageCount { get; set; }
-
         /// <summary>
         /// The last name of the primary giver for the statement. This will be used in creating merged reports.
         /// </summary>
@@ -601,7 +590,7 @@ namespace Rock.Apps.StatementGenerator
         public string NickName => StatementGeneratorRecipientResult.NickName;
 
         /// <summary>
-        /// The zipcode for theaddress on thestatement. This will be used in creating merged reports.
+        /// The ZipCode/PostalCode for the address on the statement. This will be used in creating merged reports.
         /// </summary>
         /// <value>
         /// The zip code.
@@ -632,7 +621,4 @@ namespace Rock.Apps.StatementGenerator
         /// </value>
         public string Country => StatementGeneratorRecipientResult.Country;
     }
-
-
-
 }

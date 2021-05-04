@@ -53,6 +53,9 @@ namespace Rock.Client
         public bool IncludeIndividualsWithNoAddress { get; set; }
 
         /// <summary />
+        public FinancialStatementIndividualSaveOptions IndividualSaveOptions { get; set; }
+
+        /// <summary />
         public int? PersonId { get; set; }
 
         /// <summary />
@@ -74,6 +77,7 @@ namespace Rock.Client
             this.FinancialStatementTemplateId = source.FinancialStatementTemplateId;
             this.IncludeBusinesses = source.IncludeBusinesses;
             this.IncludeIndividualsWithNoAddress = source.IncludeIndividualsWithNoAddress;
+            this.IndividualSaveOptions = source.IndividualSaveOptions;
             this.PersonId = source.PersonId;
             this.ReportConfigurationList = source.ReportConfigurationList;
             this.StartDate = source.StartDate;

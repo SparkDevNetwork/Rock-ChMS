@@ -297,6 +297,15 @@ namespace Rock.Client.Enums
 
     /// <summary>
     /// </summary>
+    public enum FinancialStatementIndividualSaveOptionsSaveFor
+    {
+        AllActiveAdults = 0x0,
+        PrimaryGiver = 0x1,
+        AllActiveFamilyMembers = 0x2,
+    }
+
+    /// <summary>
+    /// </summary>
     public enum FinancialStatementOrderBy
     {
         PostalCode = 0x0,

@@ -24,44 +24,6 @@ namespace Rock.Financial
     /// <summary>
     /// 
     /// </summary>
-    [RockClientInclude( "The Request body for ~api/FinancialGivingStatement/GetStatementGeneratorRecipientResult" )]
-    public class FinancialStatementGeneratorRecipientRequest
-    {
-        /// <summary>
-        /// Initializes a new instance of the <see cref="FinancialStatementGeneratorRecipientRequest"/> class.
-        /// </summary>
-        public FinancialStatementGeneratorRecipientRequest()
-        {
-        }
-
-        /// <summary>
-        /// Initializes a new instance of the <see cref="FinancialStatementGeneratorRecipientRequest"/> class.
-        /// </summary>
-        /// <param name="financialStatementGeneratorOptions">The financial statement generator options.</param>
-        public FinancialStatementGeneratorRecipientRequest ( FinancialStatementGeneratorOptions financialStatementGeneratorOptions )
-        {
-            FinancialStatementGeneratorOptions = financialStatementGeneratorOptions;
-        }
-
-        /// <summary>
-        /// Gets or sets the financial statement generator recipient.
-        /// </summary>
-        /// <value>
-        /// The financial statement generator recipient.
-        /// </value>
-        public FinancialStatementGeneratorRecipient FinancialStatementGeneratorRecipient { get; set; }
-        /// <summary>
-        /// Gets or sets the financial statement generator options.
-        /// </summary>
-        /// <value>
-        /// The financial statement generator options.
-        /// </value>
-        public FinancialStatementGeneratorOptions FinancialStatementGeneratorOptions { get; set; }
-    }
-
-    /// <summary>
-    /// 
-    /// </summary>
     [RockClientInclude( "The FinancialStatementGeneratorOptions that are configured on the Statement Generator WPF application" )]
     public class FinancialStatementGeneratorOptions
     {
@@ -142,12 +104,105 @@ namespace Rock.Financial
         public bool EnablePageCountPredetermination { get; set; } = false;
 
         /// <summary>
+        /// Gets or sets the individual save options.
+        /// </summary>
+        /// <value>
+        /// The individual save options.
+        /// </value>
+        public FinancialStatementIndividualSaveOptions IndividualSaveOptions { get; set; }
+
+        /// <summary>
         /// Gets or sets the report configuration list.
         /// </summary>
         /// <value>
         /// The report configuration list.
         /// </value>
         public List<FinancialStatementReportConfiguration> ReportConfigurationList { get; set; }
+
+        /// <summary>
+        /// 
+        /// </summary>
+        [RockClientInclude( "Individual Save Options for the FinancialStatementGeneratorOptions" )]
+        public class FinancialStatementIndividualSaveOptions
+        {
+            /// <summary>
+            /// Gets or sets a value indicating whether [save statements for individuals].
+            /// </summary>
+            /// <value>
+            ///   <c>true</c> if [save statements for individuals]; otherwise, <c>false</c>.
+            /// </value>
+            public bool SaveStatementsForIndividuals { get; set; }
+
+            /// <summary>
+            /// Gets or sets the document type identifier. <see cref="Rock.Model.DocumentType" />
+            /// </summary>
+            /// <value>
+            /// The document type identifier.
+            /// </value>
+            public int? DocumentTypeId { get; set; }
+
+            /// <summary>
+            /// Gets or sets the name of the document. <see cref="Rock.Model.Document.Name" />
+            /// </summary>
+            /// <value>
+            /// The name of the document.
+            /// </value>
+            public string DocumentName { get; set; }
+
+            /// <summary>
+            /// Gets or sets the document description. <see cref="Rock.Model.Document.Description" />
+            /// </summary>
+            /// <value>
+            /// The document description.
+            /// </value>
+            public string DocumentDescription { get; set; }
+
+            /// <summary>
+            /// Gets or sets the document purpose key.
+            /// </summary>
+            /// <value>
+            /// The document purpose key.
+            /// </value>
+            public string DocumentPurposeKey { get; set; }
+
+            /// <summary>
+            /// Gets or sets a value indicating whether [overwrite documents of this type created on same date].
+            /// </summary>
+            /// <value>
+            ///   <c>true</c> if [overwrite documents of this type created on same date]; otherwise, <c>false</c>.
+            /// </value>
+            public bool OverwriteDocumentsOfThisTypeCreatedOnSameDate { get; set; } = true;
+
+            /// <summary>
+            /// Gets or sets the document save for.
+            /// </summary>
+            /// <value>
+            /// The document save for.
+            /// </value>
+            public FinancialStatementIndividualSaveOptionsSaveFor DocumentSaveFor { get; set; }
+
+            /// <summary>
+            /// 
+            /// </summary>
+            [RockClientInclude( "Individual SaveFor Options for the FinancialStatementGeneratorOptions" )]
+            public enum FinancialStatementIndividualSaveOptionsSaveFor
+            {
+                /// <summary>
+                /// All active adults
+                /// </summary>
+                AllActiveAdults,
+
+                /// <summary>
+                /// The primary giver
+                /// </summary>
+                PrimaryGiver,
+
+                /// <summary>
+                /// All active family members
+                /// </summary>
+                AllActiveFamilyMembers
+            }
+        }
 
         /// <summary>
         /// 

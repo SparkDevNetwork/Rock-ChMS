@@ -17,6 +17,8 @@
 using System;
 using System.Configuration;
 
+using Rock.Client;
+
 namespace Rock.Apps.StatementGenerator
 {
     /// <summary>
@@ -130,13 +132,28 @@ namespace Rock.Apps.StatementGenerator
             }
         }
 
+        [DefaultSettingValue( "" )]
+        [UserScopedSetting]
+        public string IndividualSaveOptionsJson
+        {
+            get
+            {
+                return this["IndividualSaveOptionsJson"] as string;
+            }
+
+            set
+            {
+                this["IndividualSaveOptionsJson"] = value;
+            }
+        }
+
         /// <summary>
         /// Gets or sets the person selection option.
         /// </summary>
         /// <value>
         /// The person selection option.
         /// </value>
-        public PersonSelectionOption PersonSelectionOption { get; set; } = PersonSelectionOption.AllIndividuals;
+        public PersonSelectionOption PersonSelectionOption { get; set; } = PersonSelectionOption.AllIndividuals; 
 
         /// <summary>
         /// Gets or sets the layout defined value unique identifier.
