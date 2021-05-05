@@ -20,7 +20,9 @@ using System.Diagnostics;
 using System.IO;
 using System.Windows;
 using System.Windows.Controls;
+
 using Microsoft.Win32;
+
 using Rock.Wpf;
 
 namespace Rock.Apps.StatementGenerator
@@ -69,13 +71,13 @@ namespace Rock.Apps.StatementGenerator
         {
             btnPrev.Visibility = Visibility.Visible;
             pgReportProgress.Visibility = Visibility.Collapsed;
-            
+
             if ( e.Error != null )
             {
                 lblReportProgress.Content = "Error: " + e.Error.Message;
                 throw e.Error;
             }
-            
+
             if ( _statementCount == 0 )
             {
                 lblReportProgress.Content = @"Warning: No records matched your criteria. No statements have been created.";
@@ -119,6 +121,8 @@ namespace Rock.Apps.StatementGenerator
         /// </summary>
         private DateTime _startProgressDateTime = DateTime.MinValue;
 
+        private DateTime _lastUpdate = DateTime.MinValue;
+
         /// <summary>
         /// Shows the progress.
         /// </summary>
@@ -127,13 +131,22 @@ namespace Rock.Apps.StatementGenerator
         /// <param name="progressMessage">The progress message.</param>
         private void ShowProgress( int position, int max, string progressMessage )
         {
+            if ( position <= 1 )
+            {
+                _startProgressDateTime = DateTime.Now;
+            }
+
+            var timeSinceLastUpdate = DateTime.Now - _lastUpdate;
+
+            if ( timeSinceLastUpdate.Seconds < 2.5 )
+            {
+                return;
+            }
+
+            _lastUpdate = DateTime.Now;
+
             Dispatcher.Invoke( () =>
             {
-                if ( position <= 1 )
-                {
-                    _startProgressDateTime = DateTime.Now;
-                }
-
                 if ( max > 0 )
                 {
                     if ( lblReportProgress.Content.ToString() != progressMessage )
@@ -154,14 +167,14 @@ namespace Rock.Apps.StatementGenerator
                     {
                         pgReportProgress.Visibility = Visibility.Visible;
                     }
-                    
+
                     // put the current statements/second in the tooltip
                     var duration = DateTime.Now - _startProgressDateTime;
                     if ( duration.TotalSeconds > 1 )
                     {
                         double rate = position / duration.TotalSeconds;
-                        string toolTip = string.Format( "{1}/{2} @ {0:F2} per second", rate, position, max );
-                        if ( (string)lblReportProgress.ToolTip != toolTip )
+                        string toolTip = $"{position}/{max} @ {rate:F2} per second";
+                        if ( ( string ) lblReportProgress.ToolTip != toolTip )
                         {
                             lblReportProgress.ToolTip = toolTip;
                         }
@@ -192,10 +205,10 @@ namespace Rock.Apps.StatementGenerator
         /// <param name="e">The <see cref="System.Windows.Input.MouseButtonEventArgs"/> instance containing the event data.</param>
         private void lblReportProgress_MouseDoubleClick( object sender, System.Windows.Input.MouseButtonEventArgs e )
         {
-            
-                // todo
-                
-            
+
+            // todo
+
+
         }
     }
 }

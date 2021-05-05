@@ -37,7 +37,17 @@
                             </div>
                         </div>
                         <Rock:PanelWidget ID="pwTransactionSettings" runat="server" Title="Transaction Settings" Expanded="true">
-                            <Rock:AccountPicker ID="apTransactionAccounts" runat="server" AllowMultiSelect="true" Label="Accounts for Transactions" Required="true"  />
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <Rock:RockRadioButtonList ID="rblAccountSelectionOption" runat="server" Label="Accounts" AutoPostBack="true" OnSelectedIndexChanged="rblAccountSelectionOption_SelectedIndexChanged">
+
+                                    </Rock:RockRadioButtonList>
+                                </div>
+                                <div class="col-md-6">
+                                    <Rock:AccountPicker ID="apTransactionAccountsCustom" runat="server" AllowMultiSelect="true" Label="Selected Transactions" Required="true" />
+                                    <Rock:RockCheckBox ID="cbIncludeChildAccountsCustom" runat="server" Text="Include children of selected accounts" />
+                                </div>
+                            </div>
                             <Rock:DefinedValuesPicker ID="dvpCurrencyTypesCashGifts" runat="server" Label="Currency Types for Cash Gifts" />
                             <Rock:DefinedValuesPicker ID="dvpCurrencyTypesNonCashGifts" runat="server" Label="Currency Types for Non-Cash Gifts" />
                             <label>Filter Settings</label>

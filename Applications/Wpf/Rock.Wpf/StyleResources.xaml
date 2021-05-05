@@ -339,18 +339,32 @@
         <Setter Property="Label.Foreground" Value="White" />
     </Style>
 
-    <!--  Textblock Style: Title Paragraph  -->
-    <Style x:Key="textBlockStyleTitleParagraph" TargetType="{x:Type TextBlock}">
+    <!--  Textblock Style  -->
+    <Style x:Key="textBlockStyle" TargetType="{x:Type TextBlock}">
         <Setter Property="Label.Margin" Value="0,0,0,0" />
         <Setter Property="Label.VerticalAlignment" Value="Center" />
         <Setter Property="Label.HorizontalAlignment" Value="Left" />
+        <Setter Property="TextWrapping" Value="Wrap" />
+        <Setter Property="FontSize" Value="14" />
+        <Setter Property="Label.FontWeight" Value="Normal" />
+        <Setter Property="Label.Foreground" Value="#6a6a6a" />
+    </Style>
+
+    <!--  Textblock Style: Title Paragraph  -->
+    <Style
+        x:Key="textBlockStyleTitleParagraph"
+        BasedOn="{StaticResource textBlockStyle}"
+        TargetType="{x:Type TextBlock}">
         <Setter Property="Label.FontWeight" Value="Normal" />
         <Setter Property="Label.FontSize" Value="14" />
         <Setter Property="Label.Foreground" Value="#6a6a6a" />
     </Style>
 
     <!--  Textblock Style: Grid Data  -->
-    <Style x:Key="textBlockStyleGridDataTitle" TargetType="{x:Type TextBlock}">
+    <Style
+        x:Key="textBlockStyleGridDataTitle"
+        BasedOn="{StaticResource textBlockStyle}"
+        TargetType="{x:Type TextBlock}">
         <Setter Property="FontFamily" Value="./resources/#Roboto-Medium" />
         <Setter Property="Padding" Value="6,0,0,0" />
         <Setter Property="HorizontalAlignment" Value="Left" />
@@ -358,7 +372,10 @@
         <Setter Property="FontSize" Value="14" />
     </Style>
 
-    <Style x:Key="textBlockStyleGridData" TargetType="{x:Type TextBlock}">
+    <Style
+        x:Key="textBlockStyleGridData"
+        BasedOn="{StaticResource textBlockStyle}"
+        TargetType="{x:Type TextBlock}">
         <Setter Property="TextAlignment" Value="Left" />
         <Setter Property="VerticalAlignment" Value="Center" />
         <Setter Property="Padding" Value="6,0,0,0" />
@@ -768,7 +785,7 @@
     </Style>
 
     <Style
-        x:Key="textboxStyleCurrency"
+        x:Key="textboxStyleNumber"
         BasedOn="{StaticResource ResourceKey=textboxStyle}"
         TargetType="{x:Type TextBox}">
         <Setter Property="HorizontalAlignment" Value="Left" />
@@ -777,11 +794,15 @@
     </Style>
 
     <Style
-        x:Key="textboxStyleCurrencyError"
+        x:Key="textboxStyleNumberError"
         BasedOn="{StaticResource ResourceKey=textboxStyle}"
         TargetType="{x:Type TextBox}">
         <Setter Property="BorderBrush" Value="{StaticResource BootstrapDanger}" />
     </Style>
+
+    <Style x:Key="textboxStyleCurrency" BasedOn="{StaticResource ResourceKey=textboxStyleNumber}" />
+
+    <Style x:Key="textboxStyleCurrencyError" BasedOn="{StaticResource ResourceKey=textboxStyleNumberError}" />
 
     <Style
         x:Key="textboxStyleMultiline"

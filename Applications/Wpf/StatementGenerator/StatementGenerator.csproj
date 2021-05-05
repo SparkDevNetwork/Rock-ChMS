@@ -49,8 +49,8 @@
     <Reference Include="IronPdf.Assets.Rendering.Windows, Version=22.0.0.0, Culture=neutral, PublicKeyToken=94e1c31412563c75, processorArchitecture=MSIL">
       <HintPath>packages\IronPdf.Assets.Rendering.Windows.22.0.0\lib\net40\IronPdf.Assets.Rendering.Windows.dll</HintPath>
     </Reference>
-    <Reference Include="Newtonsoft.Json, Version=12.0.0.0, Culture=neutral, PublicKeyToken=30ad4fe6b2a6aeed, processorArchitecture=MSIL">
-      <HintPath>packages\Newtonsoft.Json.12.0.3\lib\net45\Newtonsoft.Json.dll</HintPath>
+    <Reference Include="Newtonsoft.Json, Version=13.0.0.0, Culture=neutral, PublicKeyToken=30ad4fe6b2a6aeed, processorArchitecture=MSIL">
+      <HintPath>packages\Newtonsoft.Json.13.0.1\lib\net45\Newtonsoft.Json.dll</HintPath>
     </Reference>
     <Reference Include="RestSharp, Version=106.11.7.0, Culture=neutral, PublicKeyToken=598062e77f915f75, processorArchitecture=MSIL">
       <HintPath>packages\RestSharp.106.11.7\lib\net452\RestSharp.dll</HintPath>
@@ -96,6 +96,9 @@
     <Compile Include="MainWindow.xaml.cs">
       <DependentUpon>MainWindow.xaml</DependentUpon>
     </Compile>
+    <Compile Include="ReportSettingsModalWindow.xaml.cs">
+      <DependentUpon>ReportSettingsModalWindow.xaml</DependentUpon>
+    </Compile>
     <Compile Include="OptionsPage.xaml.cs">
       <DependentUpon>OptionsPage.xaml</DependentUpon>
     </Compile>
@@ -103,7 +106,10 @@
       <DependentUpon>ProgressPage.xaml</DependentUpon>
     </Compile>
     <Compile Include="ReportOptions.cs" />
-    <Compile Include="Extentions\RestSharpExtensions.cs" />
+    <Compile Include="Extensions\RestSharpExtensions.cs" />
+    <Compile Include="ReportSettings.xaml.cs">
+      <DependentUpon>ReportSettings.xaml</DependentUpon>
+    </Compile>
     <Compile Include="RockConfig.cs" />
     <Compile Include="RockExtensions\EnumExtensions.cs" />
     <Compile Include="RockExtensions\StringExtensions.cs" />
@@ -143,6 +149,10 @@
       <Generator>MSBuild:Compile</Generator>
       <SubType>Designer</SubType>
     </Page>
+    <Page Include="ReportSettingsModalWindow.xaml">
+      <SubType>Designer</SubType>
+      <Generator>MSBuild:Compile</Generator>
+    </Page>
     <Page Include="OptionsPage.xaml">
       <Generator>MSBuild:Compile</Generator>
       <SubType>Designer</SubType>
@@ -154,6 +164,10 @@
     <Page Include="images\statement-generator.xaml">
       <Generator>MSBuild:Compile</Generator>
       <SubType>Designer</SubType>
+    </Page>
+    <Page Include="ReportSettings.xaml">
+      <SubType>Designer</SubType>
+      <Generator>MSBuild:Compile</Generator>
     </Page>
     <Page Include="SelectDateRangePage.xaml">
       <SubType>Designer</SubType>

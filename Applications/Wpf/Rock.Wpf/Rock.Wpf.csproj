@@ -63,6 +63,7 @@
     <Compile Include="Commands\WindowMinimizeCommand.cs" />
     <Compile Include="Commands\WindowRestoreCommand.cs" />
     <Compile Include="Controls\AlertLabel.cs" />
+    <Compile Include="Controls\NumberBox.cs" />
     <Compile Include="Controls\CurrencyBox.cs" />
     <Compile Include="ErrorMessageWindow.xaml.cs">
       <DependentUpon>ErrorMessageWindow.xaml</DependentUpon>

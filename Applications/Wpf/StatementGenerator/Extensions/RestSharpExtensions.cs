@@ -1,9 +1,5 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Linq;
 using System.Net;
-using System.Text;
-using System.Threading.Tasks;
 
 using RestSharp;
 using RestSharp.Serializers.NewtonsoftJson;
@@ -22,7 +18,7 @@ namespace Rock.Apps.StatementGenerator
         /// <exception cref="Exception">
         /// Invalid Login
         /// </exception>
-        public static RestClient LoginToRock(this RestClient restClient, string userName, string password )
+        public static RestClient LoginToRock( this RestClient restClient, string userName, string password )
         {
             restClient.UseNewtonsoftJson();
 

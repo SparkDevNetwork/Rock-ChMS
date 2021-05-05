@@ -74,7 +74,7 @@ namespace Rock.Financial
         /// </summary>
         public FinancialStatementTemplateTransactionSetting()
         {
-            AccountIds = new List<int>();
+            AccountIdsCustom = new List<int>();
             CurrencyTypesForCashGiftIds = new List<int>();
             CurrencyTypesForNonCashIds = new List<int>();
             TransactionTypeIds = new List<int>();
@@ -86,7 +86,7 @@ namespace Rock.Financial
         /// <value>
         /// The account identifiers.
         /// </value>
-        public List<int> AccountIds { get; set; }
+        public List<int> AccountIdsCustom { get; set; }
 
         /// <summary>
         /// Gets or sets the currency types for cash gifts.

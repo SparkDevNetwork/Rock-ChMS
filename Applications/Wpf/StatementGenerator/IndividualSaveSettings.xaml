@@ -44,8 +44,7 @@
                 Style="{StaticResource indentStyle}">
 
                 <Label Content="Individual Statements" Style="{StaticResource labelStyleBold}" />
-                <Label Content="The configuration below enables statements to be stored on individual's records as documents." Style="{StaticResource labelStyle}" />
-
+                <TextBlock Margin="5" Style="{StaticResource textBlockStyle}">The configuration below enables statements to be stored on individual's records as documents.</TextBlock>
                 <CheckBox
                     Name="cbSaveStatementsForIndividuals"
                     Margin="4,10,0,0"

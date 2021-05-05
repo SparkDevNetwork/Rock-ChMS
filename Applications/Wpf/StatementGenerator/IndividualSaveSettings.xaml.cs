@@ -141,7 +141,7 @@ namespace Rock.Apps.StatementGenerator
         {
             if ( SaveChanges( true ) )
             {
-                var nextPage = new ProgressPage();
+                var nextPage = new ReportSettings();
                 this.NavigationService.Navigate( nextPage );
             }
         }

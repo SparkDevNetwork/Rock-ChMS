@@ -76,6 +76,8 @@ namespace Rock.Apps.StatementGenerator
 
         private static ConcurrentBag<double> _generatePdfTimingsMS = null;
         private static ConcurrentBag<double> _saveAndUploadPdfTimingsMS = null;
+        private static ConcurrentBag<double> _waitForLastTaskTimingsMS = null;
+        private static ConcurrentBag<double> _getStatementHtmlTimingsMS = null;
         private static ConcurrentBag<StatementGeneratorRecipientPdfResult> _statementGeneratorRecipientPdfResults = null;
 
         private string ReportRockStatementGeneratorTemporaryDirectory { get; set; }
@@ -121,6 +123,8 @@ namespace Rock.Apps.StatementGenerator
 
             _generatePdfTimingsMS = new ConcurrentBag<double>();
             _saveAndUploadPdfTimingsMS = new ConcurrentBag<double>();
+            _waitForLastTaskTimingsMS = new ConcurrentBag<double>();
+            _getStatementHtmlTimingsMS = new ConcurrentBag<double>();
 
             _statementGeneratorRecipientPdfResults = new ConcurrentBag<StatementGeneratorRecipientPdfResult>();
 
@@ -197,8 +201,8 @@ namespace Rock.Apps.StatementGenerator
             // We were able to fetch the HTML for the next statement, and save/upload docs while waiting for the PDF task to finish,
             // but it'll lock up if we don't wait for last PDF generation to complete
             _lastRenderPDFFromHtmlTask?.Wait();
-
-            Debug.WriteLine( $"{waitForLastTask.Elapsed.TotalMilliseconds}ms, waitForLastTask" );
+            waitForLastTask.Stop();
+            _waitForLastTaskTimingsMS.Add( waitForLastTask.Elapsed.TotalMilliseconds );
 
             // DEBUG. Which of these methods is faster?
             bool useUniversalRenderJob = true;
@@ -257,21 +261,26 @@ namespace Rock.Apps.StatementGenerator
                     }
                 } ) );
 
-                if ( recordsCompleted > 2 && Debugger.IsAttached )
+                if ( recordsCompleted > 2 && Debugger.IsAttached && recordsCompleted % 20 == 0 )
                 {
                     _generatePdfTimingsMS.Add( generatePdfStopWatch.Elapsed.TotalMilliseconds );
 
+                    var averageGetStatementHtmlTimingsMS = _getStatementHtmlTimingsMS.Any() ? Math.Round( _getStatementHtmlTimingsMS.Average(), 0) : 0;
+                    var averageWaitForLastTaskTimingsMS = _waitForLastTaskTimingsMS.Any() ? Math.Round( _waitForLastTaskTimingsMS.Average(), 0 ) : 0;
                     var averageGeneratePDFTimingMS = Math.Round( _generatePdfTimingsMS.Average(), 0 );
                     var averageSaveAndUploadPDFTimingMS = _saveAndUploadPdfTimingsMS.Any() ?
                         Math.Round( _saveAndUploadPdfTimingsMS.Average(), 0 )
                         : ( double? ) null;
 
                     Debug.WriteLine( $@"
-Generate    PDF Avg: {averageGeneratePDFTimingMS} ms (useUniversalRenderJob:{useUniversalRenderJob})
-Save/Upload PDF Avg: {averageSaveAndUploadPDFTimingMS} ms)" );
-                }
+Generate     PDF Avg: {averageGeneratePDFTimingMS} ms (useUniversalRenderJob:{useUniversalRenderJob})
+GetStatementHtml Avg: {averageGetStatementHtmlTimingsMS} ms)
+WaitForLastTask  Avg: {averageWaitForLastTaskTimingsMS} ms)
+Save/Upload  PDF Avg: {averageSaveAndUploadPDFTimingMS} ms)
 
-                Debug.WriteLine( $"_recordsCompleted:{recordsCompleted}\n" );
+_recordsCompleted:{recordsCompleted}
+" );
+                }
             } );
 
             _tasks.Add( _lastRenderPDFFromHtmlTask );
@@ -312,7 +321,9 @@ Save/Upload PDF Avg: {averageSaveAndUploadPDFTimingMS} ms)" );
                 throw financialStatementGeneratorRecipientResultResponse.ErrorException;
             }
 
-            Debug.WriteLine( $"{getStatementHtml.Elapsed.TotalMilliseconds}ms, GetStatementGeneratorRecipientResult" );
+            getStatementHtml.Stop();
+
+            _getStatementHtmlTimingsMS.Add( getStatementHtml.Elapsed.TotalMilliseconds );
 
             FinancialStatementGeneratorRecipientResult financialStatementGeneratorRecipientResult = financialStatementGeneratorRecipientResultResponse.Data;
             return financialStatementGeneratorRecipientResult;
@@ -370,7 +381,7 @@ Save/Upload PDF Avg: {averageSaveAndUploadPDFTimingMS} ms)" );
         private static PdfPrintOptions GetPdfPrintOptions( Dictionary<string, string> pdfObjectSettings, FinancialStatementGeneratorRecipientResult statementGeneratorRecipientResult )
         {
             string value;
-            PdfPrintOptions pdfPrintOptions = new PdfPrintOptions();
+            PdfPrintOptions pdfPrintOptions = new IronPdf.PdfPrintOptions();
 
             if ( pdfObjectSettings.TryGetValue( "margin.left", out value ) )
             {
@@ -392,15 +403,6 @@ Save/Upload PDF Avg: {averageSaveAndUploadPDFTimingMS} ms)" );
                 pdfPrintOptions.MarginBottom = value.AsDouble();
             }
 
-            if ( pdfObjectSettings.TryGetValue( "footer.fontSize", out value ) )
-            {
-                pdfPrintOptions.Footer.FontSize = value.AsIntegerOrNull() ?? 10;
-            }
-            else
-            {
-                pdfPrintOptions.Footer.FontSize = 10;
-            }
-
             var footerHtml = statementGeneratorRecipientResult.FooterHtml;
 
             if ( footerHtml != null )
@@ -412,6 +414,15 @@ Save/Upload PDF Avg: {averageSaveAndUploadPDFTimingMS} ms)" );
                     HtmlFragment = footerHtml,
                     //DrawDividerLine = true
                 };
+            }
+
+            if ( pdfObjectSettings.TryGetValue( "footer.fontSize", out value ) )
+            {
+                pdfPrintOptions.Footer.FontSize = value.AsIntegerOrNull() ?? 10;
+            }
+            else
+            {
+                pdfPrintOptions.Footer.FontSize = 10;
             }
 
             return pdfPrintOptions;
