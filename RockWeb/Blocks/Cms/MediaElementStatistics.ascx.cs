@@ -21,18 +21,11 @@ using System.Linq;
 using System.Web.UI;
 using System.Web.UI.WebControls;
 
-using Newtonsoft.Json;
-
 using Rock;
-using Rock.Constants;
 using Rock.Data;
-using Rock.Media;
 using Rock.Model;
-using Rock.Security;
-using Rock.Web;
 using Rock.Web.Cache;
 using Rock.Web.UI;
-using Rock.Web.UI.Controls;
 
 namespace RockWeb.Blocks.Cms
 {
@@ -62,11 +55,17 @@ namespace RockWeb.Blocks.Cms
 
         #region Methods
 
+        /// <summary>
+        /// Called at an early stage when the system knows this block will
+        /// be in the DOM at some point.
+        /// </summary>
+        /// <param name="e">An <see cref="T:System.EventArgs" /> object that contains the event data.</param>
         protected override void OnInit( EventArgs e )
         {
             base.OnInit( e );
 
             RockPage.AddScriptLink( "~/Scripts/Chartjs/Chart.min.js" );
+            RockPage.AddScriptLink( "~/Scripts/Rock/Controls/MediaelementStatistics/mediaElementStatistics.js" );
         }
 
         /// <summary>
@@ -80,7 +79,28 @@ namespace RockWeb.Blocks.Cms
             if ( !Page.IsPostBack )
             {
                 ShowDetail( PageParameter( PageParameterKey.MediaElementId ).AsInteger() );
+
+                RegisterStartupScript();
             }
+
+        }
+
+        /// <summary>
+        /// Registers the startup script.
+        /// </summary>
+        private void RegisterStartupScript()
+        {
+            var script = string.Format( @"Sys.Application.add_load(function () {{
+    Rock.controls.mediaElementStatistics.initialize({{
+        chartId: '{0}',
+        defaultDataId: '{1}',
+        tabContainerId: '{2}'
+    }});
+}});",
+                cChart.ClientID,
+                hfLast90DaysVideoData.ClientID,
+                pnlViewDetails.ClientID );
+            RockPage.ClientScript.RegisterStartupScript( GetType(), "startup-script", script, true );
         }
 
         /// <summary>
@@ -112,7 +132,6 @@ namespace RockWeb.Blocks.Cms
             var interactions = interactionData
                 .Select( i => new InteractionData
                 {
-                    Id = i.Id,
                     InteractionDateTime = i.InteractionDateTime,
                     WatchMap = i.InteractionData.FromJsonOrNull<WatchMapData>()
                 } )
@@ -235,6 +254,45 @@ namespace RockWeb.Blocks.Cms
         }
 
         /// <summary>
+        /// Gets the video overlay data as a JSON string. This is the data that
+        /// will be used to draw our chart information over top of the video.
+        /// </summary>
+        /// <param name="mediaElement">The media element.</param>
+        /// <param name="interactions">The interactions.</param>
+        /// <returns>a JSON string containing the data.</returns>
+        private string GetVideoDataJson( MediaElement mediaElement, List<InteractionData> interactions )
+        {
+            var duration = mediaElement.DurationSeconds ?? 0;
+            var totalCount = interactions.Count;
+
+            // Construct the arrays that will hold the value at each second.
+            var engagementMap = new double[duration];
+            var watchedMap = new int[duration];
+            var rewatchedMap = new int[duration];
+
+            // Loop through every second of the video and build the maps.
+            // Be cautious when modifying this code. A 70 minute video is
+            // 4,200 seconds long, and if there are 10,000 watch maps to
+            // process that means we are going to have 42 million calls to
+            // GetCountAtPosition().
+            for ( int second = 0; second < duration; second++ )
+            {
+                var counts = interactions.Select( i => i.WatchMap.GetCountAtPosition( second ) ).ToList();
+
+                watchedMap[second] = counts.Count( a => a > 0 );
+                rewatchedMap[second] = counts.Sum();
+            }
+
+            return new
+            {
+                PlayCount = totalCount,
+                Duration = duration,
+                Watched = watchedMap,
+                Rewatched = rewatchedMap
+            }.ToJson();
+        }
+
+        /// <summary>
         /// Shows the interaction details for all time.
         /// </summary>
         /// <param name="mediaElement">The media element.</param>
@@ -246,6 +304,8 @@ namespace RockWeb.Blocks.Cms
             var lava = "{[kpis]}" + string.Join( string.Empty, metrics ) + "{[endkpis]}";
 
             lAllTimeContent.Text = lava.ResolveMergeFields( new Dictionary<string, object>() );
+
+            hfAllTimeVideoData.Value = GetVideoDataJson( mediaElement, interactions );
         }
 
         /// <summary>
@@ -274,6 +334,8 @@ namespace RockWeb.Blocks.Cms
                 + string.Join( string.Empty, trendCharts );
 
             lLast12MonthsContent.Text = lava.ResolveMergeFields( new Dictionary<string, object>() );
+
+            hfLast12MonthsVideoData.Value = GetVideoDataJson( mediaElement, interactions );
         }
 
         /// <summary>
@@ -298,6 +360,8 @@ namespace RockWeb.Blocks.Cms
                 + string.Join( string.Empty, trendCharts );
 
             lLast90DaysContent.Text = lava.ResolveMergeFields( new Dictionary<string, object>() );
+
+            hfLast90DaysVideoData.Value = GetVideoDataJson( mediaElement, interactions );
         }
 
         /// <summary>
@@ -372,31 +436,174 @@ namespace RockWeb.Blocks.Cms
 
         #region Support Classes
 
+        /// <summary>
+        /// Holds the data retrieved from the database so we can pass it
+        /// around to different methods.
+        /// </summary>
         private class InteractionData
         {
-            public int Id { get; set; }
-
+            /// <summary>
+            /// Gets or sets the interaction date time.
+            /// </summary>
+            /// <value>
+            /// The interaction date time.
+            /// </value>
             public DateTime InteractionDateTime { get; set; }
 
+            /// <summary>
+            /// Gets or sets the watch map.
+            /// </summary>
+            /// <value>
+            /// The watch map.
+            /// </value>
             public WatchMapData WatchMap { get; set; }
         }
 
+        /// <summary>
+        /// Used to record grouped interaction data into a single date.
+        /// </summary>
         private class InteractionDataForDate
         {
+            /// <summary>
+            /// Gets or sets the date this data is for.
+            /// </summary>
+            /// <value>
+            /// The date this data is for.
+            /// </value>
             public DateTime Date { get; set; }
 
+            /// <summary>
+            /// Gets or sets the number of interactions for this date.
+            /// </summary>
+            /// <value>
+            /// The number of interactions for this date.
+            /// </value>
             public long Count { get; set; }
 
+            /// <summary>
+            /// Gets or sets the average engagement for this date.
+            /// </summary>
+            /// <value>
+            /// The average engagement for this date.
+            /// </value>
             public double Engagement { get; set; }
 
+            /// <summary>
+            /// Gets or sets the number of minutes watched for this date.
+            /// </summary>
+            /// <value>
+            /// The minutes number of watched for this date.
+            /// </value>
             public int MinutesWatched { get; set; }
         }
 
+        /// <summary>
+        /// Watch Map Data that has been saved into the interaction.
+        /// </summary>
         private class WatchMapData
         {
-            public string WatchMap { get; set; }
+            /// <summary>
+            /// Gets or sets the watch map run length encoded data.
+            /// </summary>
+            /// <value>
+            /// The watch map.
+            /// </value>
+            public string WatchMap
+            {
+                get
+                {
+                    return _watchMap;
+                }
+                set
+                {
+                    _watchMap = value;
 
+                    var segments = new List<WatchSegment>();
+                    var segs = _watchMap.Split( ',' );
+
+                    foreach ( var seg in segs )
+                    {
+                        if ( seg.Length < 2 )
+                        {
+                            continue;
+                        }
+
+                        var duration = seg.Substring( 0, seg.Length - 1 ).AsInteger();
+                        var count = seg.Substring( seg.Length - 1 ).AsInteger();
+
+                        segments.Add( new WatchSegment { Duration = duration, Count = count } );
+                    }
+
+                    Segments = segments;
+                }
+            }
+            private string _watchMap;
+
+            /// <summary>
+            /// Gets or sets the watched percentage.
+            /// </summary>
+            /// <value>
+            /// The watched percentage.
+            /// </value>
             public double WatchedPercentage { get; set; }
+
+            /// <summary>
+            /// The segments
+            /// </summary>
+            /// <remarks>
+            /// Defined as field instead of property as it is accessed
+            /// millions of times per page load.
+            /// </remarks>
+            public IReadOnlyList<WatchSegment> Segments;
+
+            /// <summary>
+            /// Gets the count at the specified position of the segment map.
+            /// </summary>
+            /// <param name="position">The position.</param>
+            /// <returns>The count or 0 if not found.</returns>
+            public int GetCountAtPosition( int position )
+            {
+                // Walk through each segment until we find a segment that
+                // "owns" the position we are interested in. Generally
+                // speaking, there should probably always be less than 4 or 5
+                // segments so this should be pretty fast.
+                foreach ( var segment in Segments )
+                {
+                    // This segment owns the position we care about.
+                    if ( position < segment.Duration )
+                    {
+                        return segment.Count;
+                    }
+
+                    // Decrement the position before moving to the next segment.
+                    position -= segment.Duration;
+
+                    if ( position < 0 )
+                    {
+                        break;
+                    }
+                }
+
+                return 0;
+            }
+        }
+
+        /// <summary>
+        /// Individual segment of the watch map. Use fields instead of properties
+        /// for performance reasons as they can be access tens of millions of
+        /// times per page load.
+        /// </summary>
+        private class WatchSegment
+        {
+            /// <summary>
+            /// The duration of this segment in seconds.
+            /// </summary>
+            public int Duration;
+
+            /// <summary>
+            /// The number of times this segment was watched.
+            /// </summary>
+            public int Count;
         }
 
         #endregion
