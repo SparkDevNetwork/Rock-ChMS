@@ -16,13 +16,10 @@
 //
 using System;
 using System.ComponentModel;
-using System.Collections.Generic;
-using System.Net;
 using System.Linq;
 using System.Windows;
 using System.Windows.Input;
 using RestSharp;
-using Rock.Apps.StatementGenerator.RestSharpRequests;
 
 namespace Rock.Apps.StatementGenerator
 {
@@ -66,7 +63,6 @@ namespace Rock.Apps.StatementGenerator
             }
 
             RestClient restClient = new RestClient( txtRockUrl.Text );
-            restClient.CookieContainer = new System.Net.CookieContainer();
 
             string userName = txtUsername.Text;
             string password = txtPassword.Password;
@@ -83,8 +79,7 @@ namespace Rock.Apps.StatementGenerator
             bw.DoWork += delegate ( object s, DoWorkEventArgs ee )
             {
                 ee.Result = null;
-                var rockLoginRequest = new RockLoginRequest( userName, password );
-                var rockLoginResponse = restClient.Execute( rockLoginRequest );
+                restClient.LoginToRock( userName, password );
             };
 
             // when the Background Worker is done with the Login, run this
@@ -95,43 +90,28 @@ namespace Rock.Apps.StatementGenerator
 
                 if ( ee.Error != null )
                 {
-                    throw ee.Error;
-                }
-
-                var getByUserNameRequest = new RestRequest( string.Format( "api/People/GetByUserName/{0}", userName ) );
-                var getByUserNameResponse = restClient.Execute<Rock.Client.Person>( getByUserNameRequest );
-
-                if ( getByUserNameResponse.StatusCode.Equals( HttpStatusCode.Unauthorized ) )
-                {
-                    lblLoginWarning.Content = "Invalid Login";
+                    lblRockUrl.Visibility = Visibility.Visible;
+                    txtRockUrl.Visibility = Visibility.Visible;
+                    lblLoginWarning.Content = ee.Error.Message;
                     lblLoginWarning.Visibility = Visibility.Visible;
                     return;
                 }
 
-                if ( getByUserNameResponse.StatusCode != HttpStatusCode.OK )
+                var getByUserNameRequest = new RestRequest( string.Format( "api/People/GetByUserName/{0}", userName ) );
+                var getByUserNameResponse = restClient.Execute<Rock.Client.Person>( getByUserNameRequest );
+                if ( getByUserNameResponse.ErrorException != null )
                 {
-                    if ( getByUserNameResponse.ErrorException != null )
+                    string message = getByUserNameResponse.ErrorException.Message;
+                    if ( getByUserNameResponse.ErrorException.InnerException != null )
                     {
-                        string message = getByUserNameResponse.ErrorException.Message;
-                        if ( getByUserNameResponse.ErrorException.InnerException != null )
-                        {
-                            message += "\n" + getByUserNameResponse.ErrorException.InnerException.Message;
-                        }
+                        message += "\n" + getByUserNameResponse.ErrorException.InnerException.Message;
+                    }
 
-                        lblRockUrl.Visibility = Visibility.Visible;
-                        txtRockUrl.Visibility = Visibility.Visible;
-                        lblLoginWarning.Content = message;
-                        lblLoginWarning.Visibility = Visibility.Visible;
-                        return;
-                    }
-                    else
-                    {
-                        lblRockUrl.Visibility = Visibility.Visible;
-                        txtRockUrl.Visibility = Visibility.Visible;
-                        lblLoginWarning.Content = $"Error: { getByUserNameResponse.StatusCode}";
-                        lblLoginWarning.Visibility = Visibility.Visible;
-                        return;
-                    }
+                    lblRockUrl.Visibility = Visibility.Visible;
+                    txtRockUrl.Visibility = Visibility.Visible;
+                    lblLoginWarning.Content = message;
+                    lblLoginWarning.Visibility = Visibility.Visible;
+                    return;
                 }
 
                 Rock.Client.Person person = getByUserNameResponse.Data;

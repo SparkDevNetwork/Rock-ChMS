@@ -50,6 +50,9 @@ namespace Rock.Client
         public bool IsComplete { get; set; }
 
         /// <summary />
+        public bool IsInternationalAddress { get; set; }
+
+        /// <summary />
         public string LastName { get; set; }
 
         /// <summary />
@@ -85,6 +88,7 @@ namespace Rock.Client
             this.GroupId = source.GroupId;
             this.Html = source.Html;
             this.IsComplete = source.IsComplete;
+            this.IsInternationalAddress = source.IsInternationalAddress;
             this.LastName = source.LastName;
             this.LocationGuid = source.LocationGuid;
             this.NickName = source.NickName;

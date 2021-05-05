@@ -14,10 +14,12 @@
 // limitations under the License.
 // </copyright>
 //
-using System;
-using System.IO;
+using System.Collections.Generic;
+using System.Linq;
 using System.Windows;
 using System.Windows.Controls;
+
+using RestSharp;
 
 namespace Rock.Apps.StatementGenerator
 {
@@ -50,9 +52,9 @@ namespace Rock.Apps.StatementGenerator
 
             saveOptions = saveOptions ?? new Client.FinancialStatementIndividualSaveOptions();
 
+            LoadDocumentTypes( saveOptions.DocumentTypeId );
 
             cbSaveStatementsForIndividuals.IsChecked = saveOptions.SaveStatementsForIndividuals;
-            cboDocumentType.SelectedValue = saveOptions.DocumentTypeId;
             txtDocumentDescription.Text = saveOptions.DocumentDescription;
             txtDocumentName.Text = saveOptions.DocumentName;
             txtDocumentPurposeKey.Text = saveOptions.DocumentPurposeKey;
@@ -64,6 +66,34 @@ namespace Rock.Apps.StatementGenerator
             ReportOptions.Current.IndividualSaveOptions = saveOptions;
         }
 
+        /// <summary>
+        /// Loads the document types.
+        /// </summary>
+        /// <param name="selectedDocumentTypeId">The selected document type identifier.</param>
+        private void LoadDocumentTypes( int? selectedDocumentTypeId )
+        {
+            var rockConfig = RockConfig.Load();
+            var restClient = new RestClient( rockConfig.RockBaseUrl );
+            restClient.LoginToRock( rockConfig.Username, rockConfig.Password );
+
+            var getDocumentTypesRequest = new RestRequest( "api/DocumentTypes?$filter=EntityType/Name eq 'Rock.Model.Person'" );
+            var getDocumentTypesResponse = restClient.Execute<List<Client.DocumentType>>( getDocumentTypesRequest );
+
+            if ( getDocumentTypesResponse.ErrorException != null )
+            {
+                throw getDocumentTypesResponse.ErrorException;
+            }
+
+            List<Client.DocumentType> documentTypeList = getDocumentTypesResponse.Data;
+
+            cboDocumentType.Items.Clear();
+            foreach ( var documentType in documentTypeList.OrderBy( d => d.Name ) )
+            {
+                var item = new ComboBoxItem { Content = documentType.Name, Tag = documentType.Id };
+                item.IsSelected = documentType.Id == selectedDocumentTypeId;
+                cboDocumentType.Items.Add( item );
+            }
+        }
 
         /// <summary>
         /// Saves the changes.
@@ -72,10 +102,9 @@ namespace Rock.Apps.StatementGenerator
         /// <returns></returns>
         private bool SaveChanges( bool showWarnings )
         {
-
             var saveOptions = ReportOptions.Current.IndividualSaveOptions ?? new Client.FinancialStatementIndividualSaveOptions();
             saveOptions.SaveStatementsForIndividuals = cbSaveStatementsForIndividuals.IsChecked ?? false;
-            saveOptions.DocumentTypeId = ( int? ) cboDocumentType.SelectedValue;
+            saveOptions.DocumentTypeId = ( int? ) ( cboDocumentType.SelectedItem as ComboBoxItem )?.Tag;
             saveOptions.DocumentDescription = txtDocumentDescription.Text;
             saveOptions.DocumentName = txtDocumentName.Text;
             saveOptions.DocumentPurposeKey = txtDocumentPurposeKey.Text;
@@ -128,9 +157,24 @@ namespace Rock.Apps.StatementGenerator
             this.NavigationService.GoBack();
         }
 
-        private void cbSaveStatementsForIndividuals_Click( object sender, RoutedEventArgs e )
+        /// <summary>
+        /// Handles the Checked event of the cbSaveStatementsForIndividuals control.
+        /// </summary>
+        /// <param name="sender">The source of the event.</param>
+        /// <param name="e">The <see cref="RoutedEventArgs"/> instance containing the event data.</param>
+        private void cbSaveStatementsForIndividuals_Checked( object sender, RoutedEventArgs e )
         {
+            pnlIndividualStatementOptions.IsEnabled = true;
+        }
 
+        /// <summary>
+        /// Handles the Unchecked event of the cbSaveStatementsForIndividuals control.
+        /// </summary>
+        /// <param name="sender">The source of the event.</param>
+        /// <param name="e">The <see cref="RoutedEventArgs"/> instance containing the event data.</param>
+        private void cbSaveStatementsForIndividuals_Unchecked( object sender, RoutedEventArgs e )
+        {
+            pnlIndividualStatementOptions.IsEnabled = false;
         }
     }
 }

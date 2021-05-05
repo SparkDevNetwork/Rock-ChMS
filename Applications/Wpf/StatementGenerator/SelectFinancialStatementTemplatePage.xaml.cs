@@ -14,15 +14,12 @@
 // limitations under the License.
 // </copyright>
 //
-using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Windows;
 using System.Windows.Controls;
 
 using RestSharp;
-
-using Rock.Apps.StatementGenerator.RestSharpRequests;
 
 namespace Rock.Apps.StatementGenerator
 {
@@ -46,9 +43,8 @@ namespace Rock.Apps.StatementGenerator
             RockConfig rockConfig = RockConfig.Load();
 
             var restClient = new RestClient( rockConfig.RockBaseUrl );
-            restClient.CookieContainer = new System.Net.CookieContainer();
-            var rockLoginRequest = new RockLoginRequest( rockConfig.Username, rockConfig.Password );
-            var rockLoginResponse = restClient.Execute( rockLoginRequest );
+            restClient.LoginToRock( rockConfig.Username, rockConfig.Password );
+
             var getFinancialStatementTemplatesRequest = new RestRequest( "api/FinancialStatementTemplates" );
             var getFinancialStatementTemplatesResponse = restClient.Execute<List<Client.FinancialStatementTemplate>>( getFinancialStatementTemplatesRequest );
 
@@ -56,7 +52,6 @@ namespace Rock.Apps.StatementGenerator
             {
                 throw getFinancialStatementTemplatesResponse.ErrorException;
             }
-
 
             List<Client.FinancialStatementTemplate> financialStatementTemplateList = getFinancialStatementTemplatesResponse.Data;
 

@@ -1,4 +1,4 @@
-﻿// <copyright>
+// <copyright>
 // Copyright by the Spark Development Network
 //
 // Licensed under the Rock Community License (the "License");
@@ -14,18 +14,30 @@
 // limitations under the License.
 // </copyright>
 //
-using System;
-
-namespace Rock.StatementGenerator.SystemGuid
+namespace Rock.Migrations
 {
+    using System;
+    using System.Data.Entity.Migrations;
+    
     /// <summary>
-    /// Static Guids used by the Rock.StatementGenerator application
+    ///
     /// </summary>
-    public static class DefinedType
+    public partial class DocumentPurposeKey : Rock.Migrations.RockMigration
     {
         /// <summary>
-        /// The statement generator lava template
+        /// Operations to be performed during the upgrade process.
         /// </summary>
-        public const string STATEMENT_GENERATOR_LAVA_TEMPLATE = "74A23516-A20A-40C9-93B5-1AB5FDFF6750";
+        public override void Up()
+        {
+            AddColumn("dbo.Document", "PurposeKey", c => c.String(maxLength: 100));
+        }
+        
+        /// <summary>
+        /// Operations to be performed during the downgrade process.
+        /// </summary>
+        public override void Down()
+        {
+            DropColumn("dbo.Document", "PurposeKey");
+        }
     }
 }

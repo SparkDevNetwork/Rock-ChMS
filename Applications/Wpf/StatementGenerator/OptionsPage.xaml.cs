@@ -23,8 +23,6 @@ using System.Windows.Controls;
 
 using RestSharp;
 
-using Rock.Apps.StatementGenerator.RestSharpRequests;
-
 namespace Rock.Apps.StatementGenerator
 {
     /// <summary>
@@ -70,43 +68,16 @@ namespace Rock.Apps.StatementGenerator
                 txtRockUrl.Text = "http://" + rockUrl.AbsoluteUri;
             }
 
-            RestClient restClient = new RestClient( txtRockUrl.Text );
-            restClient.CookieContainer = new System.Net.CookieContainer();
-            var rockLoginRequest = new RockLoginRequest( rockConfig.Username, rockConfig.Password );
-            var rockLoginResponse = restClient.Execute( rockLoginRequest );
-
-
-            if ( rockLoginResponse.StatusCode.Equals( HttpStatusCode.Unauthorized ) )
+            try
             {
-                lblAlert.Content = "Invalid Login";
+                RestClient restClient = new RestClient( txtRockUrl.Text );
+                restClient.LoginToRock( rockConfig.Username, rockConfig.Password );
+            }
+            catch (Exception ex)
+            {
+                lblAlert.Content = ex.Message;
                 lblAlert.Visibility = Visibility.Visible;
                 return;
-            }
-
-            if ( rockLoginResponse.StatusCode != HttpStatusCode.NoContent && rockLoginResponse.StatusCode != HttpStatusCode.OK )
-            {
-                if ( rockLoginResponse.ErrorException != null )
-                {
-                    string message = rockLoginResponse.ErrorException.Message;
-                    if ( rockLoginResponse.ErrorException.InnerException != null )
-                    {
-                        message += "\n" + rockLoginResponse.ErrorException.InnerException.Message;
-                    }
-
-                    lblAlert.Visibility = Visibility.Visible;
-                    txtRockUrl.Visibility = Visibility.Visible;
-                    lblAlert.Content = message;
-                    lblAlert.Visibility = Visibility.Visible;
-                    return;
-                }
-                else
-                {
-                    lblAlert.Visibility = Visibility.Visible;
-                    txtRockUrl.Visibility = Visibility.Visible;
-                    lblAlert.Content = $"Error: { rockLoginResponse.StatusCode}";
-                    lblAlert.Visibility = Visibility.Visible;
-                    return;
-                }
             }
 
             rockConfig.RockBaseUrl = txtRockUrl.Text;

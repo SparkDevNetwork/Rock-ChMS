@@ -32,7 +32,6 @@ using Newtonsoft.Json;
 
 using RestSharp;
 
-using Rock.Apps.StatementGenerator.RestSharpRequests;
 using Rock.Client;
 using Rock.Client.Enums;
 
@@ -69,6 +68,19 @@ namespace Rock.Apps.StatementGenerator
 
         private static long _recordsCompleted = 0;
 
+        private static Task _lastRenderPDFFromHtmlTask = null;
+
+        private static ConcurrentBag<Task> _tasks;
+        
+        private static FinancialStatementTemplateReportSettings _reportSettings;
+
+        private static ConcurrentBag<double> _generatePdfTimingsMS = null;
+        private static ConcurrentBag<double> _saveAndUploadPdfTimingsMS = null;
+        private static ConcurrentBag<StatementGeneratorRecipientPdfResult> _statementGeneratorRecipientPdfResults = null;
+
+        private string ReportRockStatementGeneratorTemporaryDirectory { get; set; }
+        private string ReportRockStatementGeneratorStatementsTemporaryDirectory { get; set; }
+
         /// <summary>
         /// Runs the report returning the number of statements that were generated
         /// </summary>
@@ -84,9 +96,7 @@ namespace Rock.Apps.StatementGenerator
             RockConfig rockConfig = RockConfig.Load();
 
             var restClient = new RestClient( rockConfig.RockBaseUrl );
-            restClient.CookieContainer = new System.Net.CookieContainer();
-            var rockLoginRequest = new RockLoginRequest( rockConfig.Username, rockConfig.Password );
-            var rockLoginResponse = restClient.Execute( rockLoginRequest );
+            restClient.LoginToRock( rockConfig.Username, rockConfig.Password );
 
             // Get Selected FinancialStatementTemplate
             var getFinancialStatementTemplatesRequest = new RestRequest( $"api/FinancialStatementTemplates/{this.Options.FinancialStatementTemplateId ?? 0}" );
@@ -98,128 +108,52 @@ namespace Rock.Apps.StatementGenerator
 
             Rock.Client.FinancialStatementTemplate financialStatementTemplate = getFinancialStatementTemplatesResponse.Data;
 
-            var reportSettings = JsonConvert.DeserializeObject<Rock.Client.FinancialStatementTemplateReportSettings>( financialStatementTemplate.ReportSettingsJson );
+            _reportSettings = JsonConvert.DeserializeObject<Rock.Client.FinancialStatementTemplateReportSettings>( financialStatementTemplate.ReportSettingsJson );
 
             // Get Recipients from Rock REST Endpoint
             List<FinancialStatementGeneratorRecipient> recipientList = GetRecipients( restClient );
-            string reportRockStatementGeneratorTemporaryDirectory = GetRockStatementGeneratoryTemporaryDirectory( rockConfig );
+            ReportRockStatementGeneratorTemporaryDirectory = GetRockStatementGeneratorTemporaryDirectory( rockConfig );
 
             this.RecordCount = recipientList.Count;
             _recordsCompleted = 0;
 
-            var tasks = new List<Task>();
+            _tasks = new ConcurrentBag<Task>();
 
-            var generatePdfTimingsMS = new ConcurrentBag<double>();
+            _generatePdfTimingsMS = new ConcurrentBag<double>();
+            _saveAndUploadPdfTimingsMS = new ConcurrentBag<double>();
 
-            List<StatementGeneratorRecipientPdfResult> statementGeneratorRecipientPdfResults = new List<StatementGeneratorRecipientPdfResult>();
+            _statementGeneratorRecipientPdfResults = new ConcurrentBag<StatementGeneratorRecipientPdfResult>();
 
-            IronPdf.Installation.TempFolderPath = Path.Combine( reportRockStatementGeneratorTemporaryDirectory, "IronPdf" );
+            IronPdf.Installation.TempFolderPath = Path.Combine( ReportRockStatementGeneratorTemporaryDirectory, "IronPdf" );
             Directory.CreateDirectory( IronPdf.Installation.TempFolderPath );
 
-            var tempStatementsFolder = Path.Combine( reportRockStatementGeneratorTemporaryDirectory, "Statements" );
-            Directory.CreateDirectory( tempStatementsFolder );
+            ReportRockStatementGeneratorStatementsTemporaryDirectory = Path.Combine( ReportRockStatementGeneratorTemporaryDirectory, "Statements" );
+            Directory.CreateDirectory( ReportRockStatementGeneratorStatementsTemporaryDirectory );
 
-            Task lastTask = null;
+            _lastRenderPDFFromHtmlTask = null;
             UpdateProgress( "Getting Statements..." );
             foreach ( var recipient in recipientList )
             {
-                FinancialStatementGeneratorRecipientResult financialStatementGeneratorRecipientResult = GetFinancialStatementGeneratorRecipientResult( restClient, recipient );
-
-                var statementGeneratorPdfResult = new StatementGeneratorRecipientPdfResult( financialStatementGeneratorRecipientResult );
-                statementGeneratorRecipientPdfResults.Add( statementGeneratorPdfResult );
-
-                if ( string.IsNullOrWhiteSpace( financialStatementGeneratorRecipientResult.Html ) )
-                {
-                    // don't generate a statement if no statement HTML
-                    statementGeneratorPdfResult.PdfTempFileName = null;
-                    continue;
-                }
-
-                var html = financialStatementGeneratorRecipientResult.Html;
-                var footerHtml = financialStatementGeneratorRecipientResult.FooterHtml;
-
-                Stopwatch waitForLastTask = Stopwatch.StartNew();
-
-                // We were able to fetch the HTML for the next state while waiting for the PDF task to finish,
-                // but it'll lock up if we don't wait for it to complete
-                lastTask?.Wait();
-
-                Debug.WriteLine( $"{waitForLastTask.Elapsed.TotalMilliseconds}ms, waitForLastTask" );
-
-                bool useUniversalRenderJob = true;
-
-                lastTask = Task.Run( () =>
-                {
-                    var pdfOptions = GetPdfPrintOptions( reportSettings.PDFObjectSettings, financialStatementGeneratorRecipientResult );
-                    statementGeneratorPdfResult.PdfTempFileName = Path.Combine( tempStatementsFolder, $"GroupId_{financialStatementGeneratorRecipientResult.GroupId}_PersonID_{financialStatementGeneratorRecipientResult.PersonId}.pdf" );
-
-                    Stopwatch generatePdfStopWatch = Stopwatch.StartNew();
-
-                    IronPdf.PdfDocument pdfDocument;
-
-                    if ( useUniversalRenderJob )
-                    {
-                        UniversalRenderJob universalRenderJob = new UniversalRenderJob();
-                        universalRenderJob.Options = pdfOptions;
-                        universalRenderJob.Html = statementGeneratorPdfResult.StatementGeneratorRecipientResult.Html;
-                        var pdfBytes = universalRenderJob.DoRemoteRender();
-                        pdfDocument = new PdfDocument( pdfBytes );
-                    }
-                    else
-                    {
-                        pdfDocument = HtmlToPdf.StaticRenderHtmlAsPdf( statementGeneratorPdfResult.StatementGeneratorRecipientResult.Html, pdfOptions );
-                    }
-
-                    generatePdfStopWatch.Stop();
-
-                    Stopwatch savePdfStopWatch = Stopwatch.StartNew();
-
-                    tasks.Add( Task.Run( () =>
-                    {
-                        recipient.RenderedPageCount = pdfDocument.PageCount;
-                        recipient.IsComplete = true;
-                        pdfDocument.SaveAs( statementGeneratorPdfResult.PdfTempFileName );
-                    } ) );
-
-                    Debug.WriteLine( $"{savePdfStopWatch.Elapsed.TotalMilliseconds} ms, savePdfStopWatch Avg" );
-
-                    var recordsCompleted = Interlocked.Increment( ref _recordsCompleted );
-
-                    if ( recordsCompleted > 2 )
-                    {
-                        generatePdfTimingsMS.Add( generatePdfStopWatch.Elapsed.TotalMilliseconds );
-                        Debug.WriteLine( $"{generatePdfStopWatch.Elapsed.TotalMilliseconds} ms, generatePdf" );
-                        Debug.WriteLine( $"{generatePdfTimingsMS.Average()} ms, generatePdf Avg" );
-                    }
-
-                    Debug.WriteLine( $"_recordsCompleted:{recordsCompleted}\n" );
-                } );
-
-                tasks.Add( lastTask );
-
-                tasks = tasks.Where( a => a.Status != TaskStatus.RanToCompletion ).ToList();
-
-                UpdateProgress( "Processing..." );
-
-                SaveRecipientListStatus( reportRockStatementGeneratorTemporaryDirectory, recipientList );
+                StartGenerateStatementForRecipient( recipient, restClient );
+                SaveRecipientListStatus( recipientList );
             }
 
-            SaveRecipientListStatus( reportRockStatementGeneratorTemporaryDirectory, recipientList );
+            // some of the 'Save and Upload' tasks could be running, so wait for those
+            Task.WaitAll( _tasks.ToArray() );
 
-            Task.WaitAll( tasks.ToArray() );
+            SaveRecipientListStatus( recipientList );
 
             UpdateProgress( "Creating PDF..." );
 
-            statementGeneratorRecipientPdfResults = statementGeneratorRecipientPdfResults.Where( a => a.PdfTempFileName != null ).ToList();
-            this.RecordCount = statementGeneratorRecipientPdfResults.Count();
+            _statementGeneratorRecipientPdfResults = new ConcurrentBag<StatementGeneratorRecipientPdfResult>( _statementGeneratorRecipientPdfResults.Where( a => a.PdfTempFileName != null ) );
+            this.RecordCount = _statementGeneratorRecipientPdfResults.Count();
 
             _recordsCompleted = 0;
 
 
             foreach ( var financialStatementReportConfiguration in this.Options.ReportConfigurationList )
             {
-
-                WriteStatementPDFs( financialStatementReportConfiguration, statementGeneratorRecipientPdfResults );
+                WriteStatementPDFs( financialStatementReportConfiguration, _statementGeneratorRecipientPdfResults );
             }
 
             UpdateProgress( "Complete" );
@@ -237,13 +171,128 @@ namespace Rock.Apps.StatementGenerator
         }
 
         /// <summary>
-        private void SaveRecipientListStatus( string reportRockStatementGeneratorTemporaryDirectory, List<FinancialStatementGeneratorRecipient> recipientList )
+        /// Starts the generate statement for recipient.
+        /// </summary>
+        /// <param name="recipient">The recipient.</param>
+        /// <param name="restClient">The rest client.</param>
+        private void StartGenerateStatementForRecipient( FinancialStatementGeneratorRecipient recipient, RestClient restClient )
+        {
+            FinancialStatementGeneratorRecipientResult financialStatementGeneratorRecipientResult = GetFinancialStatementGeneratorRecipientResult( restClient, recipient );
+
+            var statementGeneratorPdfResult = new StatementGeneratorRecipientPdfResult( financialStatementGeneratorRecipientResult );
+            _statementGeneratorRecipientPdfResults.Add( statementGeneratorPdfResult );
+
+            if ( string.IsNullOrWhiteSpace( financialStatementGeneratorRecipientResult.Html ) )
+            {
+                // don't generate a statement if no statement HTML
+                statementGeneratorPdfResult.PdfTempFileName = null;
+                return;
+            }
+
+            var html = financialStatementGeneratorRecipientResult.Html;
+            var footerHtml = financialStatementGeneratorRecipientResult.FooterHtml;
+
+            Stopwatch waitForLastTask = Stopwatch.StartNew();
+
+            // We were able to fetch the HTML for the next statement, and save/upload docs while waiting for the PDF task to finish,
+            // but it'll lock up if we don't wait for last PDF generation to complete
+            _lastRenderPDFFromHtmlTask?.Wait();
+
+            Debug.WriteLine( $"{waitForLastTask.Elapsed.TotalMilliseconds}ms, waitForLastTask" );
+
+            // DEBUG. Which of these methods is faster?
+            bool useUniversalRenderJob = true;
+
+            _lastRenderPDFFromHtmlTask = Task.Run( () =>
+            {
+                var pdfOptions = GetPdfPrintOptions( _reportSettings.PDFObjectSettings, financialStatementGeneratorRecipientResult );
+                statementGeneratorPdfResult.PdfTempFileName = Path.Combine( ReportRockStatementGeneratorStatementsTemporaryDirectory, $"GroupId_{financialStatementGeneratorRecipientResult.GroupId}_PersonID_{financialStatementGeneratorRecipientResult.PersonId}.pdf" );
+
+                Stopwatch generatePdfStopWatch = Stopwatch.StartNew();
+
+                IronPdf.PdfDocument pdfDocument;
+
+                if ( useUniversalRenderJob )
+                {
+                    UniversalRenderJob universalRenderJob = new UniversalRenderJob();
+                    universalRenderJob.Options = pdfOptions;
+                    universalRenderJob.Html = statementGeneratorPdfResult.StatementGeneratorRecipientResult.Html;
+
+                    // this is not thread-safe, so we'll wait to do this until the last one is done
+                    // In the mean time, we'll
+                    //   -- Start a thread that saves the previously completed document to the temp directory and upload it (if configured to do so).
+                    //   -- Get the HTML for the next recipient
+                    var pdfBytes = universalRenderJob.DoRemoteRender();
+                    pdfDocument = new PdfDocument( pdfBytes );
+                }
+                else
+                {
+                    // this is not thread-safe, even with IronPdf.Threading installed, so we'll wait to do this until the last one is done
+                    // In the mean time, we'll
+                    //   -- Start a thread that saves the previously completed document to the temp directory and upload it (if configured to do so).
+                    //   -- Get the HTML for the next recipient
+                    pdfDocument = HtmlToPdf.StaticRenderHtmlAsPdf( statementGeneratorPdfResult.StatementGeneratorRecipientResult.Html, pdfOptions );
+                }
+
+                generatePdfStopWatch.Stop();
+
+                var recordsCompleted = Interlocked.Increment( ref _recordsCompleted );
+
+                // launch a task to save and upload the document
+                // This is thread safe, so we can spin these up as needed 
+                _tasks.Add( Task.Run( () =>
+                {
+                    Stopwatch savePdfStopWatch = Stopwatch.StartNew();
+                    recipient.RenderedPageCount = pdfDocument.PageCount;
+                    pdfDocument.SaveAs( statementGeneratorPdfResult.PdfTempFileName );
+
+                    pdfDocument.Dispose();
+
+                    // todo Upload Document too
+
+                    recipient.IsComplete = true;
+                    if ( recordsCompleted > 2 && Debugger.IsAttached  )
+                    {
+                        _saveAndUploadPdfTimingsMS.Add( savePdfStopWatch.Elapsed.TotalMilliseconds );
+                    }
+                } ) );
+
+                if ( recordsCompleted > 2 && Debugger.IsAttached )
+                {
+                    _generatePdfTimingsMS.Add( generatePdfStopWatch.Elapsed.TotalMilliseconds );
+
+                    var averageGeneratePDFTimingMS = Math.Round( _generatePdfTimingsMS.Average(), 0 );
+                    var averageSaveAndUploadPDFTimingMS = _saveAndUploadPdfTimingsMS.Any() ?
+                        Math.Round( _saveAndUploadPdfTimingsMS.Average(), 0 )
+                        : ( double? ) null;
+
+                    Debug.WriteLine( $@"
+Generate    PDF Avg: {averageGeneratePDFTimingMS} ms (useUniversalRenderJob:{useUniversalRenderJob})
+Save/Upload PDF Avg: {averageSaveAndUploadPDFTimingMS} ms)" );
+                }
+
+                Debug.WriteLine( $"_recordsCompleted:{recordsCompleted}\n" );
+            } );
+
+            _tasks.Add( _lastRenderPDFFromHtmlTask );
+
+            UpdateProgress( "Processing..." );
+        }
+
+        /// <summary>
+        private void SaveRecipientListStatus( List<FinancialStatementGeneratorRecipient> recipientList )
         {
             var recipientListJson = Newtonsoft.Json.JsonConvert.SerializeObject( recipientList );
-            var recipientListJsonFileName = Path.Combine( reportRockStatementGeneratorTemporaryDirectory, "RecipientData.Json" );
+            var recipientListJsonFileName = Path.Combine( ReportRockStatementGeneratorTemporaryDirectory, "RecipientData.Json" );
             File.WriteAllText( recipientListJsonFileName, recipientListJson );
         }
 
+        /// <summary>
+        /// Gets the financial statement generator recipient result.
+        /// </summary>
+        /// <param name="restClient">The rest client.</param>
+        /// <param name="recipient">The recipient.</param>
+        /// <returns></returns>
         private FinancialStatementGeneratorRecipientResult GetFinancialStatementGeneratorRecipientResult( RestClient restClient, FinancialStatementGeneratorRecipient recipient )
         {
             FinancialStatementGeneratorRecipientRequest financialStatementGeneratorRecipientRequest = new FinancialStatementGeneratorRecipientRequest()
@@ -269,7 +318,12 @@ namespace Rock.Apps.StatementGenerator
             return financialStatementGeneratorRecipientResult;
         }
 
-        private static string GetRockStatementGeneratoryTemporaryDirectory( RockConfig rockConfig )
+        /// <summary>
+        /// Gets the rock statement generator temporary directory.
+        /// </summary>
+        /// <param name="rockConfig">The rock configuration.</param>
+        /// <returns></returns>
+        private static string GetRockStatementGeneratorTemporaryDirectory( RockConfig rockConfig )
         {
             var reportTemporaryDirectory = rockConfig.TemporaryDirectory;
             if ( reportTemporaryDirectory.IsNotNullOrWhitespace() )
@@ -286,10 +340,13 @@ namespace Rock.Apps.StatementGenerator
             return reportRockStatementGeneratorTemporaryDirectory;
         }
 
+        /// <summary>
+        /// Gets the recipients.
+        /// </summary>
+        /// <param name="restClient">The rest client.</param>
+        /// <returns></returns>
         private List<Client.FinancialStatementGeneratorRecipient> GetRecipients( RestClient restClient )
         {
-
-
             UpdateProgress( "Getting Recipients..." );
 
             var financialStatementGeneratorRecipientsRequest = new RestRequest( "api/FinancialGivingStatement/GetFinancialStatementGeneratorRecipients", Method.POST );
@@ -366,48 +423,36 @@ namespace Rock.Apps.StatementGenerator
         /// <param name="financialStatementReportConfiguration">The financial statement report configuration.</param>
         /// <param name="statementGeneratorRecipientPdfResults">The statement generator recipient PDF results.</param>
         /// <returns></returns>
-        private void WriteStatementPDFs( FinancialStatementReportConfiguration financialStatementReportConfiguration, List<StatementGeneratorRecipientPdfResult> statementGeneratorRecipientPdfResults )
+        private void WriteStatementPDFs( FinancialStatementReportConfiguration financialStatementReportConfiguration, ConcurrentBag<StatementGeneratorRecipientPdfResult> statementGeneratorRecipientPdfResults )
         {
-            var recipientList = statementGeneratorRecipientPdfResults;
+            var recipientList = statementGeneratorRecipientPdfResults.ToList();
 
-            // use C# to sort the recipients by specified PrimarySortOrder and SecondarySortOrder
-            if ( financialStatementReportConfiguration.PrimarySortOrder == FinancialStatementOrderBy.LastName )
+            if ( financialStatementReportConfiguration.ExcludeOptedOutIndividuals )
             {
-                var sortedRecipientList = recipientList.OrderBy( a => a.LastName ).ThenBy( a => a.NickName );
-                if ( financialStatementReportConfiguration.SecondarySortOrder == FinancialStatementOrderBy.PostalCode )
-                {
-                    sortedRecipientList = sortedRecipientList.ThenBy( a => a.PostalCode );
-                }
-
-                recipientList = sortedRecipientList.ToList();
-            }
-            else if ( financialStatementReportConfiguration.PrimarySortOrder == FinancialStatementOrderBy.PostalCode )
-            {
-                var sortedRecipientList = recipientList.OrderBy( a => a.PostalCode );
-                if ( financialStatementReportConfiguration.SecondarySortOrder == FinancialStatementOrderBy.LastName )
-                {
-                    sortedRecipientList = sortedRecipientList.ThenBy( a => a.LastName ).ThenBy( a => a.NickName );
-                }
-
-                recipientList = sortedRecipientList.ToList();
+                recipientList = recipientList.Where( a => a.StatementGeneratorRecipientResult.OptedOut == false ).ToList();
             }
 
-
-            var maxStatementsPerChapter = financialStatementReportConfiguration.MaxStatementsPerChapter;
-            var fileNamePrefix = financialStatementReportConfiguration.FilenamePrefix;
-            var useChapters = financialStatementReportConfiguration.MaxStatementsPerChapter.HasValue;
-            var saveDirectory = financialStatementReportConfiguration.DestinationFolder;
-            var baseFileName = $"_baseFileName_{DateTime.Now.Ticks}";
-            var chapterIndex = 1;
-
-            List<IronPdf.PdfDocument> pdfDocumentList = new List<IronPdf.PdfDocument>();
-            foreach ( var result in statementGeneratorRecipientPdfResults )
+            if ( financialStatementReportConfiguration.MinimumContributionAmount.HasValue )
             {
-                pdfDocumentList.Add( PdfDocument.FromFile( result.PdfTempFileName ) );
+                recipientList = recipientList.Where( a => a.StatementGeneratorRecipientResult.ContributionTotal >= financialStatementReportConfiguration.MinimumContributionAmount.Value ).ToList();
+            }
+
+            if ( financialStatementReportConfiguration.IncludeInternationalAddresses == false)
+            {
+                recipientList = recipientList.Where( a => a.IsInternationalAddress == false ).ToList();
+            }
+
+            foreach ( var result in recipientList )
+            {
+                result.PdfDocument = PdfDocument.FromFile( result.PdfTempFileName );
                 Interlocked.Increment( ref _recordsCompleted );
                 UpdateProgress( "Loading PDFs" );
             }
 
+            IOrderedEnumerable<StatementGeneratorRecipientPdfResult> sortedRecipientList = SortByPrimaryAndSecondaryOrder( financialStatementReportConfiguration, recipientList );
+            recipientList = sortedRecipientList.ToList();
+
+            // remove temp files (including ones from opted out)
             foreach ( var tempFile in statementGeneratorRecipientPdfResults.Select( a => a.PdfTempFileName ) )
             {
                 if ( File.Exists( tempFile ) )
@@ -415,6 +460,15 @@ namespace Rock.Apps.StatementGenerator
                     File.Delete( tempFile );
                 }
             }
+
+            var pdfDocumentList = recipientList.Where( a => a.PdfDocument != null ).Select( a => a.PdfDocument ).ToList();
+
+            var maxStatementsPerChapter = financialStatementReportConfiguration.MaxStatementsPerChapter;
+            var fileNamePrefix = financialStatementReportConfiguration.FilenamePrefix;
+            var useChapters = financialStatementReportConfiguration.MaxStatementsPerChapter.HasValue;
+            var saveDirectory = financialStatementReportConfiguration.DestinationFolder;
+            var baseFileName = $"_baseFileName_{DateTime.Now.Ticks}";
+            var chapterIndex = 1;
 
             if ( pdfDocumentList.Any() )
             {
@@ -453,6 +507,59 @@ namespace Rock.Apps.StatementGenerator
                     SavePdfFile( chapterDoc, filePath );
                 }
             }
+        }
+
+        /// <summary>
+        /// Sorts the by primary and secondary order.
+        /// </summary>
+        /// <param name="financialStatementReportConfiguration">The financial statement report configuration.</param>
+        /// <param name="recipientList">The recipient list.</param>
+        /// <returns></returns>
+        private static IOrderedEnumerable<StatementGeneratorRecipientPdfResult> SortByPrimaryAndSecondaryOrder( FinancialStatementReportConfiguration financialStatementReportConfiguration, List<StatementGeneratorRecipientPdfResult> recipientList )
+        {
+            IOrderedEnumerable<StatementGeneratorRecipientPdfResult> sortedRecipientList;
+
+            switch ( financialStatementReportConfiguration.PrimarySortOrder )
+            {
+                case FinancialStatementOrderBy.PageCount:
+                    {
+                        sortedRecipientList = recipientList.OrderBy( a => a.PdfDocument.PageCount );
+                        break;
+                    }
+                case FinancialStatementOrderBy.PostalCode:
+                    {
+                        sortedRecipientList = recipientList.OrderBy( a => a.PostalCode );
+                        break;
+                    }
+                case FinancialStatementOrderBy.LastName:
+                default:
+                    {
+                        sortedRecipientList = recipientList.OrderBy( a => a.LastName ).ThenBy( a => a.NickName );
+                        break;
+                    }
+            }
+
+            switch ( financialStatementReportConfiguration.SecondarySortOrder )
+            {
+                case FinancialStatementOrderBy.PageCount:
+                    {
+                        sortedRecipientList = sortedRecipientList.ThenBy( a => a.PdfDocument.PageCount );
+                        break;
+                    }
+                case FinancialStatementOrderBy.PostalCode:
+                    {
+                        sortedRecipientList = sortedRecipientList.ThenBy( a => a.PostalCode );
+                        break;
+                    }
+                case FinancialStatementOrderBy.LastName:
+                default:
+                    {
+                        sortedRecipientList = sortedRecipientList.ThenBy( a => a.LastName ).ThenBy( a => a.NickName );
+                        break;
+                    }
+            }
+
+            return sortedRecipientList;
         }
 
         /// <summary>
@@ -613,12 +720,14 @@ namespace Rock.Apps.StatementGenerator
         /// </value>
         public decimal? PledgeTotal => StatementGeneratorRecipientResult.PledgeTotal;
 
-        /// <summary>
-        /// The country (if any) for the address on the statement.
-        /// </summary>
-        /// <value>
-        /// The country.
-        /// </value>
+        /// <inheritdoc cref="FinancialStatementGeneratorRecipientResult.Country"/>
         public string Country => StatementGeneratorRecipientResult.Country;
+
+        public bool IsInternationalAddress => StatementGeneratorRecipientResult.IsInternationalAddress;
+
+        /// <summary>
+        /// The PDF document
+        /// </summary>
+        internal PdfDocument PdfDocument;
     }
 }

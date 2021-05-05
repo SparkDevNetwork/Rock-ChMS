@@ -27,7 +27,6 @@ using System.Xml;
 
 using RestSharp;
 
-using Rock.Apps.StatementGenerator.RestSharpRequests;
 using Rock.Client;
 
 namespace Rock.Apps.StatementGenerator
@@ -49,11 +48,9 @@ namespace Rock.Apps.StatementGenerator
             RockConfig rockConfig = RockConfig.Load();
 
             _restClient = new RestClient( rockConfig.RockBaseUrl );
-            _restClient.CookieContainer = new System.Net.CookieContainer();
-            var rockLoginRequest = new RockLoginRequest( rockConfig.Username, rockConfig.Password );
-            var rockLoginResponse = _restClient.Execute( rockLoginRequest );
+            _restClient.LoginToRock( rockConfig.Username, rockConfig.Password );
 
-            string queryParam = "?$filter=" + "EntityType/Name eq 'Rock.Model.Person'";
+            string queryParam = "?$filter=EntityType/Name eq 'Rock.Model.Person'";
             var getDataViewsRequest = new RestRequest( "api/DataViews" + queryParam );
             var getDataViewsResponse = _restClient.Execute<List<Rock.Client.DataView>>( getDataViewsRequest );
 
@@ -210,15 +207,10 @@ namespace Rock.Apps.StatementGenerator
         {
             if ( e.Error != null )
             {
-
                 // if there was an error, re-create a new RestClient
                 RockConfig rockConfig = RockConfig.Load();
-
                 _restClient = new RestClient( rockConfig.RockBaseUrl );
-                _restClient.CookieContainer = new System.Net.CookieContainer();
-                var rockLoginRequest = new RockLoginRequest( rockConfig.Username, rockConfig.Password );
-                var rockLoginResponse = _restClient.Execute( rockLoginRequest );
-
+                _restClient.LoginToRock( rockConfig.Username, rockConfig.Password );
 
                 throw e.Error;
             }

@@ -47,52 +47,87 @@
                 <Label Content="The configuration below enables statements to be stored on individual's records as documents." Style="{StaticResource labelStyle}" />
 
                 <CheckBox
-                        Name="cbSaveStatementsForIndividuals"
-                        Content="Save Statements for Individuals"
+                    Name="cbSaveStatementsForIndividuals"
+                    Margin="4,10,0,0"
+                    Checked="cbSaveStatementsForIndividuals_Checked"
+                    Content="Save Statements for Individuals"
+                    IsChecked="False"
+                    Style="{StaticResource checkboxStyle}"
+                    Unchecked="cbSaveStatementsForIndividuals_Unchecked" />
+                <StackPanel Name="pnlIndividualStatementOptions" IsEnabled="False">
+
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="1*" />
+                            <ColumnDefinition Width="1*" />
+                        </Grid.ColumnDefinitions>
+
+                        <StackPanel Grid.Column="0">
+                            <Label Content="Document Type" Style="{StaticResource labelStyleBold}" />
+                            <ComboBox Name="cboDocumentType" Style="{StaticResource comboBoxStyle}" />
+
+                            <Label
+                                Margin="0,10,0,0"
+                                Content="Document Name"
+                                Style="{StaticResource labelStyleBold}" />
+                            <TextBox
+                                Name="txtDocumentName"
+                                Style="{StaticResource textboxStyle}"
+                                Text="Sample Document Name" />
+
+                            <Label
+                                Margin="0,10,0,0"
+                                Content="Document Purpose Key"
+                                Style="{StaticResource labelStyleBold}" />
+                            <TextBox
+                                Name="txtDocumentPurposeKey"
+                                Style="{StaticResource textboxStyle}"
+                                Text="Sample Document Purpose Key" />
+
+                        </StackPanel>
+
+                        <StackPanel Grid.Column="1" Margin="10,0">
+                            <Label Content="Document Description" Style="{StaticResource labelStyleBold}" />
+                            <TextBox
+                                Name="txtDocumentDescription"
+                                Width="300"
+                                Height="80"
+                                Style="{StaticResource textboxStyleMultiline}"
+                                Text="Hello World" />
+                        </StackPanel>
+
+                    </Grid>
+
+                    <CheckBox
+                        Name="cbOverwriteDocumentsOfThisTypeCreatedOnSameDate"
                         Margin="4,10,0,0"
+                        Content="Overwrite documents of this type created on the same date"
                         IsChecked="False"
-                        Click="cbSaveStatementsForIndividuals_Click"
-                        Style="{StaticResource checkboxStyle }" />
+                        Style="{StaticResource checkboxStyle}" />
 
-                <Grid>
-                    <Grid.ColumnDefinitions>
-                        <ColumnDefinition Width="1*" />
-                        <ColumnDefinition Width="1*" />
-                    </Grid.ColumnDefinitions>
-                    
-                    <StackPanel Grid.Column="0">
-                        <Label Content="Document Type" Style="{StaticResource labelStyleBold}"/>
-                        <ComboBox Style="{StaticResource comboBoxStyle}" Name="cboDocumentType" />
-
-                        <Label Content="Document Name" Style="{StaticResource labelStyleBold}" Margin="0,10,0,0"/>
-                        <TextBox Text="Sample Document Name" Style="{StaticResource textboxStyle}" Name="txtDocumentName" />
-
-                        <Label Content="Document Purpose Key" Style="{StaticResource labelStyleBold}" Margin="0,10,0,0"/>
-                        <TextBox Text="Sample Document Purpose Key" Style="{StaticResource textboxStyle}" Name="txtDocumentPurposeKey" />
-                        
+                    <Label Content="Save For" Style="{StaticResource labelStyleBold}" />
+                    <StackPanel Orientation="Horizontal">
+                        <RadioButton
+                            Name="rbSaveForAllAdults"
+                            Margin="8"
+                            Content="All Active Adults"
+                            GroupName="rbGroupSaveFor"
+                            IsChecked="True"
+                            Style="{StaticResource radioButtonStyle}" />
+                        <RadioButton
+                            Name="rbSaveForPrimaryGiver"
+                            Margin="8"
+                            Content="Primary Giver"
+                            GroupName="rbGroupSaveFor"
+                            Style="{StaticResource radioButtonStyle}" />
+                        <RadioButton
+                            Name="rbSaveForAllActiveFamilyMembers"
+                            Margin="8"
+                            Content="All Active Family Members"
+                            GroupName="rbGroupSaveFor"
+                            Style="{StaticResource radioButtonStyle}" />
                     </StackPanel>
-
-                    <StackPanel Grid.Column="1" Margin="10,0">
-                        <Label Content="Document Description" Style="{StaticResource labelStyleBold}" />
-                        <TextBox Text="Hello World" Style="{StaticResource textboxStyleMultiline}" Name="txtDocumentDescription" Width="300" Height="80" />
-                    </StackPanel>
-
-                </Grid>
-
-                <CheckBox
-                            Name="cbOverwriteDocumentsOfThisTypeCreatedOnSameDate"
-                            Content="Overwrite documents of this type created on the same date"
-                            Margin="4,10,0,0"
-                            IsChecked="False"
-                            Style="{StaticResource checkboxStyle }" />
-
-                <Label Content="Save For" Style="{StaticResource labelStyleBold}"/>
-                <StackPanel Orientation="Horizontal">
-                    <RadioButton Name="rbSaveForAllAdults" Content="All Active Adults" Style="{StaticResource radioButtonStyle}" Margin="8" GroupName="rbGroupSaveFor" IsChecked="True"/>
-                    <RadioButton Name="rbSaveForPrimaryGiver" Content="Primary Giver" Style="{StaticResource radioButtonStyle}" Margin="8" GroupName="rbGroupSaveFor"/>
-                    <RadioButton Name="rbSaveForAllActiveFamilyMembers" Content="All Active Family Members" Style="{StaticResource radioButtonStyle}" Margin="8" GroupName="rbGroupSaveFor"/>
                 </StackPanel>
-
             </StackPanel>
             <Button
                 x:Name="btnPrev"

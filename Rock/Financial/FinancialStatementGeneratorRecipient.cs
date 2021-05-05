@@ -69,13 +69,7 @@ namespace Rock.Financial
         /// </value>
         public decimal? PledgeTotal { get; set; }
 
-        /// <summary>
-        /// The country (if any) for the address on the statement.
-        /// </summary>
-        /// <value>
-        /// The country.
-        /// </value>
-        public string Country { get; set; }
+        
     }
 
     /// <summary>
@@ -124,6 +118,24 @@ namespace Rock.Financial
 
         /// <inheritdoc cref="Rock.Model.Person.NickName"/>
         public string NickName { get; set; }
+
+        /// <summary>
+        /// The country (if any) for the address on the statement.
+        /// </summary>
+        /// <value>
+        /// The country.
+        /// </value>
+        public string Country { get; set; }
+
+        /// <summary>
+        /// Gets or sets a value indicating whether this instance is international address.
+        /// Addresses with countries the same as the Organization’s address (Global Attribute) or 
+        /// addresses with blank countries will be considered local.
+        /// </summary>
+        /// <value>
+        ///   <c>true</c> if this instance is international address; otherwise, <c>false</c>.
+        /// </value>
+        public bool IsInternationalAddress { get; set; }
 
         /// <summary>
         /// The number of PDFs pages that resulted when generating the statement.
