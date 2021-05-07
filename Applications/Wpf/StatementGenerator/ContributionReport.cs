@@ -24,6 +24,7 @@ using System.Linq;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
+using System.Windows.Input;
 
 using IronPdf;
 using IronPdf.Threading;
@@ -65,6 +66,16 @@ namespace Rock.Apps.StatementGenerator
         /// The record count.
         /// </value>
         private int RecordCount { get; set; }
+
+        private bool _cancelRunning = false;
+        private bool _cancelled = false;
+
+        public void Cancel()
+        {
+            _cancelRunning = true;
+        }
+
+        public bool IsCancelled => _cancelled;
 
         private static long _recordsCompleted = 0;
 
@@ -138,12 +149,22 @@ namespace Rock.Apps.StatementGenerator
             UpdateProgress( "Getting Statements..." );
             foreach ( var recipient in recipientList )
             {
+                if ( _cancelRunning == true)
+                {
+                    break;
+                }
                 StartGenerateStatementForRecipient( recipient, restClient );
                 SaveRecipientListStatus( recipientList );
             }
 
             // some of the 'Save and Upload' tasks could be running, so wait for those
             Task.WaitAll( _tasks.ToArray() );
+
+            if (_cancelRunning)
+            {
+                this._cancelled = true;
+                return (int)_recordsCompleted;
+            }
 
             SaveRecipientListStatus( recipientList );
 

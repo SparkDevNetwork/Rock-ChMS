@@ -171,7 +171,7 @@ namespace RockWeb.Blocks.Finance
             transactionSetting.TransactionTypeIds = dvpTransactionType.SelectedValuesAsInt;
             transactionSetting.HideRefundedTransactions = cbHideRefundedTransactions.Checked;
             transactionSetting.HideCorrectedTransactionOnSameData = cbHideModifiedTransactions.Checked;
-            transactionSetting.AccountIds = apTransactionAccounts.SelectedValuesAsInt().ToList();
+            transactionSetting.AccountIdsCustom = apTransactionAccountsCustom.SelectedValuesAsInt().ToList();
             financialStatementTemplate.ReportSettings.TransactionSettings = transactionSetting;
 
             var pledgeSetting = new FinancialStatementTemplatePledgeSettings();
@@ -303,10 +303,10 @@ namespace RockWeb.Blocks.Finance
 
                 var transactionSettings = financialStatementTemplate.ReportSettings.TransactionSettings;
                 var detailsDescription = new DescriptionList();
-                if ( transactionSettings.AccountIds.Any() )
+                if ( transactionSettings.AccountIdsCustom.Any() )
                 {
                     var accountList = new FinancialAccountService( new RockContext() )
-                        .GetByIds( transactionSettings.AccountIds )
+                        .GetByIds( transactionSettings.AccountIdsCustom )
                         .Where( a => a.IsActive )
                         .ToList();
                     detailsDescription.Add( "Accounts for Transactions", accountList.Select( a => a.Name ).ToList().AsDelimited("<br/>") );
@@ -358,13 +358,13 @@ namespace RockWeb.Blocks.Finance
             dvpCurrencyTypesCashGifts.SetValues( transactionSetting.CurrencyTypesForCashGiftIds );
             dvpCurrencyTypesNonCashGifts.SetValues( transactionSetting.CurrencyTypesForNonCashIds );
             dvpTransactionType.SetValues( transactionSetting.TransactionTypeIds );
-            if ( transactionSetting.AccountIds.Any() )
+            if ( transactionSetting.AccountIdsCustom.Any() )
             {
                 var accountList = new FinancialAccountService( new RockContext() )
-                    .GetByIds( transactionSetting.AccountIds )
+                    .GetByIds( transactionSetting.AccountIdsCustom )
                     .Where( a => a.IsActive )
                     .ToList();
-                apTransactionAccounts.SetValues( accountList );
+                apTransactionAccountsCustom.SetValues( accountList );
             }
 
             var pledgeSetting = financialStatementTemplate.ReportSettings.PledgeSettings;

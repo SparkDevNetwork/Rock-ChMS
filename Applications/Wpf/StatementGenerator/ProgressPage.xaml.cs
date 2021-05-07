@@ -20,6 +20,7 @@ using System.Diagnostics;
 using System.IO;
 using System.Windows;
 using System.Windows.Controls;
+using System.Windows.Input;
 
 using Microsoft.Win32;
 
@@ -37,10 +38,27 @@ namespace Rock.Apps.StatementGenerator
             InitializeComponent();
         }
 
+        private void ProgressPage_Unloaded( object sender, RoutedEventArgs e )
+        {
+            
+        }
+
+        private void NavigationService_Navigating( object sender, System.Windows.Navigation.NavigatingCancelEventArgs e )
+        {
+            // if the currently running, don't let navigation happen. This fixes an issue where pressing the BackSpace key would go to previous page
+            // even though the report was still running
+            e.Cancel = _isRunning;
+        }
+
         /// <summary>
         /// The statement count
         /// </summary>
         private int _statementCount;
+
+        private static bool _wasCancelled = false;
+        private static bool _isRunning = false;
+
+        private ContributionReport _contributionReport;
 
         /// <summary>
         /// Handles the Loaded event of the Page control.
@@ -49,8 +67,13 @@ namespace Rock.Apps.StatementGenerator
         /// <param name="e">The <see cref="RoutedEventArgs"/> instance containing the event data.</param>
         private void Page_Loaded( object sender, RoutedEventArgs e )
         {
+            var window = Window.GetWindow( this );
+            window.KeyDown += Window_KeyDown;
+
+            NavigationService.Navigating += NavigationService_Navigating;
             btnPrev.Visibility = Visibility.Hidden;
             lblReportProgress.Visibility = Visibility.Hidden;
+            lblReportProgress.Content = "Progress - Creating Statements";
             lblReportProgress.Content = "Progress - Creating Statements";
             pgReportProgress.Visibility = Visibility.Hidden;
             WpfHelper.FadeIn( pgReportProgress, 2000 );
@@ -59,6 +82,19 @@ namespace Rock.Apps.StatementGenerator
             bw.DoWork += bw_DoWork;
             bw.RunWorkerCompleted += bw_RunWorkerCompleted;
             bw.RunWorkerAsync();
+        }
+
+        private void Window_KeyDown( object sender, KeyEventArgs e )
+        {
+            bool isLeftAltDown = Keyboard.IsKeyDown( Key.LeftAlt );
+            bool isDeleteDown = Keyboard.IsKeyDown( Key.Delete ) || Keyboard.IsKeyDown( Key.Back );
+            if ( isLeftAltDown && isDeleteDown )
+            {
+                _contributionReport?.Cancel();
+
+                var window = Window.GetWindow( this );
+                window.KeyDown -= Window_KeyDown;
+            }
         }
 
         /// <summary>
@@ -82,6 +118,11 @@ namespace Rock.Apps.StatementGenerator
             {
                 lblReportProgress.Content = @"Warning: No records matched your criteria. No statements have been created.";
             }
+            else if ( _wasCancelled )
+            {
+                lblReportProgress.Style = this.FindResource( "labelStyleAlertWarning" ) as Style;
+                lblReportProgress.Content = $@"Canceled: {_statementCount} statements created.";
+            }
             else
             {
                 lblReportProgress.Style = this.FindResource( "labelStyleAlertSuccess" ) as Style;
@@ -97,10 +138,15 @@ namespace Rock.Apps.StatementGenerator
         /// <exception cref="System.NotImplementedException"></exception>
         protected void bw_DoWork( object sender, DoWorkEventArgs e )
         {
-            ContributionReport contributionReport = new ContributionReport( ReportOptions.Current );
-            contributionReport.OnProgress += ContributionReport_OnProgress;
+            _contributionReport = new ContributionReport( ReportOptions.Current );
+            _contributionReport.OnProgress += ContributionReport_OnProgress;
+            _wasCancelled = false;
+            _isRunning = true;
+            _statementCount = _contributionReport.RunReport();
+            _isRunning = false;
+            _wasCancelled = _contributionReport.IsCancelled;
 
-            _statementCount = contributionReport.RunReport();
+            _contributionReport = null;
 
             e.Result = _statementCount > 0;
         }

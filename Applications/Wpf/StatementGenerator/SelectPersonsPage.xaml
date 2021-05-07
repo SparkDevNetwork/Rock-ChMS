@@ -83,7 +83,7 @@
                 <StackPanel
                     Name="pnlDataViewOptions"
                     Style="{StaticResource indentStyle}"
-                    Visibility="Collapsed">
+                    Visibility="Visible">
                     <ComboBox
                         Name="ddlDataView"
                         Margin="0,0,0,8"
@@ -99,7 +99,7 @@
                 <StackPanel
                     Name="pnlSingleIndividualOptions"
                     Style="{StaticResource indentStyle}"
-                    Visibility="Collapsed">
+                    Visibility="Visible">
                     <TextBox
                         Name="txtPersonSearch"
                         Style="{StaticResource textboxStyle}"
@@ -121,7 +121,7 @@
                         BorderThickness="1"
                         CanUserAddRows="False"
                         CanUserDeleteRows="False"
-                        CellStyle="{StaticResource gridCellStyle}"
+                        CellStyle="{StaticResource gridCellStyleWhite}"
                         ColumnWidth="SizeToHeader"
                         FontSize="12"
                         GridLinesVisibility="Horizontal"
@@ -132,7 +132,7 @@
                         ScrollViewer.VerticalScrollBarVisibility="Visible"
                         SelectionChanged="grdPersons_SelectionChanged"
                         SelectionMode="Single"
-                        Style="{StaticResource gridStyle}">
+                        Style="{StaticResource gridStyleWhite}">
                         <DataGrid.ItemContainerStyle>
                             <Style TargetType="{x:Type DataGridRow}">
                                 <EventSetter Event="Control.MouseDoubleClick" Handler="grdItems_RowDoubleClick" />
@@ -144,49 +144,49 @@
                                 Binding="{Binding Name}"
                                 CanUserResize="True"
                                 CanUserSort="False"
-                                CellStyle="{StaticResource gridCellStyle}"
+                                CellStyle="{StaticResource gridCellStyleWhite}"
                                 Header="NAME"
-                                HeaderStyle="{StaticResource gridHeaderStyle}" />
+                                HeaderStyle="{StaticResource gridHeaderStyleWhite}" />
                             <DataGridTextColumn
                                 Width="40"
                                 Binding="{Binding Age}"
                                 CanUserResize="False"
                                 CanUserSort="False"
-                                CellStyle="{StaticResource gridCellStyleNumber}"
+                                CellStyle="{StaticResource gridCellStyleWhite}"
                                 Header="AGE"
-                                HeaderStyle="{StaticResource gridHeaderStyleNumber}" />
+                                HeaderStyle="{StaticResource gridHeaderStyleWhite}" />
                             <DataGridTextColumn
                                 Width="60"
                                 Binding="{Binding Gender}"
                                 CanUserResize="False"
                                 CanUserSort="False"
-                                CellStyle="{StaticResource gridCellStyle}"
+                                CellStyle="{StaticResource gridCellStyleWhite}"
                                 Header="GENDER"
-                                HeaderStyle="{StaticResource gridHeaderStyle}" />
+                                HeaderStyle="{StaticResource gridHeaderStyleWhite}" />
                             <DataGridTextColumn
                                 Width="*"
                                 Binding="{Binding SpouseName}"
                                 CanUserResize="True"
                                 CanUserSort="False"
-                                CellStyle="{StaticResource gridCellStyle}"
+                                CellStyle="{StaticResource gridCellStyleWhite}"
                                 Header="SPOUSE"
-                                HeaderStyle="{StaticResource gridHeaderStyle}" />
+                                HeaderStyle="{StaticResource gridHeaderStyleWhite}" />
                             <DataGridTextColumn
                                 Width="1.2*"
                                 Binding="{Binding Email}"
                                 CanUserResize="True"
                                 CanUserSort="False"
-                                CellStyle="{StaticResource gridCellStyle}"
+                                CellStyle="{StaticResource gridCellStyleWhite}"
                                 Header="EMAIL"
-                                HeaderStyle="{StaticResource gridHeaderStyle}" />
+                                HeaderStyle="{StaticResource gridHeaderStyleWhite}" />
                             <DataGridTextColumn
                                 Width="1.5*"
                                 Binding="{Binding Address}"
                                 CanUserResize="True"
                                 CanUserSort="False"
-                                CellStyle="{StaticResource gridCellStyle}"
+                                CellStyle="{StaticResource gridCellStyleWhite}"
                                 Header="ADDRESS"
-                                HeaderStyle="{StaticResource gridHeaderStyle}" />
+                                HeaderStyle="{StaticResource gridHeaderStyleWhite}" />
                         </DataGrid.Columns>
                     </DataGrid>
                 </StackPanel>

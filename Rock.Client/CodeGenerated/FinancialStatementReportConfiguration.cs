@@ -61,6 +61,12 @@ namespace Rock.Client
         /// <summary />
         public bool SplitFilesOnPrimarySortValue { get; set; }
 
+        /// <summary />
+        public DateTime? CreatedDateTime { get; set; }
+
+        /// <summary />
+        public Guid Guid { get; set; }
+
         /// <summary>
         /// Copies the base properties from a source FinancialStatementReportConfiguration object
         /// </summary>
@@ -77,6 +83,8 @@ namespace Rock.Client
             this.PrimarySortOrder = source.PrimarySortOrder;
             this.SecondarySortOrder = source.SecondarySortOrder;
             this.SplitFilesOnPrimarySortValue = source.SplitFilesOnPrimarySortValue;
+            this.CreatedDateTime = source.CreatedDateTime;
+            this.Guid = source.Guid;
 
         }
     }

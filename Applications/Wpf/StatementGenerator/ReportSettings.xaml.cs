@@ -1,17 +1,8 @@
-﻿using System;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Controls;
-using System.Windows.Data;
-using System.Windows.Documents;
 using System.Windows.Input;
-using System.Windows.Media;
-using System.Windows.Media.Imaging;
-using System.Windows.Navigation;
-using System.Windows.Shapes;
 
 using Rock.Client;
 
@@ -22,9 +13,43 @@ namespace Rock.Apps.StatementGenerator
     /// </summary>
     public partial class ReportSettings : System.Windows.Controls.Page
     {
+        /// <summary>
+        /// Initializes a new instance of the <see cref="ReportSettings"/> class.
+        /// </summary>
         public ReportSettings()
         {
             InitializeComponent();
+
+            cbEnablePageCountPredetermination.IsChecked = RockConfig.Load().EnablePageCountPredetermination;
+
+            BindGrid();
+        }
+
+        /// <summary>
+        /// Binds the grid.
+        /// </summary>
+        private void BindGrid()
+        {
+            var rockConfig = RockConfig.Load();
+
+            List<FinancialStatementReportConfiguration> reportConfigurationList = null;
+
+            try
+            {
+                if ( rockConfig.ReportConfigurationListJson.IsNotNullOrWhitespace() )
+                {
+                    reportConfigurationList = Newtonsoft.Json.JsonConvert.DeserializeObject<List<FinancialStatementReportConfiguration>>( rockConfig.ReportConfigurationListJson );
+                }
+            }
+            catch
+            {
+                // ignore
+            }
+
+            reportConfigurationList = reportConfigurationList ?? new List<FinancialStatementReportConfiguration>();
+            ReportOptions.Current.ReportConfigurationList = reportConfigurationList;
+
+            grdReportSettings.DataContext = reportConfigurationList.OrderBy( a => a.CreatedDateTime );
         }
 
         /// <summary>
@@ -34,13 +59,36 @@ namespace Rock.Apps.StatementGenerator
         /// <param name="e">The <see cref="RoutedEventArgs"/> instance containing the event data.</param>
         private void btnShowReportSettingsModal_Click( object sender, RoutedEventArgs e )
         {
-            FinancialStatementReportConfiguration selectedSettings = null;
+            AddEditReportSettings( null );
+        }
+
+        /// <summary>
+        /// Adds the edit report settings.
+        /// </summary>
+        /// <param name="selectedSettings">The selected settings.</param>
+        private void AddEditReportSettings( FinancialStatementReportConfiguration selectedSettings )
+        {
             ReportConfigurationModalWindow reportSettingsModalWindow = new ReportConfigurationModalWindow( selectedSettings );
             reportSettingsModalWindow.Owner = Window.GetWindow( this );
             var showDialogResult = reportSettingsModalWindow.ShowDialog();
             if ( showDialogResult == true )
             {
                 FinancialStatementReportConfiguration updatedSettings = reportSettingsModalWindow.GetFinancialStatementReportConfiguration();
+                ReportOptions.Current.ReportConfigurationList = ReportOptions.Current.ReportConfigurationList ?? new List<FinancialStatementReportConfiguration>();
+                var settingsToUpdate = ReportOptions.Current.ReportConfigurationList.FirstOrDefault( a => a.Guid == updatedSettings.Guid );
+                if ( settingsToUpdate != null )
+                {
+                    // replace the settings with the new ones
+                    ReportOptions.Current.ReportConfigurationList.Remove( settingsToUpdate );
+                }
+
+                ReportOptions.Current.ReportConfigurationList.Add( updatedSettings );
+
+                var rockConfig = RockConfig.Load();
+                rockConfig.ReportConfigurationListJson = Newtonsoft.Json.JsonConvert.SerializeObject( ReportOptions.Current.ReportConfigurationList );
+                rockConfig.Save();
+
+                BindGrid();
             }
         }
 
@@ -51,6 +99,7 @@ namespace Rock.Apps.StatementGenerator
         /// <returns></returns>
         private bool SaveChanges( bool showWarnings )
         {
+            RockConfig.Load().EnablePageCountPredetermination = cbEnablePageCountPredetermination.IsChecked == true;
             return true;
         }
 
@@ -77,6 +126,35 @@ namespace Rock.Apps.StatementGenerator
         {
             SaveChanges( false );
             this.NavigationService.GoBack();
+        }
+
+        /// <summary>
+        /// Handles the Click event of the btnDeleteReportOption control.
+        /// </summary>
+        /// <param name="sender">The source of the event.</param>
+        /// <param name="e">The <see cref="RoutedEventArgs"/> instance containing the event data.</param>
+        private void btnDeleteReportOption_Click( object sender, RoutedEventArgs e )
+        {
+            ReportOptions.Current.ReportConfigurationList = ReportOptions.Current.ReportConfigurationList ?? new List<FinancialStatementReportConfiguration>();
+            var seletedReportConfig = ( sender as Button ).DataContext as FinancialStatementReportConfiguration;
+            ReportOptions.Current.ReportConfigurationList.Remove( seletedReportConfig );
+
+            var rockConfig = RockConfig.Load();
+            rockConfig.ReportConfigurationListJson = Newtonsoft.Json.JsonConvert.SerializeObject( ReportOptions.Current.ReportConfigurationList );
+            rockConfig.Save();
+
+            BindGrid();
+        }
+
+        /// <summary>
+        /// Handles the RowDoubleClick event of the grdReportSettings control.
+        /// </summary>
+        /// <param name="sender">The source of the event.</param>
+        /// <param name="e">The <see cref="MouseButtonEventArgs"/> instance containing the event data.</param>
+        protected void grdReportSettings_RowDoubleClick( object sender, MouseButtonEventArgs e )
+        {
+            var seletedReportConfig = ( sender as DataGridRow ).DataContext as FinancialStatementReportConfiguration;
+            AddEditReportSettings( seletedReportConfig );
         }
     }
 }

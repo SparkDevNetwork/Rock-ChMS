@@ -200,7 +200,7 @@ namespace Rock.StatementGenerator
                 // A statement Generator can have more than report configuration. If they have more than one, then
                 // the generator will be in charge of sorting. However, let's take care of sorting the first
                 // Report Configuration. That'll help in cases where the caller doesn't support more than one report configuration
-                var defaultReportConfiguration = financialStatementGeneratorOptions.ReportConfigurationList?.FirstOrDefault();
+                var defaultReportConfiguration = financialStatementGeneratorOptions.ReportConfigurationList?.OrderByDescending( x => x.CreatedDateTime ).FirstOrDefault();
 
                 if ( defaultReportConfiguration != null )
                 {
@@ -327,10 +327,10 @@ namespace Rock.StatementGenerator
 
                 foreach ( var financialTransaction in financialTransactionsList )
                 {
-                    if ( transactionSettings.AccountIds != null )
+                    if ( transactionSettings.AccountIdsCustom != null )
                     {
                         // remove any Accounts that were not included (in case there was a mix of included and not included accounts in the transaction)
-                        financialTransaction.TransactionDetails = financialTransaction.TransactionDetails.Where( a => transactionSettings.AccountIds.Contains( a.AccountId ) ).ToList();
+                        financialTransaction.TransactionDetails = financialTransaction.TransactionDetails.Where( a => transactionSettings.AccountIdsCustom.Contains( a.AccountId ) ).ToList();
                     }
 
                     financialTransaction.TransactionDetails = financialTransaction.TransactionDetails.OrderBy( a => a.Account.Order ).ThenBy( a => a.Account.PublicName ).ToList();
@@ -863,14 +863,14 @@ namespace Rock.StatementGenerator
             }
 
             // Filter to specified AccountIds (if specified)
-            if ( transactionSettings.AccountIds == null )
+            if ( transactionSettings.AccountIdsCustom == null )
             {
                 // if TransactionAccountIds wasn't supplied, don't filter on AccountId
             }
             else
             {
                 // narrow it down to recipients that have transactions involving any of the AccountIds
-                var selectedAccountIds = transactionSettings.AccountIds;
+                var selectedAccountIds = transactionSettings.AccountIdsCustom;
                 financialTransactionQry = financialTransactionQry.Where( a => a.TransactionDetails.Any( x => selectedAccountIds.Contains( x.AccountId ) ) );
             }
 

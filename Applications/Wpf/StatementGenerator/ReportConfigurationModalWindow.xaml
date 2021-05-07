@@ -73,8 +73,9 @@
                     <Button
                         Width="100"
                         Margin="8,4,0,0"
+                        Name="btnSelectFolder"
                         Content="Select Folder"
-                        Style="{StaticResource buttonStyleMini}" />
+                        Style="{StaticResource buttonStyleMini}" Click="btnSelectFolder_Click"/>
                 </StackPanel>
 
                 <Label

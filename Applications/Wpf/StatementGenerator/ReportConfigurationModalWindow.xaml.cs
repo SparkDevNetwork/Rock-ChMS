@@ -1,4 +1,5 @@
 ﻿using System;
+using System.IO;
 using System.Linq;
 using System.Windows;
 using System.Windows.Controls;
@@ -15,18 +16,23 @@ namespace Rock.Apps.StatementGenerator
     /// <seealso cref="System.Windows.Markup.IComponentConnector" />
     public partial class ReportConfigurationModalWindow : Window
     {
+        private DateTime? FinancialStatementReportConfigurationCreateDateTime { get; set; }
+        private Guid FinancialStatementReportConfigurationGuid { get; set; }
+
         /// <summary>
-        /// Initializes a new instance of the <see cref="ReportConfigurationModalWindow"/> class.
+        /// Initializes a new instance of the <see cref="ReportConfigurationModalWindow" /> class.
         /// </summary>
         /// <param name="financialStatementReportConfiguration">The financial statement report configuration.</param>
         public ReportConfigurationModalWindow( FinancialStatementReportConfiguration financialStatementReportConfiguration )
         {
             InitializeComponent();
 
-            if ( financialStatementReportConfiguration == null)
+            if ( financialStatementReportConfiguration == null )
             {
                 lblActionTitle.Content = "Add Report";
                 financialStatementReportConfiguration = new FinancialStatementReportConfiguration();
+                financialStatementReportConfiguration.CreatedDateTime = DateTime.Now;
+                financialStatementReportConfiguration.Guid = Guid.NewGuid();
             }
             else
             {
@@ -54,6 +60,9 @@ namespace Rock.Apps.StatementGenerator
             tbMinimumContributionAmount.Text = financialStatementReportConfiguration.MinimumContributionAmount.ToString();
             cbIncludeInternationalAddresses.IsChecked = financialStatementReportConfiguration.IncludeInternationalAddresses;
             cbDoNotIncludeStatementsForThoseWhoHaveOptedOut.IsChecked = financialStatementReportConfiguration.ExcludeOptedOutIndividuals;
+
+            FinancialStatementReportConfigurationCreateDateTime = financialStatementReportConfiguration.CreatedDateTime;
+            FinancialStatementReportConfigurationGuid = financialStatementReportConfiguration.Guid;
         }
 
         /// <summary>
@@ -63,8 +72,8 @@ namespace Rock.Apps.StatementGenerator
         public FinancialStatementReportConfiguration GetFinancialStatementReportConfiguration()
         {
             FinancialStatementReportConfiguration financialStatementReportConfiguration = new FinancialStatementReportConfiguration();
-            financialStatementReportConfiguration.PrimarySortOrder = ( FinancialStatementOrderBy? ) cboPrimarySort.SelectedValue ?? FinancialStatementOrderBy.PostalCode;
-            financialStatementReportConfiguration.SecondarySortOrder = ( FinancialStatementOrderBy? ) cboSecondarySort.SelectedValue ?? FinancialStatementOrderBy.LastName;
+            financialStatementReportConfiguration.PrimarySortOrder = ( FinancialStatementOrderBy? ) ( cboPrimarySort.SelectedValue as ComboBoxItem ).Tag ?? FinancialStatementOrderBy.PostalCode;
+            financialStatementReportConfiguration.SecondarySortOrder = ( FinancialStatementOrderBy? ) ( cboSecondarySort.SelectedValue as ComboBoxItem ).Tag ?? FinancialStatementOrderBy.LastName;
             financialStatementReportConfiguration.DestinationFolder = tbDestinationFolder.Text;
             financialStatementReportConfiguration.FilenamePrefix = tbFilenamePrefix.Text;
             financialStatementReportConfiguration.SplitFilesOnPrimarySortValue = cbSplitFilesOnPrimarySortValue.IsChecked ?? false;
@@ -73,6 +82,8 @@ namespace Rock.Apps.StatementGenerator
             financialStatementReportConfiguration.MinimumContributionAmount = tbMinimumContributionAmount.Text.AsDecimalOrNull();
             financialStatementReportConfiguration.IncludeInternationalAddresses = cbIncludeInternationalAddresses.IsChecked ?? true;
             financialStatementReportConfiguration.ExcludeOptedOutIndividuals = cbDoNotIncludeStatementsForThoseWhoHaveOptedOut.IsChecked ?? true;
+            financialStatementReportConfiguration.CreatedDateTime = FinancialStatementReportConfigurationCreateDateTime ?? DateTime.Now;
+            financialStatementReportConfiguration.Guid = FinancialStatementReportConfigurationGuid;
 
             return financialStatementReportConfiguration;
         }
@@ -84,7 +95,34 @@ namespace Rock.Apps.StatementGenerator
         /// <returns></returns>
         private bool SaveChanges( bool showWarnings )
         {
-            // ToDo
+            if ( showWarnings )
+            {
+                if ( tbDestinationFolder.Text.Trim() == string.Empty )
+                {
+                    MessageBoxResult result = MessageBox.Show( "Please select a folder to save contribution statements to.", "Folder Location Required", MessageBoxButton.OK, MessageBoxImage.Warning );
+                    return false;
+                }
+
+                if ( !Directory.Exists( tbDestinationFolder.Text ) )
+                {
+                    try
+                    {
+                        System.IO.Directory.CreateDirectory( tbDestinationFolder.Text );
+                    }
+                    catch ( Exception )
+                    {
+                        MessageBoxResult result = MessageBox.Show( "Couldn't create the directory provided. Please double-check that it is a valid path.", "Path Not Valid", MessageBoxButton.OK, MessageBoxImage.Exclamation );
+                        return false;
+                    }
+                }
+
+                if ( tbFilenamePrefix.Text == string.Empty )
+                {
+                    MessageBoxResult result = MessageBox.Show( "Please provide a filename prefix.", "Required", MessageBoxButton.OK, MessageBoxImage.Warning );
+                    return false;
+                }
+            }
+
             return true;
         }
 
@@ -111,6 +149,22 @@ namespace Rock.Apps.StatementGenerator
         {
             DialogResult = false;
             Close();
+        }
+
+        /// <summary>
+        /// Handles the Click event of the btnSelectFolder control.
+        /// </summary>
+        /// <param name="sender">The source of the event.</param>
+        /// <param name="e">The <see cref="RoutedEventArgs"/> instance containing the event data.</param>
+        private void btnSelectFolder_Click( object sender, RoutedEventArgs e )
+        {
+            var dialog = new System.Windows.Forms.FolderBrowserDialog();
+            System.Windows.Forms.DialogResult result = dialog.ShowDialog();
+
+            if ( result == System.Windows.Forms.DialogResult.OK )
+            {
+                tbDestinationFolder.Text = dialog.SelectedPath;
+            }
         }
     }
 }

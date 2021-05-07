@@ -16,6 +16,7 @@
 //
 using System;
 using System.Configuration;
+using System.Windows;
 
 using Rock.Client;
 
@@ -136,15 +137,23 @@ namespace Rock.Apps.StatementGenerator
         [UserScopedSetting]
         public string IndividualSaveOptionsJson
         {
-            get
-            {
-                return this["IndividualSaveOptionsJson"] as string;
-            }
+            get => this["IndividualSaveOptionsJson"] as string;
+            set => this["IndividualSaveOptionsJson"] = value;
+        }
 
-            set
-            {
-                this["IndividualSaveOptionsJson"] = value;
-            }
+        [DefaultSettingValue( "" )]
+        [UserScopedSetting]
+        public string ReportConfigurationListJson
+        {
+            get => this["ReportConfigurationListJson"] as string;
+            set => this["ReportConfigurationListJson"] = value;
+        }
+
+        [UserScopedSetting]
+        public bool EnablePageCountPredetermination
+        {
+            get => this["EnablePageCountPredetermination"] as bool? ?? false;
+            set => this["EnablePageCountPredetermination"] = value;
         }
 
         /// <summary>
@@ -153,7 +162,7 @@ namespace Rock.Apps.StatementGenerator
         /// <value>
         /// The person selection option.
         /// </value>
-        public PersonSelectionOption PersonSelectionOption { get; set; } = PersonSelectionOption.AllIndividuals; 
+        public PersonSelectionOption PersonSelectionOption { get; set; } = PersonSelectionOption.AllIndividuals;
 
         /// <summary>
         /// Gets or sets the layout defined value unique identifier.
@@ -175,6 +184,8 @@ namespace Rock.Apps.StatementGenerator
                 this["FinancialStatementTemplateGuid"] = value;
             }
         }
+
+        
 
         public static RockConfig Load()
         {

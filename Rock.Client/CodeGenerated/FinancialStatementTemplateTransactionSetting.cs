@@ -32,7 +32,7 @@ namespace Rock.Client
     public partial class FinancialStatementTemplateTransactionSettingEntity
     {
         /// <summary />
-        public List<int> AccountIds { get; set; }
+        public List<int> AccountIdsCustom { get; set; }
 
         /// <summary />
         public List<int> CurrencyTypesForCashGiftIds { get; set; }
@@ -55,7 +55,7 @@ namespace Rock.Client
         /// <param name="source">The source.</param>
         public void CopyPropertiesFrom( FinancialStatementTemplateTransactionSetting source )
         {
-            this.AccountIds = source.AccountIds;
+            this.AccountIdsCustom = source.AccountIdsCustom;
             this.CurrencyTypesForCashGiftIds = source.CurrencyTypesForCashGiftIds;
             this.CurrencyTypesForNonCashIds = source.CurrencyTypesForNonCashIds;
             this.HideCorrectedTransactionOnSameData = source.HideCorrectedTransactionOnSameData;

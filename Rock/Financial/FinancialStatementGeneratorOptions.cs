@@ -310,6 +310,23 @@ namespace Rock.Financial
             ///   <c>true</c> if [exclude opted out individuals]; otherwise, <c>false</c>.
             /// </value>
             public bool ExcludeOptedOutIndividuals { get; set; } = true;
+
+            /// <summary>
+            /// Gets or sets the created date time.
+            /// Use this for Sorting.
+            /// </summary>
+            /// <value>
+            /// The created date time.
+            /// </value>
+            public DateTime? CreatedDateTime { get; set; }
+
+            /// <summary>
+            /// Gets or sets the configuration unique identifier.
+            /// </summary>
+            /// <value>
+            /// The configuration unique identifier.
+            /// </value>
+            public Guid Guid { get; set; }
         }
     }
 
