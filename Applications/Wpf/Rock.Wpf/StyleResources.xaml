@@ -800,9 +800,15 @@
         <Setter Property="BorderBrush" Value="{StaticResource BootstrapDanger}" />
     </Style>
 
-    <Style x:Key="textboxStyleCurrency" BasedOn="{StaticResource ResourceKey=textboxStyleNumber}" />
+    <Style
+        x:Key="textboxStyleCurrency"
+        BasedOn="{StaticResource ResourceKey=textboxStyleNumber}"
+        TargetType="{x:Type TextBox}" />
 
-    <Style x:Key="textboxStyleCurrencyError" BasedOn="{StaticResource ResourceKey=textboxStyleNumberError}" />
+    <Style
+        x:Key="textboxStyleCurrencyError"
+        BasedOn="{StaticResource ResourceKey=textboxStyleNumberError}"
+        TargetType="{x:Type TextBox}" />
 
     <Style
         x:Key="textboxStyleMultiline"

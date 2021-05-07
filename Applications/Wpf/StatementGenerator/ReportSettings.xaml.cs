@@ -13,22 +13,35 @@ using System.Windows.Media.Imaging;
 using System.Windows.Navigation;
 using System.Windows.Shapes;
 
+using Rock.Client;
+
 namespace Rock.Apps.StatementGenerator
 {
     /// <summary>
     /// Interaction logic for ReportSettings.xaml
     /// </summary>
-    public partial class ReportSettings : Page
+    public partial class ReportSettings : System.Windows.Controls.Page
     {
         public ReportSettings()
         {
             InitializeComponent();
         }
 
+        /// <summary>
+        /// Handles the Click event of the btnShowReportSettingsModal control.
+        /// </summary>
+        /// <param name="sender">The source of the event.</param>
+        /// <param name="e">The <see cref="RoutedEventArgs"/> instance containing the event data.</param>
         private void btnShowReportSettingsModal_Click( object sender, RoutedEventArgs e )
         {
-            ReportSettingsModalWindow reportSettingsModalWindow = new ReportSettingsModalWindow();
-            reportSettingsModalWindow.ShowDialog();
+            FinancialStatementReportConfiguration selectedSettings = null;
+            ReportConfigurationModalWindow reportSettingsModalWindow = new ReportConfigurationModalWindow( selectedSettings );
+            reportSettingsModalWindow.Owner = Window.GetWindow( this );
+            var showDialogResult = reportSettingsModalWindow.ShowDialog();
+            if ( showDialogResult == true )
+            {
+                FinancialStatementReportConfiguration updatedSettings = reportSettingsModalWindow.GetFinancialStatementReportConfiguration();
+            }
         }
 
         /// <summary>

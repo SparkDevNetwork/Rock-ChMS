@@ -71,7 +71,7 @@ namespace Rock.Apps.StatementGenerator
         private static Task _lastRenderPDFFromHtmlTask = null;
 
         private static ConcurrentBag<Task> _tasks;
-        
+
         private static FinancialStatementTemplateReportSettings _reportSettings;
 
         private static ConcurrentBag<double> _generatePdfTimingsMS = null;
@@ -255,7 +255,7 @@ namespace Rock.Apps.StatementGenerator
                     // todo Upload Document too
 
                     recipient.IsComplete = true;
-                    if ( recordsCompleted > 2 && Debugger.IsAttached  )
+                    if ( recordsCompleted > 2 && Debugger.IsAttached )
                     {
                         _saveAndUploadPdfTimingsMS.Add( savePdfStopWatch.Elapsed.TotalMilliseconds );
                     }
@@ -265,7 +265,7 @@ namespace Rock.Apps.StatementGenerator
                 {
                     _generatePdfTimingsMS.Add( generatePdfStopWatch.Elapsed.TotalMilliseconds );
 
-                    var averageGetStatementHtmlTimingsMS = _getStatementHtmlTimingsMS.Any() ? Math.Round( _getStatementHtmlTimingsMS.Average(), 0) : 0;
+                    var averageGetStatementHtmlTimingsMS = _getStatementHtmlTimingsMS.Any() ? Math.Round( _getStatementHtmlTimingsMS.Average(), 0 ) : 0;
                     var averageWaitForLastTaskTimingsMS = _waitForLastTaskTimingsMS.Any() ? Math.Round( _waitForLastTaskTimingsMS.Average(), 0 ) : 0;
                     var averageGeneratePDFTimingMS = Math.Round( _generatePdfTimingsMS.Average(), 0 );
                     var averageSaveAndUploadPDFTimingMS = _saveAndUploadPdfTimingsMS.Any() ?
@@ -448,7 +448,7 @@ _recordsCompleted:{recordsCompleted}
                 recipientList = recipientList.Where( a => a.StatementGeneratorRecipientResult.ContributionTotal >= financialStatementReportConfiguration.MinimumContributionAmount.Value ).ToList();
             }
 
-            if ( financialStatementReportConfiguration.IncludeInternationalAddresses == false)
+            if ( financialStatementReportConfiguration.IncludeInternationalAddresses == false )
             {
                 recipientList = recipientList.Where( a => a.IsInternationalAddress == false ).ToList();
             }

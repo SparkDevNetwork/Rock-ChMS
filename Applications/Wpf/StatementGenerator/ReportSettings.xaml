@@ -43,22 +43,34 @@
                 Style="{StaticResource indentStyle}">
 
                 <Label Content="Bulk Reports" Style="{StaticResource labelStyleBold}" />
-                <TextBlock Style="{StaticResource textBlockStyle}" Margin="5" TextWrapping="Wrap">The settings below determine how statements will be combined to form reports. Settings exist to combine by zip code, page count or last name.</TextBlock>
+                <TextBlock
+                    Margin="5"
+                    Style="{StaticResource textBlockStyle}"
+                    TextWrapping="Wrap">
+                    The settings below determine how statements will be combined to form reports. Settings exist to combine by zip code, page count or last name.
+                </TextBlock>
 
-                <Button Name="btnShowReportSettingsModal" Style="{StaticResource buttonStyle}" Content="Show Report Settings Modal" Margin="40" Click="btnShowReportSettingsModal_Click" />
+                <Button
+                    Name="btnShowReportSettingsModal"
+                    Margin="40"
+                    Click="btnShowReportSettingsModal_Click"
+                    Content="Show Report Settings Modal"
+                    Style="{StaticResource buttonStyle}" />
 
                 <Label Content="Enable Page Count Pre-Determination" Style="{StaticResource labelStyleBold}" />
                 <CheckBox
-                        Name="cbEnablePageCountPredetermination"
-                        Margin="4,10,0,0"
-                        IsChecked="False"
+                    Name="cbEnablePageCountPredetermination"
                     Height="60"
-                    
-                        Style="{StaticResource checkboxStyle}" >
-                    <TextBlock TextWrapping="Wrap" Style="{StaticResource textBlockStyle}">This will involve
-running the statement twice. The first time will get the actual page count. This value will be provided to the 
-'RenderedPageCount' Lava variable on the second pass to allow the template to modify its logic based on the 
-value.</TextBlock></CheckBox>
+                    Margin="4,10,0,0"
+                    IsChecked="False"
+                    Style="{StaticResource checkboxStyle}">
+                    <TextBlock Style="{StaticResource textBlockStyle}" TextWrapping="Wrap">
+                        This will involve
+                        running the statement twice. The first time will get the actual page count. This value will be provided to the
+                        'RenderedPageCount' Lava variable on the second pass to allow the template to modify its logic based on the
+                        value.
+                    </TextBlock>
+                </CheckBox>
 
             </StackPanel>
             <Button
