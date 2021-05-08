@@ -20,6 +20,7 @@ using System.ComponentModel;
 using System.Linq;
 using System.Web.UI;
 using System.Web.UI.WebControls;
+
 using Rock;
 using Rock.Constants;
 using Rock.Data;
@@ -159,19 +160,35 @@ namespace RockWeb.Blocks.Finance
             financialStatementTemplate.Description = tbDescription.Text;
             financialStatementTemplate.IsActive = cbIsActive.Checked;
             financialStatementTemplate.ReportTemplate = ceReportTemplate.Text;
-            financialStatementTemplate.FooterTemplate = ceFooterTemplate.Text;
+
+            financialStatementTemplate.FooterSettings.LeftTemplate = ceFooterTemplateLeft.Text;
+            financialStatementTemplate.FooterSettings.CenterTemplate = ceFooterTemplateCenter.Text;
+            financialStatementTemplate.FooterSettings.RightTemplate = ceFooterTemplateRight.Text;
 
             financialStatementTemplate.ReportSettings.PDFObjectSettings = kvlPDFObjectSettings.Value.AsDictionary();
 
             var transactionSetting = new FinancialStatementTemplateTransactionSetting();
-            
+
 
             transactionSetting.CurrencyTypesForCashGiftIds = dvpCurrencyTypesCashGifts.SelectedValuesAsInt;
             transactionSetting.CurrencyTypesForNonCashIds = dvpCurrencyTypesNonCashGifts.SelectedValuesAsInt;
             transactionSetting.TransactionTypeIds = dvpTransactionType.SelectedValuesAsInt;
             transactionSetting.HideRefundedTransactions = cbHideRefundedTransactions.Checked;
             transactionSetting.HideCorrectedTransactionOnSameData = cbHideModifiedTransactions.Checked;
-            transactionSetting.AccountIdsCustom = apTransactionAccountsCustom.SelectedValuesAsInt().ToList();
+            if ( rbAllTaxDeductibleAccounts.Checked )
+            {
+                transactionSetting.AccountSelectionOption = FinancialStatementTemplateTransactionSettingAccountSelectionOption.AllTaxDeductibleAccounts;
+            }
+            else if ( cbIncludeChildAccountsCustom.Checked )
+            {
+                transactionSetting.AccountSelectionOption = FinancialStatementTemplateTransactionSettingAccountSelectionOption.SelectedAccountsIncludeChildren;
+            }
+            else
+            {
+                transactionSetting.AccountSelectionOption = FinancialStatementTemplateTransactionSettingAccountSelectionOption.SelectedAccounts;
+            }
+
+            transactionSetting.SelectedAccountIds = apTransactionAccountsCustom.SelectedValuesAsInt().ToList();
             financialStatementTemplate.ReportSettings.TransactionSettings = transactionSetting;
 
             var pledgeSetting = new FinancialStatementTemplatePledgeSettings();
@@ -227,6 +244,17 @@ namespace RockWeb.Blocks.Finance
             {
                 NavigateToParentPage();
             }
+        }
+
+        /// <summary>
+        /// Handles the CheckedChanged event of the rbAllTaxDeductibleAccounts control.
+        /// </summary>
+        /// <param name="sender">The source of the event.</param>
+        /// <param name="e">The <see cref="EventArgs"/> instance containing the event data.</param>
+        protected void rbAllTaxDeductibleAccounts_CheckedChanged( object sender, EventArgs e )
+        {
+            apTransactionAccountsCustom.Visible = rbUseCustomAccountIds.Checked;
+            cbIncludeChildAccountsCustom.Visible = apTransactionAccountsCustom.Visible;
         }
 
         #endregion Events
@@ -303,13 +331,25 @@ namespace RockWeb.Blocks.Finance
 
                 var transactionSettings = financialStatementTemplate.ReportSettings.TransactionSettings;
                 var detailsDescription = new DescriptionList();
-                if ( transactionSettings.AccountIdsCustom.Any() )
+                if ( transactionSettings.AccountSelectionOption == FinancialStatementTemplateTransactionSettingAccountSelectionOption.AllTaxDeductibleAccounts )
                 {
-                    var accountList = new FinancialAccountService( new RockContext() )
-                        .GetByIds( transactionSettings.AccountIdsCustom )
-                        .Where( a => a.IsActive )
-                        .ToList();
-                    detailsDescription.Add( "Accounts for Transactions", accountList.Select( a => a.Name ).ToList().AsDelimited("<br/>") );
+                    var accountList = new FinancialAccountService( new RockContext() ).Queryable()
+                            .Where( a => a.IsActive && a.IsTaxDeductible )
+                            .ToList();
+
+                    detailsDescription.Add( "Accounts for Transactions", accountList.Select( a => a.Name ).ToList().AsDelimited( "<br/>" ) );
+                }
+                else
+                {
+
+                    if ( transactionSettings.SelectedAccountIds.Any() )
+                    {
+                        var accountList = new FinancialAccountService( new RockContext() )
+                            .GetByIds( transactionSettings.SelectedAccountIds )
+                            .Where( a => a.IsActive )
+                            .ToList();
+                        detailsDescription.Add( "Accounts for Transactions", accountList.Select( a => a.Name ).ToList().AsDelimited( "<br/>" ) );
+                    }
                 }
 
                 if ( transactionSettings.TransactionTypeIds.Any() )
@@ -348,7 +388,9 @@ namespace RockWeb.Blocks.Finance
             cbIsActive.Checked = financialStatementTemplate.IsActive;
             tbDescription.Text = financialStatementTemplate.Description;
             ceReportTemplate.Text = financialStatementTemplate.ReportTemplate;
-            ceFooterTemplate.Text = financialStatementTemplate.FooterTemplate;
+            ceFooterTemplateLeft.Text = financialStatementTemplate.FooterSettings.LeftTemplate;
+            ceFooterTemplateCenter.Text = financialStatementTemplate.FooterSettings.CenterTemplate;
+            ceFooterTemplateRight.Text = financialStatementTemplate.FooterSettings.RightTemplate;
             imgTemplateLogo.BinaryFileId = financialStatementTemplate.LogoBinaryFileId;
             kvlPDFObjectSettings.Value = financialStatementTemplate.ReportSettings.PDFObjectSettings.Select( a => string.Format( "{0}^{1}", a.Key, a.Value ) ).ToList().AsDelimited( "|" );
 
@@ -358,14 +400,21 @@ namespace RockWeb.Blocks.Finance
             dvpCurrencyTypesCashGifts.SetValues( transactionSetting.CurrencyTypesForCashGiftIds );
             dvpCurrencyTypesNonCashGifts.SetValues( transactionSetting.CurrencyTypesForNonCashIds );
             dvpTransactionType.SetValues( transactionSetting.TransactionTypeIds );
-            if ( transactionSetting.AccountIdsCustom.Any() )
+            rbAllTaxDeductibleAccounts.Checked = transactionSetting.AccountSelectionOption == FinancialStatementTemplateTransactionSettingAccountSelectionOption.AllTaxDeductibleAccounts;
+            rbUseCustomAccountIds.Checked = transactionSetting.AccountSelectionOption != FinancialStatementTemplateTransactionSettingAccountSelectionOption.AllTaxDeductibleAccounts;
+            if ( transactionSetting.SelectedAccountIds.Any() )
             {
                 var accountList = new FinancialAccountService( new RockContext() )
-                    .GetByIds( transactionSetting.AccountIdsCustom )
+                    .GetByIds( transactionSetting.SelectedAccountIds )
                     .Where( a => a.IsActive )
                     .ToList();
                 apTransactionAccountsCustom.SetValues( accountList );
             }
+
+            cbIncludeChildAccountsCustom.Checked = transactionSetting.AccountSelectionOption == FinancialStatementTemplateTransactionSettingAccountSelectionOption.SelectedAccountsIncludeChildren;
+
+            apTransactionAccountsCustom.Visible = transactionSetting.AccountSelectionOption != FinancialStatementTemplateTransactionSettingAccountSelectionOption.AllTaxDeductibleAccounts;
+            cbIncludeChildAccountsCustom.Visible = apTransactionAccountsCustom.Visible;
 
             var pledgeSetting = financialStatementTemplate.ReportSettings.PledgeSettings;
             cbIncludeGiftsToChildAccounts.Checked = pledgeSetting.IncludeGiftsToChildAccounts;
@@ -401,11 +450,10 @@ namespace RockWeb.Blocks.Finance
             this.HideSecondaryBlocks( editable );
         }
 
+        
+
         #endregion Internal Methods
 
-        protected void rblAccountSelectionOption_SelectedIndexChanged( object sender, EventArgs e )
-        {
-
-        }
+        
     }
 }

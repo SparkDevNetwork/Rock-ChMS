@@ -87,7 +87,18 @@ namespace Rock.Model
         /// The footer template.
         /// </value>
         [DataMember]
-        public string FooterTemplate { get; set; }
+        public string FooterSettingsJSON
+        {
+            get
+            {
+                return FooterSettings.ToJson();
+            }
+
+            set
+            {
+                FooterSettings = value.FromJsonOrNull<FinancialStatementTemplateHeaderFooterSettings>() ?? new FinancialStatementTemplateHeaderFooterSettings();
+            }
+        }
 
         /// <summary>
         /// Gets or sets the report settings.
@@ -139,6 +150,15 @@ namespace Rock.Model
         /// </value>
         [NotMapped]
         public virtual FinancialStatementTemplateReportSettings ReportSettings { get; set; } = new FinancialStatementTemplateReportSettings();
+
+        /// <summary>
+        /// Gets or sets the footer settings.
+        /// </summary>
+        /// <value>
+        /// The footer settings.
+        /// </value>
+        [NotMapped]
+        public virtual FinancialStatementTemplateHeaderFooterSettings FooterSettings { get; set; } = new FinancialStatementTemplateHeaderFooterSettings();
 
         #endregion Virtual Properties
     }

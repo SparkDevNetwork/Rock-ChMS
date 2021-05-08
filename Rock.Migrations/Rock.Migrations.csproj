@@ -105,6 +105,10 @@
     <Compile Include="Migrations\202105041700203_DocumentPurposeKey.Designer.cs">
       <DependentUpon>202105041700203_DocumentPurposeKey.cs</DependentUpon>
     </Compile>
+    <Compile Include="Migrations\202105080032414_FooterJson.cs" />
+    <Compile Include="Migrations\202105080032414_FooterJson.Designer.cs">
+      <DependentUpon>202105080032414_FooterJson.cs</DependentUpon>
+    </Compile>
     <Compile Include="Migrations\Version 12.0\Version 1.12.4\202104131841162_Rollup_0413.cs" />
     <Compile Include="Migrations\Version 12.0\Version 1.12.4\202104131841162_Rollup_0413.Designer.cs">
       <DependentUpon>202104131841162_Rollup_0413.cs</DependentUpon>
@@ -1711,6 +1715,9 @@
     </EmbeddedResource>
     <EmbeddedResource Include="Migrations\202105041700203_DocumentPurposeKey.resx">
       <DependentUpon>202105041700203_DocumentPurposeKey.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Migrations\202105080032414_FooterJson.resx">
+      <DependentUpon>202105080032414_FooterJson.cs</DependentUpon>
     </EmbeddedResource>
     <EmbeddedResource Include="Migrations\Version 12.0\Version 1.12.4\202104131841162_Rollup_0413.resx">
       <DependentUpon>202104131841162_Rollup_0413.cs</DependentUpon>

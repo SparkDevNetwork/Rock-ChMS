@@ -32,7 +32,7 @@ namespace Rock.Client
     public partial class FinancialStatementTemplateTransactionSettingEntity
     {
         /// <summary />
-        public List<int> AccountIdsCustom { get; set; }
+        public int /* FinancialStatementTemplateTransactionSettingAccountSelectionOption*/ AccountSelectionOption { get; set; }
 
         /// <summary />
         public List<int> CurrencyTypesForCashGiftIds { get; set; }
@@ -47,6 +47,9 @@ namespace Rock.Client
         public bool HideRefundedTransactions { get; set; }
 
         /// <summary />
+        public List<int> SelectedAccountIds { get; set; }
+
+        /// <summary />
         public List<int> TransactionTypeIds { get; set; }
 
         /// <summary>
@@ -55,11 +58,12 @@ namespace Rock.Client
         /// <param name="source">The source.</param>
         public void CopyPropertiesFrom( FinancialStatementTemplateTransactionSetting source )
         {
-            this.AccountIdsCustom = source.AccountIdsCustom;
+            this.AccountSelectionOption = source.AccountSelectionOption;
             this.CurrencyTypesForCashGiftIds = source.CurrencyTypesForCashGiftIds;
             this.CurrencyTypesForNonCashIds = source.CurrencyTypesForNonCashIds;
             this.HideCorrectedTransactionOnSameData = source.HideCorrectedTransactionOnSameData;
             this.HideRefundedTransactions = source.HideRefundedTransactions;
+            this.SelectedAccountIds = source.SelectedAccountIds;
             this.TransactionTypeIds = source.TransactionTypeIds;
 
         }

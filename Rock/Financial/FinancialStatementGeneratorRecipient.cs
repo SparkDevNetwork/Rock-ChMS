@@ -38,12 +38,28 @@ namespace Rock.Financial
         public string Html { get; set; }
 
         /// <summary>
-        /// Gets or sets the footer HTML.
+        /// Gets or sets the footer left text.
         /// </summary>
         /// <value>
-        /// The footer HTML.
+        /// The footer left text.
         /// </value>
-        public string FooterHtml { get; set; }
+        public string FooterLeftText { get; set; }
+
+        /// <summary>
+        /// Gets or sets the footer center text.
+        /// </summary>
+        /// <value>
+        /// The footer center text.
+        /// </value>
+        public string FooterCenterText { get; set; }
+
+        /// <summary>
+        /// Gets or sets the footer right text.
+        /// </summary>
+        /// <value>
+        /// The footer right text.
+        /// </value>
+        public string FooterRightText { get; set; }
 
         /// <summary>
         /// Gets or sets a value indicating whether this statement should not be included due to the 'Do Not Send Giving Statement' option
@@ -69,7 +85,7 @@ namespace Rock.Financial
         /// </value>
         public decimal? PledgeTotal { get; set; }
 
-        
+
     }
 
     /// <summary>

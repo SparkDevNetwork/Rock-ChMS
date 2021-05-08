@@ -38,7 +38,13 @@ namespace Rock.Client
         public string Country { get; set; }
 
         /// <summary />
-        public string FooterHtml { get; set; }
+        public string FooterCenterText { get; set; }
+
+        /// <summary />
+        public string FooterLeftText { get; set; }
+
+        /// <summary />
+        public string FooterRightText { get; set; }
 
         /// <summary />
         public int GroupId { get; set; }
@@ -84,7 +90,9 @@ namespace Rock.Client
         {
             this.ContributionTotal = source.ContributionTotal;
             this.Country = source.Country;
-            this.FooterHtml = source.FooterHtml;
+            this.FooterCenterText = source.FooterCenterText;
+            this.FooterLeftText = source.FooterLeftText;
+            this.FooterRightText = source.FooterRightText;
             this.GroupId = source.GroupId;
             this.Html = source.Html;
             this.IsComplete = source.IsComplete;

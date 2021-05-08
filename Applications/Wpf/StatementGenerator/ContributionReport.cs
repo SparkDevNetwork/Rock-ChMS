@@ -214,9 +214,6 @@ namespace Rock.Apps.StatementGenerator
                 return;
             }
 
-            var html = financialStatementGeneratorRecipientResult.Html;
-            var footerHtml = financialStatementGeneratorRecipientResult.FooterHtml;
-
             Stopwatch waitForLastTask = Stopwatch.StartNew();
 
             // We were able to fetch the HTML for the next statement, and save/upload docs while waiting for the PDF task to finish,
@@ -424,18 +421,10 @@ _recordsCompleted:{recordsCompleted}
                 pdfPrintOptions.MarginBottom = value.AsDouble();
             }
 
-            var footerHtml = statementGeneratorRecipientResult.FooterHtml;
-
-            if ( footerHtml != null )
-            {
-                // see https://ironpdf.com/examples/html-headers-and-footers/
-                pdfPrintOptions.Footer = new HtmlHeaderFooter()
-                {
-                    //Height = 15,
-                    HtmlFragment = footerHtml,
-                    //DrawDividerLine = true
-                };
-            }
+            // see https://ironpdf.com/examples/html-headers-and-footers/
+            pdfPrintOptions.Footer.LeftText = statementGeneratorRecipientResult.FooterLeftText;
+            pdfPrintOptions.Footer.CenterText = statementGeneratorRecipientResult.FooterCenterText;
+            pdfPrintOptions.Footer.RightText = statementGeneratorRecipientResult.FooterRightText;
 
             if ( pdfObjectSettings.TryGetValue( "footer.fontSize", out value ) )
             {

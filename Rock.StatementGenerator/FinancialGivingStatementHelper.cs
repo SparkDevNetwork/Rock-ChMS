@@ -325,19 +325,23 @@ namespace Rock.StatementGenerator
                     .Include( a => a.TransactionDetails.Select( x => x.Account ) )
                     .OrderBy( a => a.TransactionDateTime ).ToList();
 
+                var transactionAccountIds = transactionSettings.GetIncludedAccountIds( rockContext );
+
                 foreach ( var financialTransaction in financialTransactionsList )
                 {
-                    if ( transactionSettings.AccountIdsCustom != null )
+                    if ( transactionAccountIds.Any() )
                     {
                         // remove any Accounts that were not included (in case there was a mix of included and not included accounts in the transaction)
-                        financialTransaction.TransactionDetails = financialTransaction.TransactionDetails.Where( a => transactionSettings.AccountIdsCustom.Contains( a.AccountId ) ).ToList();
+                        financialTransaction.TransactionDetails = financialTransaction.TransactionDetails.Where( a => transactionAccountIds.Contains( a.AccountId ) ).ToList();
                     }
 
                     financialTransaction.TransactionDetails = financialTransaction.TransactionDetails.OrderBy( a => a.Account.Order ).ThenBy( a => a.Account.PublicName ).ToList();
                 }
 
                 var lavaTemplateLava = financialStatementTemplate.ReportTemplate;
-                var lavaTemplateFooterLava = financialStatementTemplate.FooterTemplate;
+                var lavaTemplateFooterLeftLava = financialStatementTemplate.FooterSettings.LeftTemplate;
+                var lavaTemplateFooterCenterLava = financialStatementTemplate.FooterSettings.CenterTemplate;
+                var lavaTemplateFooterRightLava = financialStatementTemplate.FooterSettings.RightTemplate;
 
                 var mergeFields = Rock.Lava.LavaHelper.GetCommonMergeFields( null, null, new Lava.CommonMergeFieldsOptions { GetLegacyGlobalMergeFields = false, GetDeviceFamily = false, GetOSFamily = false, GetPageContext = false, GetPageParameters = false, GetCampuses = true, GetCurrentPerson = true } );
                 mergeFields.Add( "FinancialStatementTemplate", financialStatementTemplate );
@@ -538,9 +542,17 @@ namespace Rock.StatementGenerator
 
                 mergeFields.Add( "Options", financialStatementGeneratorOptions );
                 recipientResult.Html = lavaTemplateLava.ResolveMergeFields( mergeFields, currentPerson );
-                if ( !string.IsNullOrEmpty( lavaTemplateFooterLava ) )
+                if ( !string.IsNullOrEmpty( lavaTemplateFooterLeftLava ) )
                 {
-                    recipientResult.FooterHtml = lavaTemplateFooterLava.ResolveMergeFields( mergeFields, currentPerson );
+                    recipientResult.FooterLeftText = lavaTemplateFooterLeftLava.ResolveMergeFields( mergeFields, currentPerson );
+                }
+                if ( !string.IsNullOrEmpty( lavaTemplateFooterCenterLava ) )
+                {
+                    recipientResult.FooterCenterText = lavaTemplateFooterCenterLava.ResolveMergeFields( mergeFields, currentPerson );
+                }
+                if ( !string.IsNullOrEmpty( lavaTemplateFooterRightLava ) )
+                {
+                    recipientResult.FooterRightText = lavaTemplateFooterRightLava.ResolveMergeFields( mergeFields, currentPerson );
                 }
 
                 recipientResult.Html = recipientResult.Html.Trim();
@@ -862,16 +874,17 @@ namespace Rock.StatementGenerator
                 financialTransactionQry = financialTransactionQry.Where( a => transactionSettings.TransactionTypeIds.Contains( a.TransactionTypeValueId ) );
             }
 
+            var includedTransactionAccountIds = transactionSettings.GetIncludedAccountIds( rockContext );
+
             // Filter to specified AccountIds (if specified)
-            if ( transactionSettings.AccountIdsCustom == null )
+            if ( !includedTransactionAccountIds.Any() )
             {
                 // if TransactionAccountIds wasn't supplied, don't filter on AccountId
             }
             else
             {
                 // narrow it down to recipients that have transactions involving any of the AccountIds
-                var selectedAccountIds = transactionSettings.AccountIdsCustom;
-                financialTransactionQry = financialTransactionQry.Where( a => a.TransactionDetails.Any( x => selectedAccountIds.Contains( x.AccountId ) ) );
+                financialTransactionQry = financialTransactionQry.Where( a => a.TransactionDetails.Any( x => includedTransactionAccountIds.Contains( x.AccountId ) ) );
             }
 
             if ( usePersonFilters )

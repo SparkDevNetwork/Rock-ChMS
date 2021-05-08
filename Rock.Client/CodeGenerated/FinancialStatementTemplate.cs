@@ -38,7 +38,7 @@ namespace Rock.Client
         public string Description { get; set; }
 
         /// <summary />
-        public string FooterTemplate { get; set; }
+        public string FooterSettingsJSON { get; set; } = @"{""CenterTemplate"":null,""DrawDividerLine"":false,""FontFamily"":null,""FontSize"":0,""LeftTemplate"":null,""RightTemplate"":null,""Spacing"":0}";
 
         /// <summary />
         public Guid? ForeignGuid { get; set; }
@@ -61,7 +61,7 @@ namespace Rock.Client
         public string Name { get; set; }
 
         /// <summary />
-        public string ReportSettingsJson { get; set; } = @"{""TransactionSettings"":{""AccountIdsCustom"":[],""CurrencyTypesForCashGiftIds"":[],""CurrencyTypesForNonCashIds"":[],""TransactionTypeIds"":[],""HideRefundedTransactions"":false,""HideCorrectedTransactionOnSameData"":false},""PledgeSettings"":{""AccountIds"":[],""IncludeGiftsToChildAccounts"":false,""IncludeNonCashGifts"":false},""PDFObjectSettings"":{}}";
+        public string ReportSettingsJson { get; set; } = @"{""TransactionSettings"":{""AccountSelectionOption"":0,""SelectedAccountIds"":[],""CurrencyTypesForCashGiftIds"":[],""CurrencyTypesForNonCashIds"":[],""TransactionTypeIds"":[],""HideRefundedTransactions"":false,""HideCorrectedTransactionOnSameData"":false},""PledgeSettings"":{""AccountIds"":[],""IncludeGiftsToChildAccounts"":false,""IncludeNonCashGifts"":false},""PDFObjectSettings"":{}}";
 
         /// <summary />
         public string ReportTemplate { get; set; }
@@ -100,7 +100,7 @@ namespace Rock.Client
         {
             this.Id = source.Id;
             this.Description = source.Description;
-            this.FooterTemplate = source.FooterTemplate;
+            this.FooterSettingsJSON = source.FooterSettingsJSON;
             this.ForeignGuid = source.ForeignGuid;
             this.ForeignKey = source.ForeignKey;
             this.IsActive = source.IsActive;
