@@ -506,7 +506,6 @@ _recordsCompleted:{recordsCompleted}
                 var singleFinalDoc = IronPdf.PdfDocument.Merge( allPdfs );
                 var singleFileName = Path.Combine( financialStatementReportConfiguration.DestinationFolder, "statements.pdf" );
 
-                var printDocument = singleFinalDoc.
                 singleFinalDoc.PrintToFile( singleFileName );
                 return;
             }
