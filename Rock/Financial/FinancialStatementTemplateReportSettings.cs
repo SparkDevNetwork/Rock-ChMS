@@ -235,28 +235,6 @@ namespace Rock.Financial
     [RockClientInclude( "Header/Footer Settings related to the Statement Generator. See https://ironpdf.com/object-reference/api/IronPdf.SimpleHeaderFooter.html" )]
     public class FinancialStatementTemplateHeaderFooterSettings
     {
-        /// <summary>
-        ///  Sets the centered header text for the PDF document.
-        ///  Merge meta-data into your header using any of these placeholder strings: {page}
-        ///  {total-pages} {url} {date} {time} {html-title} {pdf-title}
-        /// </summary>
-        public string CenterTemplate;
-
-        /// <summary>
-        ///  Adds a horizontal line divider between the header / footer and the page content
-        ///  on every page of the PDF document.
-        /// </summary>
-        public bool DrawDividerLine;
-
-        /// <summary>
-        /// The font family
-        /// </summary>
-        public string FontFamily;
-
-        /// <summary>
-        /// The font size (in px)
-        /// </summary>
-        public int FontSize;
 
         /// <summary>
         /// Sets the left hand side header text for the PDF document.
@@ -266,15 +244,17 @@ namespace Rock.Financial
         public string LeftTemplate;
 
         /// <summary>
+        ///  Sets the centered header text for the PDF document.
+        ///  Merge meta-data into your header using any of these placeholder strings: {page}
+        ///  {total-pages} {url} {date} {time} {html-title} {pdf-title}
+        /// </summary>
+        public string CenterTemplate;
+
+        /// <summary>
         /// Sets the right hand side header text for the PDF document.
         /// Merge meta-data into your header using any of these placeholder strings: {page}
         /// {total-pages} {url} {date} {time} {html-title} {pdf-title}
         /// </summary>
         public string RightTemplate;
-
-        /// <summary>
-        /// Space between the header and page content in millimeters.
-        /// </summary>
-        public int Spacing;
     }
 }

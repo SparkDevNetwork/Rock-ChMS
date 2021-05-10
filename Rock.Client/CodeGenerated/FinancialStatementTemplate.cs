@@ -38,7 +38,7 @@ namespace Rock.Client
         public string Description { get; set; }
 
         /// <summary />
-        public string FooterSettingsJSON { get; set; } = @"{""CenterTemplate"":null,""DrawDividerLine"":false,""FontFamily"":null,""FontSize"":0,""LeftTemplate"":null,""RightTemplate"":null,""Spacing"":0}";
+        public string FooterSettingsJSON { get; set; } = @"{""LeftTemplate"":null,""CenterTemplate"":null,""RightTemplate"":null}";
 
         /// <summary />
         public Guid? ForeignGuid { get; set; }

@@ -100,6 +100,8 @@ namespace Rock.Apps.StatementGenerator
         /// <returns></returns>
         public int RunReport()
         {
+            var licenseKey = File.ReadAllText( "license.key" );
+            IronPdf.License.LicenseKey = licenseKey;
             var stopWatch = new Stopwatch();
             stopWatch.Start();
 
@@ -149,7 +151,7 @@ namespace Rock.Apps.StatementGenerator
             UpdateProgress( "Getting Statements..." );
             foreach ( var recipient in recipientList )
             {
-                if ( _cancelRunning == true)
+                if ( _cancelRunning == true )
                 {
                     break;
                 }
@@ -160,10 +162,10 @@ namespace Rock.Apps.StatementGenerator
             // some of the 'Save and Upload' tasks could be running, so wait for those
             Task.WaitAll( _tasks.ToArray() );
 
-            if (_cancelRunning)
+            if ( _cancelRunning )
             {
                 this._cancelled = true;
-                return (int)_recordsCompleted;
+                return ( int ) _recordsCompleted;
             }
 
             SaveRecipientListStatus( recipientList );
@@ -446,7 +448,12 @@ _recordsCompleted:{recordsCompleted}
         /// <returns></returns>
         private void WriteStatementPDFs( FinancialStatementReportConfiguration financialStatementReportConfiguration, ConcurrentBag<StatementGeneratorRecipientPdfResult> statementGeneratorRecipientPdfResults )
         {
-            var recipientList = statementGeneratorRecipientPdfResults.ToList();
+            if ( !statementGeneratorRecipientPdfResults.Any() )
+            {
+                return;
+            }
+
+            var recipientList = statementGeneratorRecipientPdfResults.Where( a => a.PdfDocument != null ).ToList();
 
             if ( financialStatementReportConfiguration.ExcludeOptedOutIndividuals )
             {
@@ -463,6 +470,7 @@ _recordsCompleted:{recordsCompleted}
                 recipientList = recipientList.Where( a => a.IsInternationalAddress == false ).ToList();
             }
 
+            // load documents. We'll need them all loaded in case we needed to sort by PageNumber.
             foreach ( var result in recipientList )
             {
                 result.PdfDocument = PdfDocument.FromFile( result.PdfTempFileName );
@@ -482,52 +490,30 @@ _recordsCompleted:{recordsCompleted}
                 }
             }
 
-            var pdfDocumentList = recipientList.Where( a => a.PdfDocument != null ).Select( a => a.PdfDocument ).ToList();
-
             var maxStatementsPerChapter = financialStatementReportConfiguration.MaxStatementsPerChapter;
-            var fileNamePrefix = financialStatementReportConfiguration.FilenamePrefix;
+
             var useChapters = financialStatementReportConfiguration.MaxStatementsPerChapter.HasValue;
-            var saveDirectory = financialStatementReportConfiguration.DestinationFolder;
-            var baseFileName = $"_baseFileName_{DateTime.Now.Ticks}";
-            var chapterIndex = 1;
 
-            if ( pdfDocumentList.Any() )
+            if ( !useChapters )
             {
-                var lastPdfDocument = pdfDocumentList.LastOrDefault();
-                List<IronPdf.PdfDocument> chapterDocs = new List<IronPdf.PdfDocument>();
-                foreach ( var pdfDocument in pdfDocumentList )
+                // no chapters, so just write all to one single document
+                var allPdfs = recipientList.Select( a => a.PdfDocument ).Where( a => a != null ).ToList();
+                if ( !allPdfs.Any() )
                 {
-                    UpdateProgress( "Creating PDF..." );
-
-                    chapterDocs.Add( pdfDocument );
-
-                    if ( useChapters && ( ( chapterDocs.Count() >= maxStatementsPerChapter ) || pdfDocument == lastPdfDocument ) )
-                    {
-                        var chapterDoc = IronPdf.PdfDocument.Merge( chapterDocs );
-                        var filePath = GetFileName( financialStatementReportConfiguration.DestinationFolder, fileNamePrefix, baseFileName, chapterIndex );
-                        SavePdfFile( chapterDoc, filePath );
-                        chapterDocs.Clear();
-                        chapterIndex++;
-                    }
+                    return;
                 }
 
-                if ( useChapters )
-                {
-                    // just in case we still have statements that haven't been written to a pdf
-                    if ( chapterDocs.Any() )
-                    {
-                        var filePath = GetFileName( saveDirectory, fileNamePrefix, baseFileName, chapterIndex );
-                        var chapterDoc = IronPdf.PdfDocument.Merge( chapterDocs );
-                        SavePdfFile( chapterDoc, filePath );
-                    }
-                }
-                else
-                {
-                    var chapterDoc = IronPdf.PdfDocument.Merge( chapterDocs );
-                    var filePath = GetFileName( saveDirectory, fileNamePrefix, baseFileName, null );
-                    SavePdfFile( chapterDoc, filePath );
-                }
+                var singleFinalDoc = IronPdf.PdfDocument.Merge( allPdfs );
+                var singleFileName = Path.Combine( financialStatementReportConfiguration.DestinationFolder, "statements.pdf" );
+
+                var printDocument = singleFinalDoc.
+                singleFinalDoc.PrintToFile( singleFileName );
+                return;
             }
+
+            // saving as chapter documents
+
+            // TODO
         }
 
         /// <summary>
@@ -581,26 +567,6 @@ _recordsCompleted:{recordsCompleted}
             }
 
             return sortedRecipientList;
-        }
-
-        /// <summary>
-        /// Gets the name of the file.
-        /// </summary>
-        /// <param name="path">The path.</param>
-        /// <param name="prefix">The prefix.</param>
-        /// <param name="baseName">Name of the base.</param>
-        /// <param name="chapterIndex">Index of the chapter.</param>
-        /// <returns></returns>
-        private string GetFileName( string path, string prefix, string baseName, int? chapterIndex )
-        {
-            var useChapters = chapterIndex.HasValue;
-
-            if ( !useChapters )
-            {
-                return $@"{path}\{prefix}{baseName}.pdf";
-            }
-
-            return $@"{path}\{prefix}{baseName}-chapter{chapterIndex.Value}.pdf";
         }
 
         /// <summary>
@@ -744,6 +710,12 @@ _recordsCompleted:{recordsCompleted}
         /// <inheritdoc cref="FinancialStatementGeneratorRecipientResult.Country"/>
         public string Country => StatementGeneratorRecipientResult.Country;
 
+        /// <summary>
+        /// Gets a value indicating whether this instance is international address.
+        /// </summary>
+        /// <value>
+        ///   <c>true</c> if this instance is international address; otherwise, <c>false</c>.
+        /// </value>
         public bool IsInternationalAddress => StatementGeneratorRecipientResult.IsInternationalAddress;
 
         /// <summary>
