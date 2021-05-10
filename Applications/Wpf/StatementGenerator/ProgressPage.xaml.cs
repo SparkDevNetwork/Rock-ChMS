@@ -184,7 +184,7 @@ namespace Rock.Apps.StatementGenerator
 
             var timeSinceLastUpdate = DateTime.Now - _lastUpdate;
 
-            if ( timeSinceLastUpdate.Seconds < 2.5 )
+            if ( timeSinceLastUpdate.Seconds < 1.0 && position != max )
             {
                 return;
             }
@@ -214,15 +214,15 @@ namespace Rock.Apps.StatementGenerator
                         pgReportProgress.Visibility = Visibility.Visible;
                     }
 
-                    // put the current statements/second in the tooltip
+                    // put the current statements/second in stats box (easter egg)
                     var duration = DateTime.Now - _startProgressDateTime;
                     if ( duration.TotalSeconds > 1 )
                     {
                         double rate = position / duration.TotalSeconds;
-                        string toolTip = $"{position}/{max} @ {rate:F2} per second";
-                        if ( ( string ) lblReportProgress.ToolTip != toolTip )
+                        string statsText = $"{position}/{max} @ {rate:F2} per second";
+                        if ( ( string ) lblStats.Content != statsText )
                         {
-                            lblReportProgress.ToolTip = toolTip;
+                            lblStats.Content = statsText;
                         }
                     }
                 }
@@ -251,10 +251,14 @@ namespace Rock.Apps.StatementGenerator
         /// <param name="e">The <see cref="System.Windows.Input.MouseButtonEventArgs"/> instance containing the event data.</param>
         private void lblReportProgress_MouseDoubleClick( object sender, System.Windows.Input.MouseButtonEventArgs e )
         {
-
-            // todo
-
-
+            if ( lblStats.Visibility != Visibility.Visible )
+            {
+                lblStats.Visibility = Visibility.Visible;
+            }
+            else
+            {
+                lblStats.Visibility = Visibility.Hidden;
+            }
         }
     }
 }

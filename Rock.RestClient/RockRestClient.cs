@@ -31,7 +31,7 @@ namespace Rock.Net
     /// You will probably want to use https://www.nuget.org/packages/RestSharp.Serializers.NewtonsoftJson as well
     /// </summary>
     [System.ComponentModel.DesignerCategory( "Code" )]
-    [Obsolete( " Use RestSharp.RestClient instead. You might also want to use the RestSharp.Serializers.NewtonsoftJson nuget package too." )]
+    //[Obsolete( " Use RestSharp.RestClient instead. You might also want to use the RestSharp.Serializers.NewtonsoftJson nuget package too." )]
     public class RockRestClient : WebClient
     {
         /// <summary>

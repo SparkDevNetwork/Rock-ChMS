@@ -105,7 +105,7 @@ namespace Rock.Apps.StatementGenerator
             var stopWatch = new Stopwatch();
             stopWatch.Start();
 
-            UpdateProgress( "Connecting..." );
+            UpdateProgress( "Connecting...", 0, 0 );
 
             // Login and setup options for REST calls
             RockConfig rockConfig = RockConfig.Load();
@@ -126,7 +126,9 @@ namespace Rock.Apps.StatementGenerator
             _reportSettings = JsonConvert.DeserializeObject<Rock.Client.FinancialStatementTemplateReportSettings>( financialStatementTemplate.ReportSettingsJson );
 
             // Get Recipients from Rock REST Endpoint
+            UpdateProgress( "Getting Statement Recipients...", 0, 0 );
             List<FinancialStatementGeneratorRecipient> recipientList = GetRecipients( restClient );
+
             ReportRockStatementGeneratorTemporaryDirectory = GetRockStatementGeneratorTemporaryDirectory( rockConfig );
 
             this.RecordCount = recipientList.Count;
@@ -148,13 +150,19 @@ namespace Rock.Apps.StatementGenerator
             Directory.CreateDirectory( ReportRockStatementGeneratorStatementsTemporaryDirectory );
 
             _lastRenderPDFFromHtmlTask = null;
-            UpdateProgress( "Getting Statements..." );
+
+            var recipientProgressMax = recipientList.Count;
+            long recipientProgressPosition = 0;
+
             foreach ( var recipient in recipientList )
             {
                 if ( _cancelRunning == true )
                 {
                     break;
                 }
+
+                UpdateProgress( "Generating Individual Documents...", recipientProgressPosition++, recipientProgressMax );
+
                 StartGenerateStatementForRecipient( recipient, restClient );
                 SaveRecipientListStatus( recipientList );
             }
@@ -170,20 +178,19 @@ namespace Rock.Apps.StatementGenerator
 
             SaveRecipientListStatus( recipientList );
 
-            UpdateProgress( "Creating PDF..." );
 
             _statementGeneratorRecipientPdfResults = new ConcurrentBag<StatementGeneratorRecipientPdfResult>( _statementGeneratorRecipientPdfResults.Where( a => a.PdfTempFileName != null ) );
             this.RecordCount = _statementGeneratorRecipientPdfResults.Count();
 
             _recordsCompleted = 0;
 
-
             foreach ( var financialStatementReportConfiguration in this.Options.ReportConfigurationList )
             {
+                UpdateProgress( "Generating Report...", 0, 0 );
                 WriteStatementPDFs( financialStatementReportConfiguration, _statementGeneratorRecipientPdfResults );
             }
 
-            UpdateProgress( "Complete" );
+            UpdateProgress( "Complete", 0,0 );
 
             stopWatch.Stop();
             var elapsedSeconds = stopWatch.ElapsedMilliseconds / 1000;
@@ -304,8 +311,6 @@ _recordsCompleted:{recordsCompleted}
             } );
 
             _tasks.Add( _lastRenderPDFFromHtmlTask );
-
-            UpdateProgress( "Processing..." );
         }
 
         /// <summary>
@@ -378,8 +383,6 @@ _recordsCompleted:{recordsCompleted}
         /// <returns></returns>
         private List<Client.FinancialStatementGeneratorRecipient> GetRecipients( RestClient restClient )
         {
-            UpdateProgress( "Getting Recipients..." );
-
             var financialStatementGeneratorRecipientsRequest = new RestRequest( "api/FinancialGivingStatement/GetFinancialStatementGeneratorRecipients", Method.POST );
             financialStatementGeneratorRecipientsRequest.AddJsonBody( this.Options );
             var financialStatementGeneratorRecipientsResponse = restClient.Execute<List<Client.FinancialStatementGeneratorRecipient>>( financialStatementGeneratorRecipientsRequest );
@@ -470,12 +473,15 @@ _recordsCompleted:{recordsCompleted}
                 recipientList = recipientList.Where( a => a.IsInternationalAddress == false ).ToList();
             }
 
+            var loadingPdfProgressMax = recipientList.Count;
+            var loadingPdfProgressPosition = 0;
+
             // load documents. We'll need them all loaded in case we needed to sort by PageNumber.
             foreach ( var result in recipientList )
             {
                 result.PdfDocument = PdfDocument.FromFile( result.PdfTempFileName );
                 Interlocked.Increment( ref _recordsCompleted );
-                UpdateProgress( "Loading PDFs" );
+                UpdateProgress( "Loading PDFs", loadingPdfProgressPosition++, loadingPdfProgressMax );
             }
 
             IOrderedEnumerable<StatementGeneratorRecipientPdfResult> sortedRecipientList = SortByPrimaryAndSecondaryOrder( financialStatementReportConfiguration, recipientList );
@@ -594,10 +600,11 @@ _recordsCompleted:{recordsCompleted}
         /// Updates the progress.
         /// </summary>
         /// <param name="progressMessage">The message.</param>
-        private void UpdateProgress( string progressMessage )
+        /// <param name="position">The position.</param>
+        /// <param name="max">The maximum.</param>
+        private void UpdateProgress( string progressMessage, long position, int max )
         {
-            var position = Interlocked.Read( ref _recordsCompleted );
-            OnProgress?.Invoke( this, new ProgressEventArgs { ProgressMessage = progressMessage, Position = ( int ) position, Max = RecordCount } );
+            OnProgress?.Invoke( this, new ProgressEventArgs { ProgressMessage = progressMessage, Position = ( int ) position, Max = max } );
         }
 
         /// <summary>
