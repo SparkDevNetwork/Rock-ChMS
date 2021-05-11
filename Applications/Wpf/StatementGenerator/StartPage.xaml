@@ -26,13 +26,28 @@
                 VerticalAlignment="Top"
                 BorderBrush="{StaticResource BorderBrush}"
                 BorderThickness="0,0,0,1">
-                <StackPanel HorizontalAlignment="Stretch" Background="{StaticResource PanelHeaderBrush}">
+                <Grid HorizontalAlignment="Stretch" Background="{StaticResource PanelHeaderBrush}">
+
                     <Label
                         Margin="10"
                         HorizontalAlignment="Left"
                         Content="Statement Generator"
                         Style="{StaticResource labelStyleStepCaption}" />
-                </StackPanel>
+                    <Button
+                        x:Name="btnTools"
+                        Margin="0,0,4,0"
+                        HorizontalAlignment="Right"
+                        VerticalAlignment="Center"
+                        Click="mnuOptions_Click"
+                        FontSize="16"
+                        Style="{StaticResource WindowButton}"
+                        ToolTip="Options">
+                        <Label
+                            Content="&#xf013;"
+                            Opacity=".5"
+                            Style="{StaticResource labelStyleIcon}" />
+                    </Button>
+                </Grid>
             </Border>
 
 
