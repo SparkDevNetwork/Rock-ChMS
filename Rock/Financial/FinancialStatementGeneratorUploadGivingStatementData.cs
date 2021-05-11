@@ -7,13 +7,13 @@ using System.Threading.Tasks;
 using Rock.Data;
 using Rock.Financial;
 
-namespace Rock.StatementGenerator
+namespace Rock.Financial
 {
     /// <summary>
     /// Request Body for api/FinancialGivingStatement/UploadGivingStatementDocument
     /// </summary>
     [RockClientInclude( "Request Body for api/FinancialGivingStatement/UploadGivingStatementDocument" )]
-    public class UploadGivingStatementData
+    public class FinancialStatementGeneratorUploadGivingStatementData
     {
         /// <summary>
         /// Gets or sets the financial statement individual save options.
@@ -26,7 +26,7 @@ namespace Rock.StatementGenerator
         /// <summary>
         /// The financial statement generator recipient
         /// </summary>
-        public FinancialStatementGeneratorRecipient FinancialStatementGeneratorRecipient;
+        public FinancialStatementGeneratorRecipient FinancialStatementGeneratorRecipient { get; set; }
 
         /// <summary>
         /// Gets or sets the PDF data.

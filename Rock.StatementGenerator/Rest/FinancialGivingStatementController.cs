@@ -67,7 +67,7 @@ namespace Rock.StatementGenerator.Rest
         }
 
         /// <summary>
-        /// Uploads the giving statement document.
+        /// Uploads the giving statement document, and returns the <see cref="Rock.Model.Document"/> Id
         /// </summary>
         /// <param name="uploadGivingStatementData">The upload giving statement data.</param>
         /// <returns></returns>
@@ -87,7 +87,7 @@ namespace Rock.StatementGenerator.Rest
         [Authenticate, Secured]
         [HttpPost]
         [System.Web.Http.Route( "api/FinancialGivingStatement/UploadGivingStatementDocument" )]
-        public void UploadGivingStatementDocument( [FromBody] UploadGivingStatementData uploadGivingStatementData )
+        public void UploadGivingStatementDocument( [FromBody] FinancialStatementGeneratorUploadGivingStatementData uploadGivingStatementData )
         {
             var rockContext = new RockContext();
 
@@ -185,6 +185,8 @@ namespace Rock.StatementGenerator.Rest
                         DocumentTypeId = documentTypeId.Value,
                         EntityId = documentPersonId,
                     };
+
+                    documentService.Add( document );
                 }
                 else
                 {
@@ -212,8 +214,6 @@ namespace Rock.StatementGenerator.Rest
                 document.Name = saveOptions.DocumentName;
                 document.Description = saveOptions.DocumentDescription;
                 document.BinaryFile = binaryFile;
-
-                documentService.Add( document );
             }
 
             rockContext.SaveChanges();

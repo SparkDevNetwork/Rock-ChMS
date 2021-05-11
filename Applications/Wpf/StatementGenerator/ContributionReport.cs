@@ -21,10 +21,8 @@ using System.Data;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
-using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
-using System.Windows.Input;
 
 using IronPdf;
 using IronPdf.Threading;
@@ -81,6 +79,8 @@ namespace Rock.Apps.StatementGenerator
 
         private static Task _lastRenderPDFFromHtmlTask = null;
 
+        private static ConcurrentBag<Task> _saveAndUploadTasks;
+
         private static ConcurrentBag<Task> _tasks;
 
         private static FinancialStatementTemplateReportSettings _reportSettings;
@@ -94,6 +94,11 @@ namespace Rock.Apps.StatementGenerator
         private string ReportRockStatementGeneratorTemporaryDirectory { get; set; }
         private string ReportRockStatementGeneratorStatementsTemporaryDirectory { get; set; }
 
+        private static FinancialStatementIndividualSaveOptions _individualSaveOptions;
+        private static bool _saveStatementsForIndividualsToDocument;
+
+        private static RestClient _uploadPdfDocumentRestClient;
+
         /// <summary>
         /// Runs the report returning the number of statements that were generated
         /// </summary>
@@ -105,13 +110,26 @@ namespace Rock.Apps.StatementGenerator
             var stopWatch = new Stopwatch();
             stopWatch.Start();
 
+            RockConfig rockConfig = RockConfig.Load();
+
+
             UpdateProgress( "Connecting...", 0, 0 );
 
             // Login and setup options for REST calls
-            RockConfig rockConfig = RockConfig.Load();
-
             var restClient = new RestClient( rockConfig.RockBaseUrl );
             restClient.LoginToRock( rockConfig.Username, rockConfig.Password );
+
+            _individualSaveOptions = Newtonsoft.Json.JsonConvert.DeserializeObject<Client.FinancialStatementIndividualSaveOptions>( rockConfig.IndividualSaveOptionsJson );
+            _saveStatementsForIndividualsToDocument = _individualSaveOptions.SaveStatementsForIndividuals;
+            if ( _saveStatementsForIndividualsToDocument )
+            {
+                _uploadPdfDocumentRestClient = new RestClient( rockConfig.RockBaseUrl );
+                _uploadPdfDocumentRestClient.LoginToRock( rockConfig.Username, rockConfig.Password );
+            }
+            else
+            {
+                _uploadPdfDocumentRestClient = null;
+            }
 
             // Get Selected FinancialStatementTemplate
             var getFinancialStatementTemplatesRequest = new RestRequest( $"api/FinancialStatementTemplates/{this.Options.FinancialStatementTemplateId ?? 0}" );
@@ -135,6 +153,7 @@ namespace Rock.Apps.StatementGenerator
             _recordsCompleted = 0;
 
             _tasks = new ConcurrentBag<Task>();
+            _saveAndUploadTasks = new ConcurrentBag<Task>();
 
             _generatePdfTimingsMS = new ConcurrentBag<double>();
             _saveAndUploadPdfTimingsMS = new ConcurrentBag<double>();
@@ -167,8 +186,13 @@ namespace Rock.Apps.StatementGenerator
                 SaveRecipientListStatus( recipientList );
             }
 
-            // some of the 'Save and Upload' tasks could be running, so wait for those
+
+
             Task.WaitAll( _tasks.ToArray() );
+
+            // some of the 'Save and Upload' tasks could be running, so wait for those
+            UpdateProgress( "Finishing up document uploads...", 0, 0 );
+            Task.WaitAll( _saveAndUploadTasks.ToArray() );
 
             if ( _cancelRunning )
             {
@@ -178,19 +202,28 @@ namespace Rock.Apps.StatementGenerator
 
             SaveRecipientListStatus( recipientList );
 
-
             _statementGeneratorRecipientPdfResults = new ConcurrentBag<StatementGeneratorRecipientPdfResult>( _statementGeneratorRecipientPdfResults.Where( a => a.PdfTempFileName != null ) );
             this.RecordCount = _statementGeneratorRecipientPdfResults.Count();
 
-            _recordsCompleted = 0;
+            var reportCount = this.Options.ReportConfigurationList.Count();
+            var reportNumber = 0;
 
             foreach ( var financialStatementReportConfiguration in this.Options.ReportConfigurationList )
             {
-                UpdateProgress( "Generating Report...", 0, 0 );
+                reportNumber++;
+                if ( reportCount == 1 )
+                {
+                    UpdateProgress( "Generating Report...", 0, 0 );
+                }
+                else
+                {
+                    UpdateProgress( $"Generating Report {reportNumber}", reportNumber, reportCount );
+                }
+
                 WriteStatementPDFs( financialStatementReportConfiguration, _statementGeneratorRecipientPdfResults );
             }
 
-            UpdateProgress( "Complete", 0,0 );
+            UpdateProgress( "Complete", 0, 0 );
 
             stopWatch.Stop();
             var elapsedSeconds = stopWatch.ElapsedMilliseconds / 1000;
@@ -234,9 +267,9 @@ namespace Rock.Apps.StatementGenerator
             // DEBUG. Which of these methods is faster?
             bool useUniversalRenderJob = true;
 
-            _lastRenderPDFFromHtmlTask = Task.Run( () =>
+            _lastRenderPDFFromHtmlTask = new Task( () =>
             {
-                var pdfOptions = GetPdfPrintOptions( _reportSettings.PDFObjectSettings, financialStatementGeneratorRecipientResult );
+                var pdfOptions = GetPdfPrintOptions( _reportSettings.PDFSettings, financialStatementGeneratorRecipientResult );
                 statementGeneratorPdfResult.PdfTempFileName = Path.Combine( ReportRockStatementGeneratorStatementsTemporaryDirectory, $"GroupId_{financialStatementGeneratorRecipientResult.GroupId}_PersonID_{financialStatementGeneratorRecipientResult.PersonId}.pdf" );
 
                 Stopwatch generatePdfStopWatch = Stopwatch.StartNew();
@@ -269,28 +302,51 @@ namespace Rock.Apps.StatementGenerator
 
                 var recordsCompleted = Interlocked.Increment( ref _recordsCompleted );
 
+                var saveAndUploadTask = new Task( () =>
+               {
+                   Stopwatch savePdfStopWatch = Stopwatch.StartNew();
+                   recipient.RenderedPageCount = pdfDocument.PageCount;
+
+                   pdfDocument.SaveAs( statementGeneratorPdfResult.PdfTempFileName );
+
+                   if ( _saveStatementsForIndividualsToDocument )
+                   {
+                       FinancialStatementGeneratorUploadGivingStatementData uploadGivingStatementData = new FinancialStatementGeneratorUploadGivingStatementData
+                       {
+                           FinancialStatementGeneratorRecipient = recipient,
+                           FinancialStatementIndividualSaveOptions = _individualSaveOptions,
+                           PDFData = pdfDocument.BinaryData
+                       };
+
+                       RestRequest uploadDocumentRequest = new RestRequest( "api/FinancialGivingStatement/UploadGivingStatementDocument" );
+                       uploadDocumentRequest.AddJsonBody( uploadGivingStatementData );
+
+                       var uploadDocumentResponse = _uploadPdfDocumentRestClient.ExecutePostAsync( uploadDocumentRequest ).Result;
+                       if ( uploadDocumentResponse.ErrorException != null )
+                       {
+                           throw uploadDocumentResponse.ErrorException;
+                       }
+                   }
+
+                   pdfDocument.Dispose();
+
+                   recipient.IsComplete = true;
+                   if ( recordsCompleted > 2 && Debugger.IsAttached )
+                   {
+                       _saveAndUploadPdfTimingsMS.Add( savePdfStopWatch.Elapsed.TotalMilliseconds );
+                   }
+               } );
+
+                saveAndUploadTask.Start();
+
                 // launch a task to save and upload the document
                 // This is thread safe, so we can spin these up as needed 
-                _tasks.Add( Task.Run( () =>
-                {
-                    Stopwatch savePdfStopWatch = Stopwatch.StartNew();
-                    recipient.RenderedPageCount = pdfDocument.PageCount;
-                    pdfDocument.SaveAs( statementGeneratorPdfResult.PdfTempFileName );
+                _saveAndUploadTasks.Add( saveAndUploadTask );
 
-                    pdfDocument.Dispose();
-
-                    // todo Upload Document too
-
-                    recipient.IsComplete = true;
-                    if ( recordsCompleted > 2 && Debugger.IsAttached )
-                    {
-                        _saveAndUploadPdfTimingsMS.Add( savePdfStopWatch.Elapsed.TotalMilliseconds );
-                    }
-                } ) );
-
-                if ( recordsCompleted > 2 && Debugger.IsAttached && recordsCompleted % 20 == 0 )
+                if ( recordsCompleted > 2 && Debugger.IsAttached && recordsCompleted % 10 == 0 )
                 {
                     _generatePdfTimingsMS.Add( generatePdfStopWatch.Elapsed.TotalMilliseconds );
+                    var saveAndUploadTaskCount = _saveAndUploadTasks.ToArray().Where( a => a.Status != TaskStatus.RanToCompletion ).Count();
 
                     var averageGetStatementHtmlTimingsMS = _getStatementHtmlTimingsMS.Any() ? Math.Round( _getStatementHtmlTimingsMS.Average(), 0 ) : 0;
                     var averageWaitForLastTaskTimingsMS = _waitForLastTaskTimingsMS.Any() ? Math.Round( _waitForLastTaskTimingsMS.Average(), 0 ) : 0;
@@ -304,13 +360,14 @@ Generate     PDF Avg: {averageGeneratePDFTimingMS} ms (useUniversalRenderJob:{us
 GetStatementHtml Avg: {averageGetStatementHtmlTimingsMS} ms)
 WaitForLastTask  Avg: {averageWaitForLastTaskTimingsMS} ms)
 Save/Upload  PDF Avg: {averageSaveAndUploadPDFTimingMS} ms)
+saveAndUploadTaskCount: {saveAndUploadTaskCount}
 
 _recordsCompleted:{recordsCompleted}
 " );
                 }
             } );
 
-            _tasks.Add( _lastRenderPDFFromHtmlTask );
+            _lastRenderPDFFromHtmlTask.Start();
         }
 
         /// <summary>
@@ -401,43 +458,37 @@ _recordsCompleted:{recordsCompleted}
         /// <param name="pdfObjectSettings">The PDF object settings.</param>
         /// <param name="statementGeneratorRecipientResult">The statement generator recipient result.</param>
         /// <returns></returns>
-        private static PdfPrintOptions GetPdfPrintOptions( Dictionary<string, string> pdfObjectSettings, FinancialStatementGeneratorRecipientResult statementGeneratorRecipientResult )
+        private static PdfPrintOptions GetPdfPrintOptions( FinancialStatementTemplatePDFSettings financialStatementTemplatePDFSettings, FinancialStatementGeneratorRecipientResult statementGeneratorRecipientResult )
         {
-            string value;
-            PdfPrintOptions pdfPrintOptions = new IronPdf.PdfPrintOptions();
-
-            if ( pdfObjectSettings.TryGetValue( "margin.left", out value ) )
+            PdfPrintOptions pdfPrintOptions = new IronPdf.PdfPrintOptions
             {
-                pdfPrintOptions.MarginLeft = value.AsDouble();
-            }
+                MarginLeft = financialStatementTemplatePDFSettings.MarginLeftMillimeters ?? 10,
+                MarginTop = financialStatementTemplatePDFSettings.MarginTopMillimeters ?? 10,
+                MarginRight = financialStatementTemplatePDFSettings.MarginRightMillimeters ?? 10,
+                MarginBottom = financialStatementTemplatePDFSettings.MarginBottomMillimeters ?? 10
+            };
 
-            if ( pdfObjectSettings.TryGetValue( "margin.top", out value ) )
+            switch ( financialStatementTemplatePDFSettings.PaperSize )
             {
-                pdfPrintOptions.MarginTop = value.AsDouble();
-            }
-
-            if ( pdfObjectSettings.TryGetValue( "margin.right", out value ) )
-            {
-                pdfPrintOptions.MarginRight = value.AsDouble();
-            }
-
-            if ( pdfObjectSettings.TryGetValue( "margin.bottom", out value ) )
-            {
-                pdfPrintOptions.MarginBottom = value.AsDouble();
+                case FinancialStatementTemplatePDFSettingsPaperSize.A4:
+                    pdfPrintOptions.PaperSize = PdfPrintOptions.PdfPaperSize.A4;
+                    break;
+                case FinancialStatementTemplatePDFSettingsPaperSize.Legal:
+                    pdfPrintOptions.PaperSize = PdfPrintOptions.PdfPaperSize.Legal;
+                    break;
+                case FinancialStatementTemplatePDFSettingsPaperSize.Letter:
+                default:
+                    pdfPrintOptions.PaperSize = PdfPrintOptions.PdfPaperSize.Letter;
+                    break;
             }
 
             // see https://ironpdf.com/examples/html-headers-and-footers/
-            pdfPrintOptions.Footer.LeftText = statementGeneratorRecipientResult.FooterLeftText;
-            pdfPrintOptions.Footer.CenterText = statementGeneratorRecipientResult.FooterCenterText;
-            pdfPrintOptions.Footer.RightText = statementGeneratorRecipientResult.FooterRightText;
-
-            if ( pdfObjectSettings.TryGetValue( "footer.fontSize", out value ) )
+            if ( statementGeneratorRecipientResult.FooterHtmlFragment.IsNotNullOrWhitespace() )
             {
-                pdfPrintOptions.Footer.FontSize = value.AsIntegerOrNull() ?? 10;
-            }
-            else
-            {
-                pdfPrintOptions.Footer.FontSize = 10;
+                pdfPrintOptions.Footer = new HtmlHeaderFooter()
+                {
+                    HtmlFragment = statementGeneratorRecipientResult.FooterHtmlFragment
+                };
             }
 
             return pdfPrintOptions;

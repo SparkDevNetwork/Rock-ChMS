@@ -315,6 +315,15 @@ namespace Rock.Client.Enums
 
     /// <summary>
     /// </summary>
+    public enum FinancialStatementTemplatePDFSettingsPaperSize
+    {
+        Letter = 0x0,
+        Legal = 0x1,
+        A4 = 0x2,
+    }
+
+    /// <summary>
+    /// </summary>
     public enum FollowingSuggestedStatus
     {
         PendingNotification = 0x0,

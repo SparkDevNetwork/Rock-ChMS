@@ -627,6 +627,7 @@
     <Compile Include="Field\Types\InteractionChannelInteractionComponentFieldType.cs" />
     <Compile Include="Field\Types\AchievementTypeFieldType.cs" />
     <Compile Include="Financial\FinancialStatementGeneratorRecipientRequest.cs" />
+    <Compile Include="Financial\FinancialStatementGeneratorUploadGivingStatementData.cs" />
     <Compile Include="Financial\IFeeCoverageGatewayComponent.cs" />
     <Compile Include="Financial\IHostedGatewayPaymentControlCurrencyTypeEvent.cs" />
     <Compile Include="Financial\FinancialStatementGeneratorPledgeSummary.cs" />

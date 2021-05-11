@@ -161,14 +161,15 @@ namespace RockWeb.Blocks.Finance
             financialStatementTemplate.IsActive = cbIsActive.Checked;
             financialStatementTemplate.ReportTemplate = ceReportTemplate.Text;
 
-            financialStatementTemplate.FooterSettings.LeftTemplate = ceFooterTemplateLeft.Text;
-            financialStatementTemplate.FooterSettings.CenterTemplate = ceFooterTemplateCenter.Text;
-            financialStatementTemplate.FooterSettings.RightTemplate = ceFooterTemplateRight.Text;
+            financialStatementTemplate.FooterSettings.HtmlFragment = ceFooterTemplateHtmlFragment.Text;
 
-            financialStatementTemplate.ReportSettings.PDFObjectSettings = kvlPDFObjectSettings.Value.AsDictionary();
+            financialStatementTemplate.ReportSettings.PDFSettings.MarginTopMillimeters = nbMarginTopMillimeters.IntegerValue;
+            financialStatementTemplate.ReportSettings.PDFSettings.MarginBottomMillimeters = nbMarginBottomMillimeters.IntegerValue;
+            financialStatementTemplate.ReportSettings.PDFSettings.MarginLeftMillimeters = nbMarginLeftMillimeters.IntegerValue;
+            financialStatementTemplate.ReportSettings.PDFSettings.MarginRightMillimeters = nbMarginRightMillimeters.IntegerValue;
+            financialStatementTemplate.ReportSettings.PDFSettings.PaperSize = ddlPaperSize.SelectedValueAsEnumOrNull<FinancialStatementTemplatePDFSettingsPaperSize>() ?? FinancialStatementTemplatePDFSettingsPaperSize.Letter;
 
             var transactionSetting = new FinancialStatementTemplateTransactionSetting();
-
 
             transactionSetting.CurrencyTypesForCashGiftIds = dvpCurrencyTypesCashGifts.SelectedValuesAsInt;
             transactionSetting.CurrencyTypesForNonCashIds = dvpCurrencyTypesNonCashGifts.SelectedValuesAsInt;
@@ -388,11 +389,13 @@ namespace RockWeb.Blocks.Finance
             cbIsActive.Checked = financialStatementTemplate.IsActive;
             tbDescription.Text = financialStatementTemplate.Description;
             ceReportTemplate.Text = financialStatementTemplate.ReportTemplate;
-            ceFooterTemplateLeft.Text = financialStatementTemplate.FooterSettings.LeftTemplate;
-            ceFooterTemplateCenter.Text = financialStatementTemplate.FooterSettings.CenterTemplate;
-            ceFooterTemplateRight.Text = financialStatementTemplate.FooterSettings.RightTemplate;
+            ceFooterTemplateHtmlFragment.Text = financialStatementTemplate.FooterSettings.HtmlFragment;
             imgTemplateLogo.BinaryFileId = financialStatementTemplate.LogoBinaryFileId;
-            kvlPDFObjectSettings.Value = financialStatementTemplate.ReportSettings.PDFObjectSettings.Select( a => string.Format( "{0}^{1}", a.Key, a.Value ) ).ToList().AsDelimited( "|" );
+            nbMarginTopMillimeters.IntegerValue = financialStatementTemplate.ReportSettings.PDFSettings.MarginTopMillimeters;
+            nbMarginBottomMillimeters.IntegerValue = financialStatementTemplate.ReportSettings.PDFSettings.MarginBottomMillimeters;
+            nbMarginLeftMillimeters.IntegerValue = financialStatementTemplate.ReportSettings.PDFSettings.MarginLeftMillimeters;
+            nbMarginRightMillimeters.IntegerValue = financialStatementTemplate.ReportSettings.PDFSettings.MarginRightMillimeters;
+            ddlPaperSize.SetValue( financialStatementTemplate.ReportSettings.PDFSettings.PaperSize.ConvertToInt() );
 
             var transactionSetting = financialStatementTemplate.ReportSettings.TransactionSettings;
             cbHideRefundedTransactions.Checked = transactionSetting.HideRefundedTransactions;
@@ -437,6 +440,8 @@ namespace RockWeb.Blocks.Finance
             dvpTransactionType.DefinedTypeId = DefinedTypeCache.Get( Rock.SystemGuid.DefinedType.FINANCIAL_TRANSACTION_TYPE.AsGuid() ).Id;
             dvpCurrencyTypesCashGifts.DefinedTypeId = DefinedTypeCache.Get( Rock.SystemGuid.DefinedType.FINANCIAL_CURRENCY_TYPE.AsGuid() ).Id;
             dvpCurrencyTypesNonCashGifts.DefinedTypeId = DefinedTypeCache.Get( Rock.SystemGuid.DefinedType.FINANCIAL_CURRENCY_TYPE.AsGuid() ).Id;
+
+            ddlPaperSize.BindToEnum<FinancialStatementTemplatePDFSettingsPaperSize>();
         }
 
         /// <summary>

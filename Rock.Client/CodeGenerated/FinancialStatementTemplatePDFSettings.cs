@@ -27,36 +27,44 @@ using System.Collections.Generic;
 namespace Rock.Client
 {
     /// <summary>
-    /// Report Settings related to the Statement Generator
+    /// PDF Settings related to the Statement Generator
     /// </summary>
-    public partial class FinancialStatementTemplateReportSettingsEntity
+    public partial class FinancialStatementTemplatePDFSettingsEntity
     {
         /// <summary />
-        public FinancialStatementTemplatePDFSettings PDFSettings { get; set; }
+        public int? MarginBottomMillimeters { get; set; } = 10;
 
         /// <summary />
-        public FinancialStatementTemplatePledgeSettings PledgeSettings { get; set; }
+        public int? MarginLeftMillimeters { get; set; } = 10;
 
         /// <summary />
-        public FinancialStatementTemplateTransactionSetting TransactionSettings { get; set; }
+        public int? MarginRightMillimeters { get; set; } = 10;
+
+        /// <summary />
+        public int? MarginTopMillimeters { get; set; } = 10;
+
+        /// <summary />
+        public Rock.Client.Enums.FinancialStatementTemplatePDFSettingsPaperSize PaperSize { get; set; }
 
         /// <summary>
-        /// Copies the base properties from a source FinancialStatementTemplateReportSettings object
+        /// Copies the base properties from a source FinancialStatementTemplatePDFSettings object
         /// </summary>
         /// <param name="source">The source.</param>
-        public void CopyPropertiesFrom( FinancialStatementTemplateReportSettings source )
+        public void CopyPropertiesFrom( FinancialStatementTemplatePDFSettings source )
         {
-            this.PDFSettings = source.PDFSettings;
-            this.PledgeSettings = source.PledgeSettings;
-            this.TransactionSettings = source.TransactionSettings;
+            this.MarginBottomMillimeters = source.MarginBottomMillimeters;
+            this.MarginLeftMillimeters = source.MarginLeftMillimeters;
+            this.MarginRightMillimeters = source.MarginRightMillimeters;
+            this.MarginTopMillimeters = source.MarginTopMillimeters;
+            this.PaperSize = source.PaperSize;
 
         }
     }
 
     /// <summary>
-    /// Report Settings related to the Statement Generator
+    /// PDF Settings related to the Statement Generator
     /// </summary>
-    public partial class FinancialStatementTemplateReportSettings : FinancialStatementTemplateReportSettingsEntity
+    public partial class FinancialStatementTemplatePDFSettings : FinancialStatementTemplatePDFSettingsEntity
     {
     }
 }

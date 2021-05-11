@@ -37,7 +37,7 @@ namespace Rock.Financial
         {
             this.TransactionSettings = new FinancialStatementTemplateTransactionSetting();
             this.PledgeSettings = new FinancialStatementTemplatePledgeSettings();
-            this.PDFObjectSettings = new Dictionary<string, string>();
+            this.PDFSettings = new FinancialStatementTemplatePDFSettings();
         }
 
         /// <summary>
@@ -57,12 +57,48 @@ namespace Rock.Financial
         public FinancialStatementTemplatePledgeSettings PledgeSettings { get; set; }
 
         /// <summary>
-        /// Gets or sets the dictionary of Key,Value for PDF Object Settings.
+        /// Gets or sets the PDF settings.
         /// </summary>
         /// <value>
-        /// The Dictionary of Key,Value for PDF Object Settings.
+        /// The PDF settings.
         /// </value>
-        public Dictionary<string, string> PDFObjectSettings { get; set; }
+        public FinancialStatementTemplatePDFSettings PDFSettings { get; set; }
+    }
+
+    /// <summary>
+    /// 
+    /// </summary>
+    [Serializable]
+    [RockClientInclude( "PDF Settings related to the Statement Generator" )]
+    public class FinancialStatementTemplatePDFSettings
+    {
+        /// <summary>
+        /// Gets or sets the size of the paper.
+        /// </summary>
+        /// <value>
+        /// The size of the paper.
+        /// </value>
+        public FinancialStatementTemplatePDFSettingsPaperSize PaperSize { get; set; } = FinancialStatementTemplatePDFSettingsPaperSize.Letter;
+
+        /// <summary>
+        /// Paper margin in millimeters. Set to zero for border-less and commercial printing applications.
+        /// </summary>
+        public int? MarginRightMillimeters { get; set; } = 10;
+
+        /// <summary>
+        /// Paper margin in millimeters. Set to zero for border-less and commercial printing applications.
+        /// </summary>
+        public int? MarginLeftMillimeters { get; set; } = 10;
+
+        /// <summary>
+        /// Paper margin in millimeters. Set to zero for border-less and commercial printing applications.
+        /// </summary>
+        public int? MarginBottomMillimeters { get; set; } = 10;
+
+        /// <summary>
+        /// Paper margin in millimeters. Set to zero for border-less and commercial printing applications.
+        /// </summary>
+        public int? MarginTopMillimeters { get; set; } = 10;
     }
 
     /// <summary>
@@ -84,6 +120,28 @@ namespace Rock.Financial
         /// The selected accounts include children
         /// </summary>
         SelectedAccountsIncludeChildren = 2
+    }
+
+    /// <summary>
+    /// 
+    /// </summary>
+    [RockClientInclude( "PDF Page Size Settings related to the Statement Generator" )]
+    public enum FinancialStatementTemplatePDFSettingsPaperSize
+    {
+        /// <summary>
+        /// Letter
+        /// </summary>
+        Letter = 0,
+
+        /// <summary>
+        /// Legal
+        /// </summary>
+        Legal = 1,
+
+        /// <summary>
+        /// A4
+        /// </summary>
+        A4 = 2
     }
 
     /// <summary>
@@ -230,31 +288,17 @@ namespace Rock.Financial
     }
 
     /// <summary>
-    /// See https://ironpdf.com/object-reference/api/IronPdf.SimpleHeaderFooter.html
+    /// See https://ironpdf.com/object-reference/api/IronPdf.HtmlHeaderFooter.html
     /// </summary>
-    [RockClientInclude( "Header/Footer Settings related to the Statement Generator. See https://ironpdf.com/object-reference/api/IronPdf.SimpleHeaderFooter.html" )]
+    [RockClientInclude( "Header/Footer Settings related to the Statement Generator. See https://ironpdf.com/object-reference/api/IronPdf.HtmlHeaderFooter.html" )]
     public class FinancialStatementTemplateHeaderFooterSettings
     {
-
         /// <summary>
-        /// Sets the left hand side header text for the PDF document.
-        /// Merge meta-data into your header using any of these placeholder strings: {page}
-        /// {total-pages} {url} {date} {time} {html-title} {pdf-title}
+        /// The Html which will be use to render the Header / Footer. Should be an HTML snippet rather than a complete document. May contain styles &amp; images.
+        /// Merge meta-data into the HtmlFragment by putting any of these placeholder strings into the text: {page} {total-pages} {url} {date} {time} {html-title} {pdf-title}.
+        /// An alternative mail-merge style using the pattern &lt;span class='total-pages'&gt;&lt;&gt;span&lt; also works
+        /// HtmlFragment is a stand alone HTML document which does not inherit styles or settings from your main HTML content unless LoadStylesAndCSSFromMainHtmlDocument is set 
         /// </summary>
-        public string LeftTemplate;
-
-        /// <summary>
-        ///  Sets the centered header text for the PDF document.
-        ///  Merge meta-data into your header using any of these placeholder strings: {page}
-        ///  {total-pages} {url} {date} {time} {html-title} {pdf-title}
-        /// </summary>
-        public string CenterTemplate;
-
-        /// <summary>
-        /// Sets the right hand side header text for the PDF document.
-        /// Merge meta-data into your header using any of these placeholder strings: {page}
-        /// {total-pages} {url} {date} {time} {html-title} {pdf-title}
-        /// </summary>
-        public string RightTemplate;
+        public string HtmlFragment;
     }
 }

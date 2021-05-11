@@ -81,7 +81,6 @@
     <Compile Include="Rest\FinancialGivingStatementController.cs" />
     <Compile Include="Rest\Obsolete\StatementGeneratorRecipient.cs" />
     <Compile Include="Rest\Obsolete\StatementGeneratorOptions.cs" />
-    <Compile Include="UploadGivingStatementData.cs" />
   </ItemGroup>
   <ItemGroup>
     <None Include="app.config" />

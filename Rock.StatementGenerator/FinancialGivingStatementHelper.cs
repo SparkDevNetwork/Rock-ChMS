@@ -339,9 +339,7 @@ namespace Rock.StatementGenerator
                 }
 
                 var lavaTemplateLava = financialStatementTemplate.ReportTemplate;
-                var lavaTemplateFooterLeftLava = financialStatementTemplate.FooterSettings.LeftTemplate;
-                var lavaTemplateFooterCenterLava = financialStatementTemplate.FooterSettings.CenterTemplate;
-                var lavaTemplateFooterRightLava = financialStatementTemplate.FooterSettings.RightTemplate;
+                var lavaTemplateFooterHtmlFragment = financialStatementTemplate.FooterSettings.HtmlFragment;
 
                 var mergeFields = Rock.Lava.LavaHelper.GetCommonMergeFields( null, null, new Lava.CommonMergeFieldsOptions { GetLegacyGlobalMergeFields = false, GetDeviceFamily = false, GetOSFamily = false, GetPageContext = false, GetPageParameters = false, GetCampuses = true, GetCurrentPerson = true } );
                 mergeFields.Add( "FinancialStatementTemplate", financialStatementTemplate );
@@ -542,17 +540,9 @@ namespace Rock.StatementGenerator
 
                 mergeFields.Add( "Options", financialStatementGeneratorOptions );
                 recipientResult.Html = lavaTemplateLava.ResolveMergeFields( mergeFields, currentPerson );
-                if ( !string.IsNullOrEmpty( lavaTemplateFooterLeftLava ) )
+                if ( !string.IsNullOrEmpty( lavaTemplateFooterHtmlFragment ) )
                 {
-                    recipientResult.FooterLeftText = lavaTemplateFooterLeftLava.ResolveMergeFields( mergeFields, currentPerson );
-                }
-                if ( !string.IsNullOrEmpty( lavaTemplateFooterCenterLava ) )
-                {
-                    recipientResult.FooterCenterText = lavaTemplateFooterCenterLava.ResolveMergeFields( mergeFields, currentPerson );
-                }
-                if ( !string.IsNullOrEmpty( lavaTemplateFooterRightLava ) )
-                {
-                    recipientResult.FooterRightText = lavaTemplateFooterRightLava.ResolveMergeFields( mergeFields, currentPerson );
+                    recipientResult.FooterHtmlFragment = lavaTemplateFooterHtmlFragment.ResolveMergeFields( mergeFields, currentPerson );
                 }
 
                 recipientResult.Html = recipientResult.Html.Trim();

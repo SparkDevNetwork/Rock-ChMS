@@ -27,36 +27,36 @@ using System.Collections.Generic;
 namespace Rock.Client
 {
     /// <summary>
-    /// Report Settings related to the Statement Generator
+    /// Request Body for api/FinancialGivingStatement/UploadGivingStatementDocument
     /// </summary>
-    public partial class FinancialStatementTemplateReportSettingsEntity
+    public partial class FinancialStatementGeneratorUploadGivingStatementDataEntity
     {
         /// <summary />
-        public FinancialStatementTemplatePDFSettings PDFSettings { get; set; }
+        public FinancialStatementGeneratorRecipient FinancialStatementGeneratorRecipient { get; set; }
 
         /// <summary />
-        public FinancialStatementTemplatePledgeSettings PledgeSettings { get; set; }
+        public FinancialStatementIndividualSaveOptions FinancialStatementIndividualSaveOptions { get; set; }
 
         /// <summary />
-        public FinancialStatementTemplateTransactionSetting TransactionSettings { get; set; }
+        public Byte[] PDFData { get; set; }
 
         /// <summary>
-        /// Copies the base properties from a source FinancialStatementTemplateReportSettings object
+        /// Copies the base properties from a source FinancialStatementGeneratorUploadGivingStatementData object
         /// </summary>
         /// <param name="source">The source.</param>
-        public void CopyPropertiesFrom( FinancialStatementTemplateReportSettings source )
+        public void CopyPropertiesFrom( FinancialStatementGeneratorUploadGivingStatementData source )
         {
-            this.PDFSettings = source.PDFSettings;
-            this.PledgeSettings = source.PledgeSettings;
-            this.TransactionSettings = source.TransactionSettings;
+            this.FinancialStatementGeneratorRecipient = source.FinancialStatementGeneratorRecipient;
+            this.FinancialStatementIndividualSaveOptions = source.FinancialStatementIndividualSaveOptions;
+            this.PDFData = source.PDFData;
 
         }
     }
 
     /// <summary>
-    /// Report Settings related to the Statement Generator
+    /// Request Body for api/FinancialGivingStatement/UploadGivingStatementDocument
     /// </summary>
-    public partial class FinancialStatementTemplateReportSettings : FinancialStatementTemplateReportSettingsEntity
+    public partial class FinancialStatementGeneratorUploadGivingStatementData : FinancialStatementGeneratorUploadGivingStatementDataEntity
     {
     }
 }

@@ -159,9 +159,11 @@
     <Compile Include="CodeGenerated\FinancialStatementGeneratorRecipient.cs" />
     <Compile Include="CodeGenerated\FinancialStatementGeneratorRecipientRequest.cs" />
     <Compile Include="CodeGenerated\FinancialStatementGeneratorRecipientResult.cs" />
+    <Compile Include="CodeGenerated\FinancialStatementGeneratorUploadGivingStatementData.cs" />
     <Compile Include="CodeGenerated\FinancialStatementIndividualSaveOptions.cs" />
     <Compile Include="CodeGenerated\FinancialStatementReportConfiguration.cs" />
     <Compile Include="CodeGenerated\FinancialStatementTemplate.cs" />
+    <Compile Include="CodeGenerated\FinancialStatementTemplatePDFSettings.cs" />
     <Compile Include="CodeGenerated\FinancialStatementTemplatePledgeSettings.cs" />
     <Compile Include="CodeGenerated\FinancialStatementTemplateReportSettings.cs" />
     <Compile Include="CodeGenerated\FinancialStatementTemplateTransactionSetting.cs" />

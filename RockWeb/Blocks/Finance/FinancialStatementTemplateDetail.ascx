@@ -75,23 +75,33 @@
                         </Rock:PanelWidget>
                         <Rock:PanelWidget ID="pwReportSettings" runat="server" Title="Report Settings" Expanded="true">
                             <Rock:CodeEditor ID="ceReportTemplate" runat="server" Label="Report Template" EditorMode="Lava" EditorHeight="200" />
+                            <Rock:CodeEditor ID="ceFooterTemplateHtmlFragment" runat="server" Label="Footer Template" EditorMode="Lava" EditorHeight="200">
+                                <HelpBlock>PDF Merge fields include: <code>{page} {total-pages} {url} {date} {time} {html-title} {pdf-title}</code>
+                                    Specify these as a span class to include them in the footer. For example:
+                                    <code>&lt;span class='total-pages'&gt;&lt;span&gt;</code></HelpBlock>
+                            </Rock:CodeEditor>
 
-                            <label>Footer Template</label>
-                            <Rock:HelpBlock ID="hbFooterTemplate" runat="server" Text="The PDF Generator has these fields available. {page} {total-pages} {url} {date} {time} {html-title} {pdf-title}. To use these, put them in a lava {% raw %} block to avoid conflicts with lava merge fields." />
+                            <Rock:ImageUploader ID="imgTemplateLogo" runat="server" Label="Logo" />
+
+                        </Rock:PanelWidget>
+
+                        <Rock:PanelWidget ID="pwPDFSettings" runat="server" Title="PDF Settings" Expanded="false">
                             <div class="row">
-                                <div class="col-md-4">
-                                    <Rock:CodeEditor ID="ceFooterTemplateLeft" runat="server" Label="Left" EditorMode="Lava" EditorHeight="100" />
+                                <div class="col-md-3">
+                                    <Rock:NumberBox ID="nbMarginTopMillimeters" runat="server" Label="Top Margin (mm)" />
                                 </div>
-                                <div class="col-md-4">
-                                    <Rock:CodeEditor ID="ceFooterTemplateCenter" runat="server" Label="Center " EditorMode="Lava" EditorHeight="100" />
+                                <div class="col-md-3">
+                                    <Rock:NumberBox ID="nbMarginBottomMillimeters" runat="server" Label="Bottom Margin (mm)" />
                                 </div>
-                                <div class="col-md-4">
-                                    <Rock:CodeEditor ID="ceFooterTemplateRight" runat="server" Label="Right" EditorMode="Lava" EditorHeight="100" />
+                                <div class="col-md-3">
+                                    <Rock:NumberBox ID="nbMarginLeftMillimeters" runat="server" Label="Left Margin (mm)" />
+                                </div>
+                                <div class="col-md-3">
+                                    <Rock:NumberBox ID="nbMarginRightMillimeters" runat="server" Label="Right Margin (mm)" />
                                 </div>
                             </div>
 
-                            <Rock:ImageUploader ID="imgTemplateLogo" runat="server" Label="Logo" />
-                            <Rock:KeyValueList ID="kvlPDFObjectSettings" runat="server" Label="PDF Object Settings (Advanced)" />
+                            <Rock:RockDropDownList ID="ddlPaperSize" runat="server" Label="Page Size" />
                         </Rock:PanelWidget>
                         <div class="actions">
                             <asp:LinkButton ID="lbSave" runat="server" Text="Save" CssClass="btn btn-primary" OnClick="lbSave_Click" />
