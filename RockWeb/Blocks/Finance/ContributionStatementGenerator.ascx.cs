@@ -23,6 +23,7 @@ using Rock.Attribute;
 using Rock.Data;
 using Rock.Financial;
 using Rock.Model;
+using Rock.Web.UI;
 
 namespace RockWeb.Blocks.Finance
 {
@@ -43,15 +44,15 @@ namespace RockWeb.Blocks.Finance
         "Statement Template",
         Key = AttributeKey.FinancialStatementTemplate,
         DefaultValue = Rock.SystemGuid.FinancialStatementTemplate.ROCK_DEFAULT,
-        Order = 1)]
-    public partial class ContributionStatementGenerator : Rock.Web.UI.RockBlock
+        Order = 1 )]
+    public partial class ContributionStatementGenerator : RockBlock
     {
         #region Attribute Keys
 
         private static class AttributeKey
         {
             public const string FinancialStatementTemplate = "FinancialStatementTemplate";
-            public const string AllowPersonQueryString = "Allow Person QueryString";
+            public const string AllowPersonQueryString = "AllowPersonQueryString";
         }
 
         #endregion Attribute Keys
@@ -78,7 +79,6 @@ namespace RockWeb.Blocks.Finance
 
             // this event gets fired after block settings are updated. it's nice to repaint the screen if these settings would alter it
             this.BlockUpdated += Block_BlockUpdated;
-            this.AddConfigurationUpdateTrigger( upnlContent );
         }
 
         /// <summary>
@@ -94,8 +94,6 @@ namespace RockWeb.Blocks.Finance
                 DisplayResults();
             }
         }
-
-        // handlers called by the controls on your block
 
         /// <summary>
         /// Handles the BlockUpdated event of the control.
@@ -164,7 +162,7 @@ namespace RockWeb.Blocks.Finance
                 FinancialStatementGeneratorRecipient = financialStatementGeneratorRecipient
             };
 
-            var result = FinancialGivingStatementHelper.GetStatementGeneratorRecipientResult( financialStatementGeneratorRecipientRequest, this.CurrentPerson );
+            var result = FinancialStatementGeneratorHelper.GetStatementGeneratorRecipientResult( financialStatementGeneratorRecipientRequest, this.CurrentPerson );
 
             Response.Write( result.Html );
             Response.End();
