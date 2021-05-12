@@ -19,19 +19,16 @@ using System.Data.Entity;
 using System.Linq;
 
 using Rock.Data;
-using Rock.Financial;
 using Rock.Model;
 using Rock.Utility;
 using Rock.Web.Cache;
 
 namespace Rock.Financial
 {
-
-    
     /// <summary>
     /// 
     /// </summary>
-    public static class FinancialGivingStatementHelper
+    public static class FinancialStatementGeneratorHelper
     {
         /// <summary>
         /// Gets the financial statement generator recipients.
@@ -56,8 +53,8 @@ namespace Rock.Financial
                 var reportSettings = financialStatementTemplate.ReportSettings;
                 var transactionSettings = reportSettings.TransactionSettings;
 
-                var financialTransactionQry = FinancialGivingStatementHelper.GetFinancialTransactionQuery( financialStatementGeneratorOptions, rockContext, true );
-                var financialPledgeQry = FinancialGivingStatementHelper.GetFinancialPledgeQuery( financialStatementGeneratorOptions, rockContext, true );
+                var financialTransactionQry = FinancialStatementGeneratorHelper.GetFinancialTransactionQuery( financialStatementGeneratorOptions, rockContext, true );
+                var financialPledgeQry = FinancialStatementGeneratorHelper.GetFinancialPledgeQuery( financialStatementGeneratorOptions, rockContext, true );
 
                 // Get distinct Giving Groups for Persons that have a specific GivingGroupId and have transactions that match the filter
                 // These are Persons that give as part of a Group.For example, Husband and Wife
@@ -99,7 +96,7 @@ namespace Rock.Financial
                 }
 
                 /*  Limit to Mailing Address and sort by ZipCode */
-                IQueryable<GroupLocation> groupLocationsQry = FinancialGivingStatementHelper.GetGroupLocationQuery( rockContext );
+                IQueryable<GroupLocation> groupLocationsQry = FinancialStatementGeneratorHelper.GetGroupLocationQuery( rockContext );
 
                 // Do an outer join on location so we can include people that don't have an address (if options.IncludeIndividualsWithNoAddress) //
                 var unionJoinLocationQry = from pg in unionQry
@@ -274,7 +271,7 @@ namespace Rock.Financial
 
                 var reportSettings = financialStatementTemplate.ReportSettings;
                 var transactionSettings = reportSettings.TransactionSettings;
-                var financialTransactionQry = FinancialGivingStatementHelper.GetFinancialTransactionQuery( financialStatementGeneratorOptions, rockContext, false );
+                var financialTransactionQry = FinancialStatementGeneratorHelper.GetFinancialTransactionQuery( financialStatementGeneratorOptions, rockContext, false );
 
                 var personList = new List<Person>();
                 Person person = null;
@@ -291,7 +288,7 @@ namespace Rock.Financial
                     person = personList.FirstOrDefault();
                 }
 
-                var optedOutPersonIds = FinancialGivingStatementHelper.GetOptedOutPersonIds( personList );
+                var optedOutPersonIds = FinancialStatementGeneratorHelper.GetOptedOutPersonIds( personList );
 
                 if ( optedOutPersonIds.Any() )
                 {
@@ -381,7 +378,7 @@ namespace Rock.Financial
                 else
                 {
                     // for backwards compatibility, get the first address
-                    IQueryable<GroupLocation> groupLocationsQry = FinancialGivingStatementHelper.GetGroupLocationQuery( rockContext );
+                    IQueryable<GroupLocation> groupLocationsQry = FinancialStatementGeneratorHelper.GetGroupLocationQuery( rockContext );
                     mailingAddress = groupLocationsQry.Where( a => a.GroupId == groupId ).Select( a => a.Location ).FirstOrDefault();
                 }
 
@@ -531,7 +528,7 @@ namespace Rock.Financial
 
                 if ( pledgeSettings.AccountIds != null && pledgeSettings.AccountIds.Any() )
                 {
-                    var pledgeSummaryList = FinancialGivingStatementHelper.GetPledgeSummaryData( financialStatementGeneratorOptions, financialStatementTemplate, rockContext, personAliasIds );
+                    var pledgeSummaryList = FinancialStatementGeneratorHelper.GetPledgeSummaryData( financialStatementGeneratorOptions, financialStatementTemplate, rockContext, personAliasIds );
                     recipientResult.PledgeTotal = pledgeSummaryList.Sum( s => s.AmountPledged );
 
                     // Pledges ( organized by each Account in case an account is used by more than one pledge )
@@ -922,10 +919,15 @@ namespace Rock.Financial
         private class AccountSummaryInfo : RockDynamic
         {
             public string AccountName => Account?.PublicName;
+
             public int? ParentAccountId => Account?.ParentAccountId;
+
             public string ParentAccountName => Account?.ParentAccount.PublicName;
+
             public decimal Total { get; set; }
+
             public int Order { get; set; }
+
             public FinancialAccount Account { get; internal set; }
         }
 
@@ -1083,7 +1085,6 @@ namespace Rock.Financial
         public FinancialGivingStatementArgumentException( string message )
             : base( message )
         {
-
         }
     }
 }

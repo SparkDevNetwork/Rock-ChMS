@@ -294,11 +294,11 @@ namespace Rock.Financial
     public class FinancialStatementTemplateHeaderFooterSettings
     {
         /// <summary>
-        /// The Html which will be use to render the Header / Footer. Should be an HTML snippet rather than a complete document. May contain styles &amp; images.
+        /// The HTML which will be use to render the Header / Footer. Should be an HTML snippet rather than a complete document. May contain styles &amp; images.
         /// Merge meta-data into the HtmlFragment by putting any of these placeholder strings into the text: {page} {total-pages} {url} {date} {time} {html-title} {pdf-title}.
         /// An alternative mail-merge style using the pattern &lt;span class='total-pages'&gt;&lt;&gt;span&lt; also works
         /// HtmlFragment is a stand alone HTML document which does not inherit styles or settings from your main HTML content unless LoadStylesAndCSSFromMainHtmlDocument is set 
         /// </summary>
-        public string HtmlFragment;
+        public string HtmlFragment { get; set; }
     }
 }

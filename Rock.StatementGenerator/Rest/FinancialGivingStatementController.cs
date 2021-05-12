@@ -48,7 +48,7 @@ namespace Rock.StatementGenerator.Rest
         [System.Web.Http.Route( "api/FinancialGivingStatement/GetFinancialStatementGeneratorRecipients" )]
         public List<FinancialStatementGeneratorRecipient> GetFinancialStatementGeneratorRecipients( [FromBody] Rock.Financial.FinancialStatementGeneratorOptions financialStatementGeneratorOptions )
         {
-            return FinancialGivingStatementHelper.GetFinancialStatementGeneratorRecipients( financialStatementGeneratorOptions );
+            return FinancialStatementGeneratorHelper.GetFinancialStatementGeneratorRecipients( financialStatementGeneratorOptions );
         }
 
         /// <summary>
@@ -62,7 +62,7 @@ namespace Rock.StatementGenerator.Rest
         [System.Web.Http.Route( "api/FinancialGivingStatement/GetStatementGeneratorRecipientResult" )]
         public FinancialStatementGeneratorRecipientResult GetStatementGeneratorRecipientResult( [FromBody] Rock.Financial.FinancialStatementGeneratorRecipientRequest financialStatementGeneratorRecipientRequest )
         {
-            return FinancialGivingStatementHelper.GetStatementGeneratorRecipientResult( financialStatementGeneratorRecipientRequest, this.GetPerson() );
+            return FinancialStatementGeneratorHelper.GetStatementGeneratorRecipientResult( financialStatementGeneratorRecipientRequest, this.GetPerson() );
         }
 
         /// <summary>
@@ -293,7 +293,7 @@ namespace Rock.StatementGenerator.Rest
             };
 
             // Get the generator result
-            FinancialStatementGeneratorRecipientResult result = FinancialGivingStatementHelper.GetStatementGeneratorRecipientResult( financialStatementGeneratorRecipientRequest, this.GetPerson() );
+            FinancialStatementGeneratorRecipientResult result = FinancialStatementGeneratorHelper.GetStatementGeneratorRecipientResult( financialStatementGeneratorRecipientRequest, this.GetPerson() );
 
             // Render the statement as HTML and send back to the user
             var response = new HttpResponseMessage();

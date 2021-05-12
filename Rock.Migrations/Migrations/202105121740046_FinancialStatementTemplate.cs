@@ -1,4 +1,4 @@
-// <copyright>
+﻿// <copyright>
 // Copyright by the Spark Development Network
 //
 // Licensed under the Rock Community License (the "License");
@@ -34,8 +34,10 @@ namespace Rock.Migrations
             AddColumn("dbo.FinancialStatementTemplate", "ReportSettingsJson", c => c.String());
             DropColumn("dbo.FinancialStatementTemplate", "FooterTemplate");
             DropColumn("dbo.FinancialStatementTemplate", "ReportSettings");
+
+            RockMigrationHelper.UpdateFieldType( "Financial Statement Template", "", "Rock", "Rock.Field.Types.FinancialStatementTemplateFieldType", "9E0CD807-D69F-4888-A9BE-BCD11DD083FE" );
         }
-        
+
         /// <summary>
         /// Operations to be performed during the downgrade process.
         /// </summary>

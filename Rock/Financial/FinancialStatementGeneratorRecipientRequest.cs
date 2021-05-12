@@ -47,6 +47,7 @@ namespace Rock.Financial
         /// The financial statement generator recipient.
         /// </value>
         public FinancialStatementGeneratorRecipient FinancialStatementGeneratorRecipient { get; set; }
+
         /// <summary>
         /// Gets or sets the financial statement generator options.
         /// </summary>
