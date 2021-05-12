@@ -59,6 +59,9 @@ namespace Rock.Client
         public int? PersonId { get; set; }
 
         /// <summary />
+        public string RenderMedium { get; set; }
+
+        /// <summary />
         public List<FinancialStatementReportConfiguration> ReportConfigurationList { get; set; }
 
         /// <summary />
@@ -79,6 +82,7 @@ namespace Rock.Client
             this.IncludeIndividualsWithNoAddress = source.IncludeIndividualsWithNoAddress;
             this.IndividualSaveOptions = source.IndividualSaveOptions;
             this.PersonId = source.PersonId;
+            this.RenderMedium = source.RenderMedium;
             this.ReportConfigurationList = source.ReportConfigurationList;
             this.StartDate = source.StartDate;
 

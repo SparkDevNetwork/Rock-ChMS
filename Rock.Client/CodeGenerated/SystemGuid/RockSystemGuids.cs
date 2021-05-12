@@ -943,6 +943,13 @@ namespace Rock.Client.SystemGuid
 
     /// <summary>
     /// </summary>
+    public class FinancialStatementTemplate
+    {
+        public const string ROCK_DEFAULT = "4B93657A-DD5F-4D8A-A13F-1B4E9ADBDAD0";
+    }
+
+    /// <summary>
+    /// </summary>
     public class Group
     {
         public const string GROUP_ADMINISTRATORS = "628C51A8-4613-43ED-A18D-4A6FB999273E";
