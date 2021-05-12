@@ -22,15 +22,14 @@ namespace Rock.Migrations
     /// <summary>
     ///
     /// </summary>
-    public partial class FinancialStatementTemplateReportSettings : Rock.Migrations.RockMigration
+    public partial class PrivatePersonSearchKey : Rock.Migrations.RockMigration
     {
         /// <summary>
         /// Operations to be performed during the upgrade process.
         /// </summary>
         public override void Up()
         {
-            AddColumn("dbo.FinancialStatementTemplate", "ReportSettingsJson", c => c.String());
-            DropColumn("dbo.FinancialStatementTemplate", "ReportSettings");
+            AddColumn("dbo.PersonSearchKey", "IsValuePrivate", c => c.Boolean(nullable: false));
         }
         
         /// <summary>
@@ -38,8 +37,7 @@ namespace Rock.Migrations
         /// </summary>
         public override void Down()
         {
-            AddColumn("dbo.FinancialStatementTemplate", "ReportSettings", c => c.String());
-            DropColumn("dbo.FinancialStatementTemplate", "ReportSettingsJson");
+            DropColumn("dbo.PersonSearchKey", "IsValuePrivate");
         }
     }
 }

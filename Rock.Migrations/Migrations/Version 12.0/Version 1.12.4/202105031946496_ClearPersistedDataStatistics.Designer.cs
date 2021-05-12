@@ -7,13 +7,13 @@ namespace Rock.Migrations
     using System.Resources;
     
     [GeneratedCode("EntityFramework.Migrations", "6.1.3-40302")]
-    public sealed partial class DocumentPurposeKey : IMigrationMetadata
+    public sealed partial class ClearPersistedDataStatistics : IMigrationMetadata
     {
-        private readonly ResourceManager Resources = new ResourceManager(typeof(DocumentPurposeKey));
+        private readonly ResourceManager Resources = new ResourceManager(typeof(MediaElementModelChangesForWorkflow));
         
         string IMigrationMetadata.Id
         {
-            get { return "202105041700203_DocumentPurposeKey"; }
+            get { return "202105031946496_ClearPersistedDataStatistics"; }
         }
         
         string IMigrationMetadata.Source

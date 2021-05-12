@@ -7,13 +7,13 @@ namespace Rock.Migrations
     using System.Resources;
     
     [GeneratedCode("EntityFramework.Migrations", "6.1.3-40302")]
-    public sealed partial class FooterJson : IMigrationMetadata
+    public sealed partial class PrivatePersonSearchKey : IMigrationMetadata
     {
-        private readonly ResourceManager Resources = new ResourceManager(typeof(FooterJson));
+        private readonly ResourceManager Resources = new ResourceManager(typeof(PrivatePersonSearchKey));
         
         string IMigrationMetadata.Id
         {
-            get { return "202105080032414_FooterJson"; }
+            get { return "202105121613390_PrivatePersonSearchKey"; }
         }
         
         string IMigrationMetadata.Source

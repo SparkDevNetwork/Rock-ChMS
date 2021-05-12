@@ -22,15 +22,18 @@ namespace Rock.Migrations
     /// <summary>
     ///
     /// </summary>
-    public partial class FooterJson : Rock.Migrations.RockMigration
+    public partial class FinancialStatementTemplate : Rock.Migrations.RockMigration
     {
         /// <summary>
         /// Operations to be performed during the upgrade process.
         /// </summary>
         public override void Up()
         {
+            AddColumn("dbo.Document", "PurposeKey", c => c.String(maxLength: 100));
             AddColumn("dbo.FinancialStatementTemplate", "FooterSettingsJSON", c => c.String());
+            AddColumn("dbo.FinancialStatementTemplate", "ReportSettingsJson", c => c.String());
             DropColumn("dbo.FinancialStatementTemplate", "FooterTemplate");
+            DropColumn("dbo.FinancialStatementTemplate", "ReportSettings");
         }
         
         /// <summary>
@@ -38,8 +41,11 @@ namespace Rock.Migrations
         /// </summary>
         public override void Down()
         {
+            AddColumn("dbo.FinancialStatementTemplate", "ReportSettings", c => c.String());
             AddColumn("dbo.FinancialStatementTemplate", "FooterTemplate", c => c.String());
+            DropColumn("dbo.FinancialStatementTemplate", "ReportSettingsJson");
             DropColumn("dbo.FinancialStatementTemplate", "FooterSettingsJSON");
+            DropColumn("dbo.Document", "PurposeKey");
         }
     }
 }

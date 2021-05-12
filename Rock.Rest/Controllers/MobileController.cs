@@ -110,6 +110,8 @@ namespace Rock.Rest.Controllers
 
                 launchPacket.CurrentPerson = MobileHelper.GetMobilePerson( person, site );
                 launchPacket.CurrentPerson.AuthToken = MobileHelper.GetAuthenticationToken( principal.Identity.Name );
+
+                UserLoginService.UpdateLastLogin( principal.Identity.Name );
             }
 
             //
@@ -363,7 +365,7 @@ namespace Rock.Rest.Controllers
                                 mobileInteraction.Summary,
                                 mobileInteraction.Data,
                                 person?.PrimaryAliasId,
-                                mobileInteraction.DateTime,
+                                RockDateTime.ConvertLocalDateTimeToRockDateTime( mobileInteraction.DateTime.LocalDateTime ),
                                 mobileSession.Application,
                                 mobileSession.OperatingSystem,
                                 mobileSession.ClientType,
@@ -432,9 +434,12 @@ namespace Rock.Rest.Controllers
                     if ( personalDevice != null && personalDevice.PersonAliasId != userLogin.Person.PrimaryAliasId )
                     {
                         personalDevice.PersonAliasId = userLogin.Person.PrimaryAliasId;
-                        rockContext.SaveChanges();
                     }
                 }
+
+                userLogin.LastLoginDateTime = RockDateTime.Now;
+
+                rockContext.SaveChanges();
 
                 var mobilePerson = MobileHelper.GetMobilePerson( userLogin.Person, site );
                 mobilePerson.AuthToken = MobileHelper.GetAuthenticationToken( loginParameters.Username );
@@ -488,7 +493,7 @@ namespace Rock.Rest.Controllers
             }
 
             communicationRecipient.Status = CommunicationRecipientStatus.Opened;
-            communicationRecipient.OpenedDateTime = RockDateTime.ConvertLocalDateTimeToRockDateTime( interaction.DateTime );
+            communicationRecipient.OpenedDateTime = RockDateTime.ConvertLocalDateTimeToRockDateTime( interaction.DateTime.LocalDateTime );
             communicationRecipient.OpenedClient = string.Format(
                 "{0} {1} ({2})",
                 session.OperatingSystem ?? "unknown",

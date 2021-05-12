@@ -22,14 +22,14 @@ namespace Rock.Migrations
     /// <summary>
     ///
     /// </summary>
-    public partial class DocumentPurposeKey : Rock.Migrations.RockMigration
+    public partial class GivingAnalyticsUpdates : Rock.Migrations.RockMigration
     {
         /// <summary>
         /// Operations to be performed during the upgrade process.
         /// </summary>
         public override void Up()
         {
-            AddColumn("dbo.Document", "PurposeKey", c => c.String(maxLength: 100));
+            AddColumn("dbo.FinancialTransactionAlertType", "MaximumDaysSinceLastGift", c => c.Int());
         }
         
         /// <summary>
@@ -37,7 +37,7 @@ namespace Rock.Migrations
         /// </summary>
         public override void Down()
         {
-            DropColumn("dbo.Document", "PurposeKey");
+            DropColumn("dbo.FinancialTransactionAlertType", "MaximumDaysSinceLastGift");
         }
     }
 }
