@@ -14,6 +14,7 @@
 // limitations under the License.
 // </copyright>
 //
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Windows;
@@ -54,7 +55,7 @@ namespace Rock.Apps.StatementGenerator
             {
                 if ( rockConfig.ReportConfigurationListJson.IsNotNullOrWhitespace() )
                 {
-                    reportConfigurationList = Newtonsoft.Json.JsonConvert.DeserializeObject<List<FinancialStatementReportConfiguration>>( rockConfig.ReportConfigurationListJson );
+                    reportConfigurationList = rockConfig.ReportConfigurationListJson.FromJsonOrNull<List<FinancialStatementReportConfiguration>>();
                 }
             }
             catch
@@ -62,7 +63,32 @@ namespace Rock.Apps.StatementGenerator
                 // ignore
             }
 
-            reportConfigurationList = reportConfigurationList ?? new List<FinancialStatementReportConfiguration>();
+            if ( reportConfigurationList == null )
+            {
+                // if this is the first time the generator has run, create a default.
+                // If they delete this default, that is OK. See https://app.asana.com/0/0/1200266899611805/f
+                reportConfigurationList = new List<FinancialStatementReportConfiguration>();
+                var defaultConfiguration = new FinancialStatementReportConfiguration
+                {
+                    DestinationFolder = Environment.GetFolderPath( Environment.SpecialFolder.Desktop ),
+                    ExcludeOptedOutIndividuals = true,
+                    FilenamePrefix = "statement-",
+                    IncludeInternationalAddresses = false,
+                    MaxStatementsPerChapter = 500,
+                    MinimumContributionAmount = 1.00M,
+                    PreventSplittingPrimarySortValuesAcrossChapters = true,
+                    PrimarySortOrder = Client.Enums.FinancialStatementOrderBy.PostalCode,
+                    SecondarySortOrder = Client.Enums.FinancialStatementOrderBy.LastName,
+                    SplitFilesOnPrimarySortValue = true,
+                    CreatedDateTime = DateTime.Now,
+                    Guid = Guid.NewGuid()
+                };
+
+                reportConfigurationList.Add( defaultConfiguration );
+                rockConfig.ReportConfigurationListJson = reportConfigurationList.ToJson();
+                rockConfig.Save();
+            }
+
             ReportOptions.Current.ReportConfigurationList = reportConfigurationList;
 
             grdReportSettings.DataContext = reportConfigurationList.OrderBy( a => a.CreatedDateTime );
@@ -101,7 +127,7 @@ namespace Rock.Apps.StatementGenerator
                 ReportOptions.Current.ReportConfigurationList.Add( updatedSettings );
 
                 var rockConfig = RockConfig.Load();
-                rockConfig.ReportConfigurationListJson = Newtonsoft.Json.JsonConvert.SerializeObject( ReportOptions.Current.ReportConfigurationList );
+                rockConfig.ReportConfigurationListJson = ReportOptions.Current.ReportConfigurationList.ToJson();
                 rockConfig.Save();
 
                 BindGrid();
@@ -124,7 +150,7 @@ namespace Rock.Apps.StatementGenerator
         /// </summary>
         /// <param name="sender">The source of the event.</param>
         /// <param name="e">The <see cref="RoutedEventArgs"/> instance containing the event data.</param>
-        private void btnNext_Click( object sender, RoutedEventArgs e )
+        private void btnGenerateStatements_Click( object sender, RoutedEventArgs e )
         {
             if ( SaveChanges( true ) )
             {
@@ -156,7 +182,7 @@ namespace Rock.Apps.StatementGenerator
             ReportOptions.Current.ReportConfigurationList.Remove( seletedReportConfig );
 
             var rockConfig = RockConfig.Load();
-            rockConfig.ReportConfigurationListJson = Newtonsoft.Json.JsonConvert.SerializeObject( ReportOptions.Current.ReportConfigurationList );
+            rockConfig.ReportConfigurationListJson = ReportOptions.Current.ReportConfigurationList.ToJson();
             rockConfig.Save();
 
             BindGrid();

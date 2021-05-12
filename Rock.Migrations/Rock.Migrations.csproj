@@ -77,6 +77,10 @@
     <Compile Include="Migrations\202105121904154_FinancialStatementTemplateFooterSettingsJson.Designer.cs">
       <DependentUpon>202105121904154_FinancialStatementTemplateFooterSettingsJson.cs</DependentUpon>
     </Compile>
+    <Compile Include="Migrations\202105122159281_StatementGenerator.cs" />
+    <Compile Include="Migrations\202105122159281_StatementGenerator.Designer.cs">
+      <DependentUpon>202105122159281_StatementGenerator.cs</DependentUpon>
+    </Compile>
     <Compile Include="Migrations\Version 12.0\Version 1.12.4\202105112043293_Rollup_0511.cs" />
     <Compile Include="Migrations\Version 12.0\Version 1.12.4\202105112043293_Rollup_0511.Designer.cs">
       <DependentUpon>202105112043293_Rollup_0511.cs</DependentUpon>
@@ -1719,6 +1723,9 @@
     <EmbeddedResource Include="Migrations\202105121904154_FinancialStatementTemplateFooterSettingsJson.resx">
       <DependentUpon>202105121904154_FinancialStatementTemplateFooterSettingsJson.cs</DependentUpon>
     </EmbeddedResource>
+    <EmbeddedResource Include="Migrations\202105122159281_StatementGenerator.resx">
+      <DependentUpon>202105122159281_StatementGenerator.cs</DependentUpon>
+    </EmbeddedResource>
     <EmbeddedResource Include="Migrations\Version 12.0\Version 1.12.4\202105112043293_Rollup_0511.resx">
       <DependentUpon>202105112043293_Rollup_0511.cs</DependentUpon>
     </EmbeddedResource>
@@ -2954,6 +2961,7 @@
       <Link>SqlServerTypes\x86\SqlServerSpatial110.dll</Link>
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
+    <None Include="Migrations\202105122159281_StatementGenerator_RockDefaultTemplate.lava" />
     <Content Include="Migrations\Version 12.0\Version 1.12.4\202104291818024_GroupSalutation_spAnalytics_ETL_Family.sql">
       <DependentUpon>202104291818024_GroupSalutation.cs</DependentUpon>
     </Content>

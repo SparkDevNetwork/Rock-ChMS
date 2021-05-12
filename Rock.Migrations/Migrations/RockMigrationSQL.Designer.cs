@@ -2467,8 +2467,7 @@ namespace Rock.Migrations.Migrations {
         ///  [&lt;span class=&quot;hljs-string&quot;&gt;[ kpi icon:&apos;&apos;fa-pen-fancy&apos;&apos; value:&apos;&apos;8&apos;&apos; label:&apos;&apos;Pens&apos;&apos; color:&apos;&apos;indigo-700&apos;&apos;&lt;/span&gt;]][[ endkpi ]]
         ///  [&lt;span class=&quot;hljs-string&quot;&gt;[ kpi icon:&apos;&apos;fa-pencil-alt&apos;&apos; value:&apos;&apos;15&apos;&apos; label:&apos;&apos;Pencils&apos;&apos; color:&apos;&apos;green-600&apos;&apos;&lt;/span&gt;]][[ endkpi ]]
         ///{[endkpis]}
-        ///&lt;/code&gt;&lt;/pre&gt;
-        ///&lt;h [rest of string was truncated]&quot;;.
+        ///&lt;/code&gt;&lt;/p [rest of string was truncated]&quot;;.
         /// </summary>
         public static string _202105112043293_Rollup_0511_kpi_tooltipdelay {
             get {
@@ -2487,13 +2486,26 @@ namespace Rock.Migrations.Migrations {
         ///    &lt;div class=&quot;alert alert-warning&quot;&gt;
         ///        There is no Google API key defined. Please add your key under: &apos;&apos;Admin Tools &gt; General Settings &gt; Global Attributes &gt; Google API Key&apos;&apos;.
         ///    &lt;/div&gt;
-        ///{% endif %}
-        ///
-        ///{ [rest of string was truncated]&quot;;.
+        ///{% e [rest of string was truncated]&quot;;.
         /// </summary>
         public static string _202105112043293_Rollup_0511_mapshortcode {
             get {
                 return ResourceManager.GetString("_202105112043293_Rollup_0511_mapshortcode", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to {% assign publicApplicationRoot = &apos;Global&apos; | Attribute:&apos;PublicApplicationRoot&apos; %}
+        ///{% assign organizationName = &apos;Global&apos; | Attribute:&apos;OrganizationName&apos; %}
+        ///{% assign organizationAddress = &apos;Global&apos; | Attribute:&apos;OrganizationAddress&apos; %}
+        ///{% assign organizationWebsite = &apos;Global&apos; | Attribute:&apos;OrganizationWebsite&apos; %}
+        ///{% assign organizationEmail = &apos;Global&apos; | Attribute:&apos;OrganizationEmail&apos; %}
+        ///{% assign organizationPhone = &apos;Global&apos; | Attribute:&apos;OrganizationPhone&apos; %}
+        ///{% assign currencySymbol = &apos;Global&apos; | Attribute: [rest of string was truncated]&quot;;.
+        /// </summary>
+        public static string _202105122159281_StatementGenerator_RockDefaultTemplate {
+            get {
+                return ResourceManager.GetString("_202105122159281_StatementGenerator_RockDefaultTemplate", resourceCulture);
             }
         }
     }

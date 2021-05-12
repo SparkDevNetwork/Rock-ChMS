@@ -86,7 +86,8 @@ namespace Rock.Financial
         public decimal ContributionTotal { get; set; }
 
         /// <summary>
-        /// The total amount of pledges reported on the statement.
+        /// The total Pledged Amount of pledges reported on the statement. For example, if $100 was pledged, but only $25
+        /// was given, use $100 as the Pledge Total
         /// </summary>
         /// <value>
         /// The pledge total.

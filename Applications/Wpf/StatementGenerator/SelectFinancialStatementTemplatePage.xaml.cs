@@ -37,7 +37,10 @@ namespace Rock.Apps.StatementGenerator
 
             LoadFinancialStatementTemplates();
         }
-      
+
+        /// <summary>
+        /// Loads the financial statement templates.
+        /// </summary>
         public void LoadFinancialStatementTemplates()
         {
             RockConfig rockConfig = RockConfig.Load();
@@ -53,7 +56,13 @@ namespace Rock.Apps.StatementGenerator
                 throw getFinancialStatementTemplatesResponse.ErrorException;
             }
 
-            List<Client.FinancialStatementTemplate> financialStatementTemplateList = getFinancialStatementTemplatesResponse.Data;
+            List<Client.FinancialStatementTemplate> financialStatementTemplateList = getFinancialStatementTemplatesResponse.Data.Where( a => a.IsActive ).ToList();
+
+            if (!financialStatementTemplateList.Any() )
+            {
+                lblWarning.Content = "No Templates available. Use the Rock website to define Financial Statement Templates.";
+                lblWarning.Visibility = Visibility.Visible;
+            }
 
             List<RadioButton> radioButtonList = new List<RadioButton>();
             foreach ( var financialStatementTemplate in financialStatementTemplateList.OrderBy(a => a.Name) )
@@ -89,11 +98,13 @@ namespace Rock.Apps.StatementGenerator
         /// <returns></returns>
         private bool SaveChanges( bool showWarnings )
         {
-            var selected = lstFinancialStatementTemplates.Items.OfType<RadioButton>().First( a => a.IsChecked == true );
+            var selected = lstFinancialStatementTemplates.Items.OfType<RadioButton>().Where( a => a.IsChecked == true ).FirstOrDefault();
             if ( selected == null )
             {
                 if ( showWarnings )
                 {
+                    lblWarning.Content = "Please select a template.";
+                    lblWarning.Visibility = Visibility.Visible;
                     return false;
                 }
             }

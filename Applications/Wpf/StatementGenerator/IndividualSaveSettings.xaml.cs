@@ -21,12 +21,16 @@ using System.Windows.Controls;
 
 using RestSharp;
 
+using Rock.Client;
+
 namespace Rock.Apps.StatementGenerator
 {
     /// <summary>
-    /// Interaction logic for SelectSavedLocationPage.xaml
+    /// 
     /// </summary>
-    public partial class IndividualSaveSettings : Page
+    /// <seealso cref="System.Windows.Controls.Page" />
+    /// <seealso cref="System.Windows.Markup.IComponentConnector" />
+    public partial class IndividualSaveSettings : System.Windows.Controls.Page
     {
         /// <summary>
         /// Initializes a new instance of the <see cref="SelectSaveLocationPage"/> class.
@@ -42,7 +46,7 @@ namespace Rock.Apps.StatementGenerator
             {
                 if ( rockConfig.IndividualSaveOptionsJson.IsNotNullOrWhitespace() )
                 {
-                    saveOptions = Newtonsoft.Json.JsonConvert.DeserializeObject<Client.FinancialStatementIndividualSaveOptions>( rockConfig.IndividualSaveOptionsJson );
+                    saveOptions = rockConfig.IndividualSaveOptionsJson.FromJsonOrNull<FinancialStatementIndividualSaveOptions>();
                 }
             }
             catch
@@ -126,7 +130,7 @@ namespace Rock.Apps.StatementGenerator
             ReportOptions.Current.IndividualSaveOptions = saveOptions;
 
             var rockConfig = RockConfig.Load();
-            rockConfig.IndividualSaveOptionsJson = Newtonsoft.Json.JsonConvert.SerializeObject( saveOptions );
+            rockConfig.IndividualSaveOptionsJson = saveOptions.ToJson();
             rockConfig.Save();
 
             return true;

@@ -118,7 +118,7 @@ namespace Rock.Apps.StatementGenerator
             var restClient = new RestClient( rockConfig.RockBaseUrl );
             restClient.LoginToRock( rockConfig.Username, rockConfig.Password );
 
-            _individualSaveOptions = Newtonsoft.Json.JsonConvert.DeserializeObject<Client.FinancialStatementIndividualSaveOptions>( rockConfig.IndividualSaveOptionsJson );
+            _individualSaveOptions = rockConfig.IndividualSaveOptionsJson.FromJsonOrNull<FinancialStatementIndividualSaveOptions>();
             _saveStatementsForIndividualsToDocument = _individualSaveOptions.SaveStatementsForIndividuals;
             if ( _saveStatementsForIndividualsToDocument )
             {
@@ -140,7 +140,9 @@ namespace Rock.Apps.StatementGenerator
 
             Rock.Client.FinancialStatementTemplate financialStatementTemplate = getFinancialStatementTemplatesResponse.Data;
 
-            _reportSettings = JsonConvert.DeserializeObject<Rock.Client.FinancialStatementTemplateReportSettings>( financialStatementTemplate.ReportSettingsJson );
+            _reportSettings = financialStatementTemplate.ReportSettingsJson.FromJsonOrNull<FinancialStatementTemplateReportSettings>();
+
+            GetSavedRecipientList();
 
             // Get Recipients from Rock REST Endpoint
             UpdateProgress( "Getting Statement Recipients...", 0, 0 );
@@ -187,6 +189,8 @@ namespace Rock.Apps.StatementGenerator
                 SaveRecipientListStatus( recipientList );
             }
 
+            _lastRenderPDFFromHtmlTask?.Wait();
+
             if ( this.Options.EnablePageCountPredetermination )
             {
                 foreach ( var recipient in recipientList )
@@ -202,6 +206,8 @@ namespace Rock.Apps.StatementGenerator
                     SaveRecipientListStatus( recipientList );
                 }
             }
+
+            _lastRenderPDFFromHtmlTask?.Wait();
 
             // all the render tasks should be done, but just in case
             UpdateProgress( $"Finishing up tasks", 0, 0 );
@@ -337,6 +343,8 @@ namespace Rock.Apps.StatementGenerator
 
                 var recordsCompleted = Interlocked.Increment( ref _recordsCompleted );
 
+                // launch a task to save and upload the document
+                // This is thread safe, so we can spin these up as needed 
                 var saveAndUploadTask = new Task( () =>
                {
                    Stopwatch savePdfStopWatch = Stopwatch.StartNew();
@@ -373,11 +381,8 @@ namespace Rock.Apps.StatementGenerator
                    }
                } );
 
-                saveAndUploadTask.Start();
-
-                // launch a task to save and upload the document
-                // This is thread safe, so we can spin these up as needed 
                 _saveAndUploadTasks.Add( saveAndUploadTask );
+                saveAndUploadTask.Start();
 
                 if ( recordsCompleted > 2 && Debugger.IsAttached && recordsCompleted % 10 == 0 )
                 {
@@ -407,9 +412,26 @@ _recordsCompleted:{recordsCompleted}
         /// <summary>
         private void SaveRecipientListStatus( List<FinancialStatementGeneratorRecipient> recipientList )
         {
-            var recipientListJson = Newtonsoft.Json.JsonConvert.SerializeObject( recipientList );
+            var recipientListJson = recipientList.ToJson( Formatting.Indented );
             var recipientListJsonFileName = Path.Combine( ReportRockStatementGeneratorTemporaryDirectory, "RecipientData.Json" );
             File.WriteAllText( recipientListJsonFileName, recipientListJson );
+        }
+
+        /// <summary>
+        /// Gets the recipient list status.
+        /// </summary>
+        /// <returns></returns>
+        public static List<FinancialStatementGeneratorRecipient> GetSavedRecipientList()
+        {
+            var rockConfig = RockConfig.Load();
+            var recipientListJsonFileName = Path.Combine( GetRockStatementGeneratorTemporaryDirectory( rockConfig ), "RecipientData.Json" );
+            if ( File.Exists( recipientListJsonFileName ) )
+            {
+                var recipientListJson = File.ReadAllText( recipientListJsonFileName );
+                return recipientListJson.FromJsonOrNull<List<FinancialStatementGeneratorRecipient>>();
+            }
+
+            return null;
         }
 
         /// <summary>

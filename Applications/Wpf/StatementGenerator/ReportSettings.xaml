@@ -190,14 +190,14 @@
                 </StackPanel>
             </Button>
             <Button
-                x:Name="btnNext"
+                x:Name="btnGenerateStatements"
                 Grid.Row="2"
                 Margin="12"
                 HorizontalAlignment="Right"
-                Click="btnNext_Click"
+                Click="btnGenerateStatements_Click"
                 Style="{StaticResource buttonStylePrimary}">
                 <StackPanel Orientation="Horizontal">
-                    <Label Content="Next" Style="{StaticResource labelStyleButtonTextPrimary}" />
+                    <Label Content="Generate Statements" Style="{StaticResource labelStyleButtonTextPrimary}" />
                     <Label Content="&#xf054;" Style="{StaticResource labelStyleIconPrimaryRight}" />
                 </StackPanel>
             </Button>

@@ -115,6 +115,7 @@
     </Compile>
     <Compile Include="RockConfig.cs" />
     <Compile Include="RockExtensions\EnumExtensions.cs" />
+    <Compile Include="RockExtensions\JsonExtensions.cs" />
     <Compile Include="RockExtensions\StringExtensions.cs" />
     <Compile Include="SelectDateRangePage.xaml.cs">
       <DependentUpon>SelectDateRangePage.xaml</DependentUpon>
@@ -216,6 +217,7 @@
     <None Include="license.key">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>
+    <Content Include="license.readme.txt" />
     <None Include="packages.config" />
   </ItemGroup>
   <ItemGroup>

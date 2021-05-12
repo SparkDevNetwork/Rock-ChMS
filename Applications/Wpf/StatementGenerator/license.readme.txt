@@ -1,0 +1,1 @@
+﻿The license.key file is stored in a private github repo. Manually copy it from there when developing this project, but don't put it in the public repo.
