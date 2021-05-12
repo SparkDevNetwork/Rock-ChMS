@@ -74,7 +74,7 @@
                             </div>
                         </Rock:PanelWidget>
                         <Rock:PanelWidget ID="pwReportSettings" runat="server" Title="Report Settings" Expanded="true">
-                            <Rock:CodeEditor ID="ceReportTemplate" runat="server" Label="Report Template" EditorMode="Lava" EditorHeight="200" />
+                            <Rock:CodeEditor ID="ceReportTemplate" runat="server" Label="Report Template" EditorMode="Lava" EditorHeight="400" />
                             <Rock:CodeEditor ID="ceFooterTemplateHtmlFragment" runat="server" Label="Footer Template" EditorMode="Lava" EditorHeight="200">
                                 <HelpBlock>PDF Merge fields include: <code>{page} {total-pages} {url} {date} {time} {html-title} {pdf-title}</code>
                                     Specify these as a span class to include them in the footer. For example:

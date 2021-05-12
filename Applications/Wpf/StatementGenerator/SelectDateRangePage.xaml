@@ -11,10 +11,7 @@
     Style="{StaticResource pageBackground}"
     mc:Ignorable="d">
 
-    <Border
-        Margin="20"
-        BorderBrush="{StaticResource BorderBrush}"
-        BorderThickness="1">
+    <Border Style="{StaticResource borderStyleMain}">
 
         <Grid Background="White">
 

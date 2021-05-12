@@ -7,14 +7,11 @@
     xmlns:rockWpfControls="clr-namespace:Rock.Wpf.Controls;assembly=Rock.Wpf"
     Title="Select Save Location"
     d:DesignHeight="600"
-    d:DesignWidth="800"
-    Style="{StaticResource pageBackgroundGrey}"
+    d:DesignWidth="960"
+    Style="{StaticResource pageBackground}"
     mc:Ignorable="d">
 
-    <Border
-        Margin="20"
-        BorderBrush="{StaticResource BorderBrush}"
-        BorderThickness="1">
+    <Border Style="{StaticResource borderStyleMain}">
 
         <Grid Background="White">
 
@@ -44,11 +41,10 @@
                     Content="Individual Statements"
                     Style="{StaticResource labelStyleCaption}" />
 
-                <Label Margin="0,0,0,10" Style="{StaticResource labelStyle}">
-                    <TextBlock TextWrapping="Wrap">
-                        The configuration below enables statements to be stored on individual's records as documents.
-                    </TextBlock>
-                </Label>
+                <Label
+                    Margin="0,-10,0,10"
+                    Content="The configuration below enables statements to be stored on individual's records as documents."
+                    Style="{StaticResource labelStyle}" />
 
                 <CheckBox
                     Name="cbSaveStatementsForIndividuals"
@@ -67,7 +63,10 @@
 
                         <StackPanel Grid.Column="0">
                             <Label Content="Document Type" Style="{StaticResource labelStyleBold}" />
-                            <ComboBox Name="cboDocumentType" Style="{StaticResource comboBoxStyle}" />
+                            <ComboBox
+                                Name="cboDocumentType"
+                                Width="440"
+                                Style="{StaticResource comboBoxStyle}" />
 
                             <Label
                                 Margin="0,10,0,0"
@@ -75,6 +74,7 @@
                                 Style="{StaticResource labelStyleBold}" />
                             <TextBox
                                 Name="txtDocumentName"
+                                Width="440"
                                 Style="{StaticResource textboxStyle}"
                                 Text="Sample Document Name" />
 
@@ -84,6 +84,7 @@
                                 Style="{StaticResource labelStyleBold}" />
                             <TextBox
                                 Name="txtDocumentPurposeKey"
+                                Width="440"
                                 Style="{StaticResource textboxStyle}"
                                 Text="Sample Document Purpose Key" />
 
@@ -93,8 +94,8 @@
                             <Label Content="Document Description" Style="{StaticResource labelStyleBold}" />
                             <TextBox
                                 Name="txtDocumentDescription"
-                                Width="300"
-                                Height="80"
+                                Width="425"
+                                Height="95"
                                 Style="{StaticResource textboxStyleMultiline}"
                                 Text="Hello World" />
                         </StackPanel>

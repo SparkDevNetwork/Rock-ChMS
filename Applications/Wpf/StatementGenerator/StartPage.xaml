@@ -10,10 +10,7 @@
     d:DesignWidth="800"
     Style="{StaticResource pageBackground}"
     mc:Ignorable="d">
-    <Border
-        Margin="20"
-        BorderBrush="{StaticResource BorderBrush}"
-        BorderThickness="1">
+    <Border Style="{StaticResource borderStyleMainWithToolMenu}">
         <Grid Background="White">
             <Grid.RowDefinitions>
                 <RowDefinition Height="45" />
@@ -21,32 +18,30 @@
                 <RowDefinition Height="60" />
             </Grid.RowDefinitions>
 
+            <Menu
+                x:Name="mainMenu"
+                Margin="-20,-28,0,0"
+                HorizontalAlignment="Left"
+                Background="Transparent">
+                <MenuItem FontSize="12" Header="_Tools">
+                    <MenuItem
+                        x:Name="mnuOptions"
+                        Click="mnuOptions_Click"
+                        Header="_Options" />
+                </MenuItem>
+            </Menu>
+
             <Border
                 Grid.Row="0"
                 VerticalAlignment="Top"
                 BorderBrush="{StaticResource BorderBrush}"
                 BorderThickness="0,0,0,1">
                 <Grid HorizontalAlignment="Stretch" Background="{StaticResource PanelHeaderBrush}">
-
                     <Label
                         Margin="10"
                         HorizontalAlignment="Left"
                         Content="Statement Generator"
                         Style="{StaticResource labelStyleStepCaption}" />
-                    <Button
-                        x:Name="btnTools"
-                        Margin="0,0,4,0"
-                        HorizontalAlignment="Right"
-                        VerticalAlignment="Center"
-                        Click="mnuOptions_Click"
-                        FontSize="16"
-                        Style="{StaticResource WindowButton}"
-                        ToolTip="Options">
-                        <Label
-                            Content="&#xf013;"
-                            Opacity=".5"
-                            Style="{StaticResource labelStyleIcon}" />
-                    </Button>
                 </Grid>
             </Border>
 

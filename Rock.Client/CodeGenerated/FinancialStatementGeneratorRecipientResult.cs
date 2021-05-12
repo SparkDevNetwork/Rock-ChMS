@@ -35,46 +35,19 @@ namespace Rock.Client
         public decimal ContributionTotal { get; set; }
 
         /// <summary />
-        public string Country { get; set; }
-
-        /// <summary />
         public string FooterHtmlFragment { get; set; }
-
-        /// <summary />
-        public int GroupId { get; set; }
 
         /// <summary />
         public string Html { get; set; }
 
         /// <summary />
-        public bool IsComplete { get; set; }
-
-        /// <summary />
-        public bool IsInternationalAddress { get; set; }
-
-        /// <summary />
-        public string LastName { get; set; }
-
-        /// <summary />
-        public Guid? LocationGuid { get; set; }
-
-        /// <summary />
-        public string NickName { get; set; }
-
-        /// <summary />
         public bool OptedOut { get; set; }
-
-        /// <summary />
-        public int? PersonId { get; set; }
 
         /// <summary />
         public decimal? PledgeTotal { get; set; }
 
         /// <summary />
-        public string PostalCode { get; set; }
-
-        /// <summary />
-        public int? RenderedPageCount { get; set; }
+        public FinancialStatementGeneratorRecipient Recipient { get; set; }
 
         /// <summary>
         /// Copies the base properties from a source FinancialStatementGeneratorRecipientResult object
@@ -83,20 +56,11 @@ namespace Rock.Client
         public void CopyPropertiesFrom( FinancialStatementGeneratorRecipientResult source )
         {
             this.ContributionTotal = source.ContributionTotal;
-            this.Country = source.Country;
             this.FooterHtmlFragment = source.FooterHtmlFragment;
-            this.GroupId = source.GroupId;
             this.Html = source.Html;
-            this.IsComplete = source.IsComplete;
-            this.IsInternationalAddress = source.IsInternationalAddress;
-            this.LastName = source.LastName;
-            this.LocationGuid = source.LocationGuid;
-            this.NickName = source.NickName;
             this.OptedOut = source.OptedOut;
-            this.PersonId = source.PersonId;
             this.PledgeTotal = source.PledgeTotal;
-            this.PostalCode = source.PostalCode;
-            this.RenderedPageCount = source.RenderedPageCount;
+            this.Recipient = source.Recipient;
 
         }
     }

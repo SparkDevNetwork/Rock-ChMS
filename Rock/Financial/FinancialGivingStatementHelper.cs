@@ -21,22 +21,24 @@ using System.Linq;
 using Rock.Data;
 using Rock.Financial;
 using Rock.Model;
-using Rock.StatementGenerator.Exceptions;
+using Rock.Utility;
 using Rock.Web.Cache;
 
-namespace Rock.StatementGenerator
+namespace Rock.Financial
 {
+
+    
     /// <summary>
     /// 
     /// </summary>
-    internal static class FinancialGivingStatementHelper
+    public static class FinancialGivingStatementHelper
     {
         /// <summary>
         /// Gets the financial statement generator recipients.
         /// </summary>
         /// <param name="financialStatementGeneratorOptions">The financial statement generator options.</param>
         /// <returns></returns>
-        internal static List<FinancialStatementGeneratorRecipient> GetFinancialStatementGeneratorRecipients( FinancialStatementGeneratorOptions financialStatementGeneratorOptions )
+        public static List<FinancialStatementGeneratorRecipient> GetFinancialStatementGeneratorRecipients( FinancialStatementGeneratorOptions financialStatementGeneratorOptions )
         {
             if ( financialStatementGeneratorOptions == null )
             {
@@ -237,7 +239,7 @@ namespace Rock.StatementGenerator
         /// <param name="financialStatementGeneratorRecipientRequest">The financial statement generator recipient request.</param>
         /// <param name="currentPerson">The current person.</param>
         /// <returns></returns>
-        internal static FinancialStatementGeneratorRecipientResult GetStatementGeneratorRecipientResult( FinancialStatementGeneratorRecipientRequest financialStatementGeneratorRecipientRequest, Person currentPerson )
+        public static FinancialStatementGeneratorRecipientResult GetStatementGeneratorRecipientResult( FinancialStatementGeneratorRecipientRequest financialStatementGeneratorRecipientRequest, Person currentPerson )
         {
             if ( financialStatementGeneratorRecipientRequest == null )
             {
@@ -260,9 +262,7 @@ namespace Rock.StatementGenerator
             var personId = financialStatementGeneratorRecipientRequest.FinancialStatementGeneratorRecipient.PersonId;
             var locationGuid = financialStatementGeneratorRecipientRequest.FinancialStatementGeneratorRecipient.LocationGuid;
 
-            var recipientResult = new FinancialStatementGeneratorRecipientResult();
-            recipientResult.GroupId = groupId;
-            recipientResult.PersonId = personId;
+            var recipientResult = new FinancialStatementGeneratorRecipientResult( financialStatementGeneratorRecipientRequest.FinancialStatementGeneratorRecipient );
 
             using ( var rockContext = new RockContext() )
             {
@@ -342,6 +342,7 @@ namespace Rock.StatementGenerator
                 var lavaTemplateFooterHtmlFragment = financialStatementTemplate.FooterSettings.HtmlFragment;
 
                 var mergeFields = Rock.Lava.LavaHelper.GetCommonMergeFields( null, null, new Lava.CommonMergeFieldsOptions { GetLegacyGlobalMergeFields = false, GetDeviceFamily = false, GetOSFamily = false, GetPageContext = false, GetPageParameters = false, GetCampuses = true, GetCurrentPerson = true } );
+                mergeFields.Add( "RenderMedium", financialStatementGeneratorOptions.RenderMedium );
                 mergeFields.Add( "FinancialStatementTemplate", financialStatementTemplate );
                 mergeFields.Add( "RenderedPageCount", financialStatementGeneratorRecipientRequest.FinancialStatementGeneratorRecipient.RenderedPageCount );
 
@@ -394,7 +395,6 @@ namespace Rock.StatementGenerator
                     mergeFields.Add( "State", mailingAddress.State );
                     mergeFields.Add( "PostalCode", mailingAddress.PostalCode );
                     mergeFields.Add( "Country", mailingAddress.Country );
-                    recipientResult.Country = mailingAddress.Country;
                 }
                 else
                 {
@@ -506,9 +506,9 @@ namespace Rock.StatementGenerator
                     "AccountSummary",
                     transactionDetailListCash
                         .GroupBy( t => t.Account.PublicName )
-                        .Select( s => new
+                        .Select( s => new AccountSummaryInfo
                         {
-                            AccountName = s.FirstOrDefault().Account.PublicName ?? s.Key,
+                            Account = s.FirstOrDefault().Account,
                             Total = s.Sum( a => a.Amount ),
                             Order = s.Max( a => a.Account.Order )
                         } )
@@ -518,9 +518,9 @@ namespace Rock.StatementGenerator
                     "AccountSummaryNonCash",
                     transactionDetailListNonCash
                         .GroupBy( t => t.Account.PublicName )
-                        .Select( s => new
+                        .Select( s => new AccountSummaryInfo
                         {
-                            AccountName = s.FirstOrDefault().Account.PublicName ?? s.Key,
+                            Account = s.FirstOrDefault().Account,
                             Total = s.Sum( a => a.Amount ),
                             Order = s.Max( a => a.Account.Order )
                         } )
@@ -917,6 +917,173 @@ namespace Rock.StatementGenerator
             }
 
             return financialTransactionQry;
+        }
+
+        private class AccountSummaryInfo : RockDynamic
+        {
+            public string AccountName => Account?.PublicName;
+            public int? ParentAccountId => Account?.ParentAccountId;
+            public string ParentAccountName => Account?.ParentAccount.PublicName;
+            public decimal Total { get; set; }
+            public int Order { get; set; }
+            public FinancialAccount Account { get; internal set; }
+        }
+
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <seealso cref="Rock.Utility.RockDynamic" />
+        private class PledgeSummary : RockDynamic
+        {
+            /// <summary>
+            /// Gets or sets the pledge list.
+            /// </summary>
+            /// <value>
+            /// The pledge list.
+            /// </value>
+            public List<Rock.Model.FinancialPledge> PledgeList { get; set; }
+
+            /// <summary>
+            /// Gets or sets the pledge start date.
+            /// </summary>
+            /// <value>
+            /// The pledge start date.
+            /// </value>
+            public DateTime? PledgeStartDate => PledgeList.Min( a => a.StartDate );
+
+            /// <summary>
+            /// Gets or sets the pledge end date.
+            /// </summary>
+            /// <value>
+            /// The pledge end date.
+            /// </value>
+            public DateTime? PledgeEndDate => PledgeList.Max( a => a.EndDate );
+
+            /// <summary>
+            /// Gets or sets the amount pledged.
+            /// </summary>
+            /// <value>
+            /// The amount pledged.
+            /// </value>
+            public decimal AmountPledged => PledgeList.Sum( a => a.TotalAmount );
+
+            /// <summary>
+            /// Gets or sets the pledge account identifier.
+            /// </summary>
+            /// <value>
+            /// The pledge account identifier.
+            /// </value>
+            public int AccountId
+            {
+                get
+                {
+                    return Account.Id;
+                }
+            }
+
+            /// <summary>
+            /// Gets or sets the pledge account.
+            /// </summary>
+            /// <value>
+            /// The pledge account.
+            /// </value>
+            public string AccountName
+            {
+                get
+                {
+                    return Account.Name;
+                }
+            }
+
+            /// <summary>
+            /// Gets or sets the pledge account.
+            /// </summary>
+            /// <value>
+            /// The pledge account.
+            /// </value>
+            public string AccountPublicName
+            {
+                get
+                {
+                    return Account.PublicName;
+                }
+            }
+
+            /// <summary>
+            /// Gets or sets the account.
+            /// </summary>
+            /// <value>
+            /// The account.
+            /// </value>
+            public Rock.Model.FinancialAccount Account { get; set; }
+
+            /// <summary>
+            /// Gets the percent complete.
+            /// </summary>
+            /// <value>
+            /// The percent complete.
+            /// </value>
+            public int PercentComplete => ( int ) ( ( this.AmountGiven * 100 ) / this.AmountPledged );
+
+            /// <summary>
+            /// Gets or sets the amount remaining.
+            /// </summary>
+            /// <value>
+            /// The amount remaining.
+            /// </value>
+            public decimal AmountRemaining => ( this.AmountGiven > this.AmountPledged ) ? 0 : ( this.AmountPledged - this.AmountGiven );
+
+            /// <summary>
+            /// Gets or sets the amount given.
+            /// </summary>
+            /// <value>
+            /// The amount given.
+            /// </value>
+            public decimal AmountGiven { get; set; }
+
+            /// <summary>
+            /// Returns a <see cref="System.String" /> that represents this instance.
+            /// </summary>
+            /// <returns>
+            /// A <see cref="System.String" /> that represents this instance.
+            /// </returns>
+            public override string ToString()
+            {
+                return $"{this.AccountName} AmountGiven:{this.AmountGiven}, AmountPledged:{this.AmountPledged}";
+            }
+        }
+    }
+
+    /// <summary>
+    /// 
+    /// </summary>
+    /// <seealso cref="System.Exception" />
+    public class FinancialGivingStatementException : Exception
+    {
+        /// <summary>
+        /// Initializes a new instance of the <see cref="FinancialGivingStatementException"/> class.
+        /// </summary>
+        /// <param name="message">The message that describes the error.</param>
+        public FinancialGivingStatementException( string message )
+            : base( message )
+        {
+        }
+    }
+
+    /// <summary>
+    /// 
+    /// </summary>
+    /// <seealso cref="System.ArgumentException" />
+    public class FinancialGivingStatementArgumentException : ArgumentException
+    {
+        /// <summary>
+        /// Initializes a new instance of the <see cref="FinancialGivingStatementArgumentException"/> class.
+        /// </summary>
+        /// <param name="message">The error message that explains the reason for the exception.</param>
+        public FinancialGivingStatementArgumentException( string message )
+            : base( message )
+        {
+
         }
     }
 }

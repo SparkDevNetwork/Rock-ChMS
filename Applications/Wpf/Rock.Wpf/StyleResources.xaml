@@ -829,6 +829,19 @@
         <Setter Property="Margin" Value="0,0,0,0" />
     </Style>
 
+    <Style x:Key="borderStyleMain" TargetType="{x:Type Border}">
+        <Setter Property="BorderBrush" Value="{StaticResource BorderBrush}" />
+        <Setter Property="BorderThickness" Value="1" />
+        <Setter Property="Margin" Value="20,20,20,20" />
+    </Style>
+
+    <Style
+        x:Key="borderStyleMainWithToolMenu"
+        BasedOn="{StaticResource borderStyleMain}"
+        TargetType="{x:Type Border}">
+        <Setter Property="Margin" Value="20,36,20,20" />
+    </Style>
+
     <!--
         Input Styles
     -->

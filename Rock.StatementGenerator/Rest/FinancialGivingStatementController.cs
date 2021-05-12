@@ -27,7 +27,6 @@ using Rock.Data;
 using Rock.Financial;
 using Rock.Model;
 using Rock.Rest.Filters;
-using Rock.StatementGenerator.Exceptions;
 
 namespace Rock.StatementGenerator.Rest
 {
@@ -71,19 +70,6 @@ namespace Rock.StatementGenerator.Rest
         /// </summary>
         /// <param name="uploadGivingStatementData">The upload giving statement data.</param>
         /// <returns></returns>
-        /// <exception cref="Rock.StatementGenerator.Exceptions.FinancialGivingStatementArgumentException">
-        /// FinancialStatementIndividualSaveOptions must be specified
-        /// or
-        /// FinancialStatementIndividualSaveOptions.SaveStatementsForIndividuals is not enabled.
-        /// or
-        /// Document Type must be specified
-        /// or
-        /// DocumentType must be specified
-        /// or
-        /// DocumentType.BinaryFileType must be specified
-        /// or
-        /// FinancialStatementGeneratorRecipient must be specified
-        /// </exception>
         [Authenticate, Secured]
         [HttpPost]
         [System.Web.Http.Route( "api/FinancialGivingStatement/UploadGivingStatementDocument" )]
@@ -110,11 +96,14 @@ namespace Rock.StatementGenerator.Rest
                 throw new FinancialGivingStatementArgumentException( "Document Type must be specified" );
             }
 
-            // Ensure the caller is authorized to save a document of the specified type.
             var documentType = new DocumentTypeService( rockContext )
-                    .Queryable( "BinaryFileType" )
+                    .Queryable()
                     .AsNoTracking()
                     .Where( dt => dt.Id == documentTypeId.Value )
+                    .Select( a => new
+                    {
+                        BinaryFileTypeId = ( int? ) a.BinaryFileTypeId
+                    } )
                     .FirstOrDefault();
 
             if ( documentType == null )
@@ -122,7 +111,7 @@ namespace Rock.StatementGenerator.Rest
                 throw new FinancialGivingStatementArgumentException( "DocumentType must be specified" );
             }
 
-            if ( documentType.BinaryFileType == null )
+            if ( documentType.BinaryFileTypeId == null )
             {
                 throw new FinancialGivingStatementArgumentException( "DocumentType.BinaryFileType must be specified" );
             }
@@ -153,11 +142,11 @@ namespace Rock.StatementGenerator.Rest
             }
             else
             {
-                var headOfHouseHold = givingFamilyMembersQuery.HeadOfHousehold();
+                var headOfHouseHoldPersonId = givingFamilyMembersQuery.GetHeadOfHousehold( s => ( int? ) s.PersonId );
                 documentPersonIds = new List<int>();
-                if ( headOfHouseHold != null )
+                if ( headOfHouseHoldPersonId.HasValue )
                 {
-                    documentPersonIds.Add( headOfHouseHold.Id );
+                    documentPersonIds.Add( headOfHouseHoldPersonId.Value );
                 }
             }
 
@@ -171,11 +160,15 @@ namespace Rock.StatementGenerator.Rest
                 Document document = null;
                 if ( saveOptions.OverwriteDocumentsOfThisTypeCreatedOnSameDate == true )
                 {
+                    // See if there is an existing one.
+                    // Note include BinaryFile in the Get since we'll have to mark it temporary if it exists.
                     document = documentService.Queryable().Where(
                         a => a.DocumentTypeId == documentTypeId.Value
                         && a.EntityId == documentPersonId
                         && a.CreatedDateTime.HasValue
-                        && a.CreatedDateTime >= today && a.CreatedDateTime < tomorrow ).FirstOrDefault();
+                        && a.CreatedDateTime >= today && a.CreatedDateTime < tomorrow )
+                        .Include( a => a.BinaryFile )
+                        .FirstOrDefault();
                 }
 
                 if ( document == null )

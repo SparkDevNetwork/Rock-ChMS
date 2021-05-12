@@ -112,7 +112,6 @@ namespace Rock.Apps.StatementGenerator
 
             RockConfig rockConfig = RockConfig.Load();
 
-
             UpdateProgress( "Connecting...", 0, 0 );
 
             // Login and setup options for REST calls
@@ -163,6 +162,8 @@ namespace Rock.Apps.StatementGenerator
             _statementGeneratorRecipientPdfResults = new ConcurrentBag<StatementGeneratorRecipientPdfResult>();
 
             IronPdf.Installation.TempFolderPath = Path.Combine( ReportRockStatementGeneratorTemporaryDirectory, "IronPdf" );
+            var converter = IronPdf.Installation.InitializeTempFolderPathAndCreateConverter();
+            IronPdf.Installation.SendAnonymousAnalyticsAndCrashData = false;
             Directory.CreateDirectory( IronPdf.Installation.TempFolderPath );
 
             ReportRockStatementGeneratorStatementsTemporaryDirectory = Path.Combine( ReportRockStatementGeneratorTemporaryDirectory, "Statements" );
@@ -186,13 +187,36 @@ namespace Rock.Apps.StatementGenerator
                 SaveRecipientListStatus( recipientList );
             }
 
+            if ( this.Options.EnablePageCountPredetermination )
+            {
+                foreach ( var recipient in recipientList )
+                {
+                    if ( _cancelRunning == true )
+                    {
+                        break;
+                    }
 
+                    UpdateProgress( "Generating Individual Documents (2nd Pass)...", recipientProgressPosition++, recipientProgressMax );
 
+                    StartGenerateStatementForRecipient( recipient, restClient );
+                    SaveRecipientListStatus( recipientList );
+                }
+            }
+
+            // all the render tasks should be done, but just in case
+            UpdateProgress( $"Finishing up tasks", 0, 0 );
             Task.WaitAll( _tasks.ToArray() );
 
             // some of the 'Save and Upload' tasks could be running, so wait for those
-            UpdateProgress( "Finishing up document uploads...", 0, 0 );
-            Task.WaitAll( _saveAndUploadTasks.ToArray() );
+            var remainingDocumentUploadTasks = _saveAndUploadTasks.ToArray().Where( a => a.Status != TaskStatus.RanToCompletion ).ToList();
+            while ( remainingDocumentUploadTasks.Any() )
+            {
+                var finishedTask = Task.WhenAny( remainingDocumentUploadTasks.ToArray() );
+                remainingDocumentUploadTasks = remainingDocumentUploadTasks.ToArray().Where( a => a.Status != TaskStatus.RanToCompletion ).ToList();
+                UpdateProgress( $"Finishing up {remainingDocumentUploadTasks.Count() } document uploads...", 0, 0 );
+            }
+
+            Task.WaitAll( remainingDocumentUploadTasks.ToArray() );
 
             if ( _cancelRunning )
             {
@@ -221,6 +245,17 @@ namespace Rock.Apps.StatementGenerator
                 }
 
                 WriteStatementPDFs( financialStatementReportConfiguration, _statementGeneratorRecipientPdfResults );
+            }
+
+            UpdateProgress( "Cleaning up temporary files.", 0, 0 );
+
+            // remove temp files (including ones from opted out)
+            foreach ( var tempFile in _statementGeneratorRecipientPdfResults.Select( a => a.PdfTempFileName ) )
+            {
+                if ( File.Exists( tempFile ) )
+                {
+                    File.Delete( tempFile );
+                }
             }
 
             UpdateProgress( "Complete", 0, 0 );
@@ -270,7 +305,7 @@ namespace Rock.Apps.StatementGenerator
             _lastRenderPDFFromHtmlTask = new Task( () =>
             {
                 var pdfOptions = GetPdfPrintOptions( _reportSettings.PDFSettings, financialStatementGeneratorRecipientResult );
-                statementGeneratorPdfResult.PdfTempFileName = Path.Combine( ReportRockStatementGeneratorStatementsTemporaryDirectory, $"GroupId_{financialStatementGeneratorRecipientResult.GroupId}_PersonID_{financialStatementGeneratorRecipientResult.PersonId}.pdf" );
+                statementGeneratorPdfResult.PdfTempFileName = Path.Combine( ReportRockStatementGeneratorStatementsTemporaryDirectory, $"GroupId_{recipient.GroupId}_PersonID_{recipient.PersonId}.pdf" );
 
                 Stopwatch generatePdfStopWatch = Stopwatch.StartNew();
 
@@ -306,6 +341,7 @@ namespace Rock.Apps.StatementGenerator
                {
                    Stopwatch savePdfStopWatch = Stopwatch.StartNew();
                    recipient.RenderedPageCount = pdfDocument.PageCount;
+                   pdfDocument.Flatten();
 
                    pdfDocument.SaveAs( statementGeneratorPdfResult.PdfTempFileName );
 
@@ -346,7 +382,6 @@ namespace Rock.Apps.StatementGenerator
                 if ( recordsCompleted > 2 && Debugger.IsAttached && recordsCompleted % 10 == 0 )
                 {
                     _generatePdfTimingsMS.Add( generatePdfStopWatch.Elapsed.TotalMilliseconds );
-                    var saveAndUploadTaskCount = _saveAndUploadTasks.ToArray().Where( a => a.Status != TaskStatus.RanToCompletion ).Count();
 
                     var averageGetStatementHtmlTimingsMS = _getStatementHtmlTimingsMS.Any() ? Math.Round( _getStatementHtmlTimingsMS.Average(), 0 ) : 0;
                     var averageWaitForLastTaskTimingsMS = _waitForLastTaskTimingsMS.Any() ? Math.Round( _waitForLastTaskTimingsMS.Average(), 0 ) : 0;
@@ -360,7 +395,6 @@ Generate     PDF Avg: {averageGeneratePDFTimingMS} ms (useUniversalRenderJob:{us
 GetStatementHtml Avg: {averageGetStatementHtmlTimingsMS} ms)
 WaitForLastTask  Avg: {averageWaitForLastTaskTimingsMS} ms)
 Save/Upload  PDF Avg: {averageSaveAndUploadPDFTimingMS} ms)
-saveAndUploadTaskCount: {saveAndUploadTaskCount}
 
 _recordsCompleted:{recordsCompleted}
 " );
@@ -507,7 +541,7 @@ _recordsCompleted:{recordsCompleted}
                 return;
             }
 
-            var recipientList = statementGeneratorRecipientPdfResults.Where( a => a.PdfDocument != null ).ToList();
+            var recipientList = statementGeneratorRecipientPdfResults.Where( a => a.PdfTempFileName.IsNotNullOrWhitespace() ).ToList();
 
             if ( financialStatementReportConfiguration.ExcludeOptedOutIndividuals )
             {
@@ -524,52 +558,129 @@ _recordsCompleted:{recordsCompleted}
                 recipientList = recipientList.Where( a => a.IsInternationalAddress == false ).ToList();
             }
 
-            var loadingPdfProgressMax = recipientList.Count;
-            var loadingPdfProgressPosition = 0;
-
-            // load documents. We'll need them all loaded in case we needed to sort by PageNumber.
-            foreach ( var result in recipientList )
-            {
-                result.PdfDocument = PdfDocument.FromFile( result.PdfTempFileName );
-                Interlocked.Increment( ref _recordsCompleted );
-                UpdateProgress( "Loading PDFs", loadingPdfProgressPosition++, loadingPdfProgressMax );
-            }
-
             IOrderedEnumerable<StatementGeneratorRecipientPdfResult> sortedRecipientList = SortByPrimaryAndSecondaryOrder( financialStatementReportConfiguration, recipientList );
             recipientList = sortedRecipientList.ToList();
 
-            // remove temp files (including ones from opted out)
-            foreach ( var tempFile in statementGeneratorRecipientPdfResults.Select( a => a.PdfTempFileName ) )
+            var useChapters = financialStatementReportConfiguration.MaxStatementsPerChapter.HasValue;
+            var splitOnPrimary = financialStatementReportConfiguration.SplitFilesOnPrimarySortValue;
+
+            Dictionary<string, List<StatementGeneratorRecipientPdfResult>> recipientsByPrimarySortKey;
+            if ( financialStatementReportConfiguration.PrimarySortOrder == FinancialStatementOrderBy.PageCount )
             {
-                if ( File.Exists( tempFile ) )
-                {
-                    File.Delete( tempFile );
-                }
+                recipientsByPrimarySortKey = recipientList
+                    .GroupBy( k => k.RenderedPageCount )
+                    .ToDictionary( k => k.Key.ToString(), v => v.ToList() );
+            }
+            else if ( financialStatementReportConfiguration.PrimarySortOrder == FinancialStatementOrderBy.LastName )
+            {
+                recipientsByPrimarySortKey = recipientList
+                    .GroupBy( k => k.LastName )
+                    .ToDictionary( k => k.Key, v => v.ToList() );
+            }
+            else
+            {
+                // group by postal code
+                recipientsByPrimarySortKey = recipientList
+                    .GroupBy( k => k.PostalCode ?? "00000" )
+                    .ToDictionary( k =>
+                    k.Key, v => v.ToList() );
             }
 
-            var maxStatementsPerChapter = financialStatementReportConfiguration.MaxStatementsPerChapter;
+            // make sure the directory exists
+            Directory.CreateDirectory( financialStatementReportConfiguration.DestinationFolder );
 
-            var useChapters = financialStatementReportConfiguration.MaxStatementsPerChapter.HasValue;
-
-            if ( !useChapters )
+            if ( splitOnPrimary )
             {
-                // no chapters, so just write all to one single document
-                var allPdfs = recipientList.Select( a => a.PdfDocument ).Where( a => a != null ).ToList();
-                if ( !allPdfs.Any() )
+                foreach ( var primarySort in recipientsByPrimarySortKey )
                 {
-                    return;
+                    var primarySortFileName = $"{financialStatementReportConfiguration.FilenamePrefix}{primarySort.Key}.pdf".MakeValidFileName();
+                    var sortedRecipients = SortByPrimaryAndSecondaryOrder( financialStatementReportConfiguration, primarySort.Value );
+                    SaveToMergedDocument( Path.Combine( financialStatementReportConfiguration.DestinationFolder, primarySortFileName ), sortedRecipients.ToList() );
                 }
-
-                var singleFinalDoc = IronPdf.PdfDocument.Merge( allPdfs );
+            }
+            else if ( useChapters )
+            {
+                SaveToChapters( financialStatementReportConfiguration, recipientsByPrimarySortKey );
+            }
+            else
+            {
                 var singleFileName = Path.Combine( financialStatementReportConfiguration.DestinationFolder, "statements.pdf" );
+                SaveToMergedDocument( singleFileName, recipientList );
 
-                singleFinalDoc.PrintToFile( singleFileName );
                 return;
             }
+        }
 
-            // saving as chapter documents
+        /// <summary>
+        /// Saves to chapters.
+        /// </summary>
+        /// <param name="financialStatementReportConfiguration">The financial statement report configuration.</param>
+        /// <param name="recipientsByPrimarySortKey">The recipients by primary sort key.</param>
+        private void SaveToChapters( FinancialStatementReportConfiguration financialStatementReportConfiguration, Dictionary<string, List<StatementGeneratorRecipientPdfResult>> recipientsByPrimarySortKey )
+        {
+            var maxStatementsPerChapter = financialStatementReportConfiguration.MaxStatementsPerChapter.Value;
+            List<StatementGeneratorRecipientPdfResult> recipientsForChapter = new List<StatementGeneratorRecipientPdfResult>();
+            int chapterIndex = 1;
+            string chapterStartPrimarySortKey = recipientsByPrimarySortKey.Keys.FirstOrDefault();
+            string currentPrimarySortKey = chapterStartPrimarySortKey;
 
-            // TODO
+            foreach ( var primarySort in recipientsByPrimarySortKey )
+            {
+                currentPrimarySortKey = primarySort.Key;
+                if ( financialStatementReportConfiguration.PreventSplittingPrimarySortValuesAcrossChapters )
+                {
+                    recipientsForChapter.AddRange( primarySort.Value );
+
+                    if ( recipientsForChapter.Count >= maxStatementsPerChapter )
+                    {
+                        SaveChapterDoc( financialStatementReportConfiguration, chapterIndex, chapterStartPrimarySortKey, currentPrimarySortKey, recipientsForChapter );
+                        chapterStartPrimarySortKey = primarySort.Key;
+                        recipientsForChapter = new List<StatementGeneratorRecipientPdfResult>();
+                        chapterIndex++;
+                    }
+                }
+                else
+                {
+                    foreach ( var recipient in primarySort.Value )
+                    {
+                        recipientsForChapter.Add( recipient );
+
+                        if ( recipientsForChapter.Count >= maxStatementsPerChapter )
+                        {
+                            SaveChapterDoc( financialStatementReportConfiguration, chapterIndex, chapterStartPrimarySortKey, currentPrimarySortKey, recipientsForChapter );
+                            chapterStartPrimarySortKey = primarySort.Key;
+                            recipientsForChapter = new List<StatementGeneratorRecipientPdfResult>();
+                            chapterIndex++;
+                        }
+                    }
+                }
+            }
+
+            if ( recipientsForChapter.Any() )
+            {
+                SaveChapterDoc( financialStatementReportConfiguration, chapterIndex, chapterStartPrimarySortKey, currentPrimarySortKey, recipientsForChapter );
+            }
+        }
+
+        private void SaveChapterDoc( FinancialStatementReportConfiguration financialStatementReportConfiguration, int chapterIndex, string chapterStartPrimarySortKey, string chapterEndPrimarySortKey, List<StatementGeneratorRecipientPdfResult> statementsForChapter )
+        {
+            var primarySortRange = $"{chapterStartPrimarySortKey}-{chapterEndPrimarySortKey}";
+            var chapterFileName = $"{financialStatementReportConfiguration.FilenamePrefix}{primarySortRange}-{chapterIndex}.pdf".MakeValidFileName();
+            var sortedRecipients = SortByPrimaryAndSecondaryOrder( financialStatementReportConfiguration, statementsForChapter );
+            SaveToMergedDocument( Path.Combine( financialStatementReportConfiguration.DestinationFolder, chapterFileName ), sortedRecipients.ToList() );
+        }
+
+        private void SaveToMergedDocument( string mergedFileName, List<StatementGeneratorRecipientPdfResult> recipientList )
+        {
+            // no chapters, so just write all to one single document
+            var allPdfs = recipientList.Select( a => a.GetPdfDocument() ).Where( a => a != null ).ToList();
+            if ( !allPdfs.Any() )
+            {
+                return;
+            }
+            
+            var singleFinalDoc = IronPdf.PdfDocument.Merge( allPdfs );
+            singleFinalDoc.SaveAs( mergedFileName );
         }
 
         /// <summary>
@@ -586,7 +697,7 @@ _recordsCompleted:{recordsCompleted}
             {
                 case FinancialStatementOrderBy.PageCount:
                     {
-                        sortedRecipientList = recipientList.OrderBy( a => a.PdfDocument.PageCount );
+                        sortedRecipientList = recipientList.OrderBy( a => a.RenderedPageCount );
                         break;
                     }
                 case FinancialStatementOrderBy.PostalCode:
@@ -606,7 +717,7 @@ _recordsCompleted:{recordsCompleted}
             {
                 case FinancialStatementOrderBy.PageCount:
                     {
-                        sortedRecipientList = sortedRecipientList.ThenBy( a => a.PdfDocument.PageCount );
+                        sortedRecipientList = sortedRecipientList.ThenBy( a => a.RenderedPageCount );
                         break;
                     }
                 case FinancialStatementOrderBy.PostalCode:
@@ -623,28 +734,6 @@ _recordsCompleted:{recordsCompleted}
             }
 
             return sortedRecipientList;
-        }
-
-        /// <summary>
-        /// Saves the PDF file and Prompts if the file seems to be open
-        /// </summary>
-        /// <param name="resultPdf">The result PDF.</param>
-        /// <param name="filePath">The file path.</param>
-        private static void SavePdfFile( PdfDocument resultPdf, string filePath )
-        {
-            if ( File.Exists( filePath ) )
-            {
-                try
-                {
-                    File.Delete( filePath );
-                }
-                catch ( Exception )
-                {
-                    System.Windows.MessageBox.Show( "Unable to write save PDF File. Make sure you don't have the file open then press OK to try again.", "Warning", System.Windows.MessageBoxButton.OK );
-                }
-            }
-
-            resultPdf.SaveAs( filePath );
         }
 
         /// <summary>
@@ -717,6 +806,14 @@ _recordsCompleted:{recordsCompleted}
         public FinancialStatementGeneratorRecipientResult StatementGeneratorRecipientResult { get; private set; }
 
         /// <summary>
+        /// Gets the recipient.
+        /// </summary>
+        /// <value>
+        /// The recipient.
+        /// </value>
+        public FinancialStatementGeneratorRecipient Recipient => StatementGeneratorRecipientResult.Recipient;
+
+        /// <summary>
         /// Gets or sets the name of the PDF temporary file.
         /// </summary>
         /// <value>
@@ -730,7 +827,7 @@ _recordsCompleted:{recordsCompleted}
         /// <value>
         /// The last name.
         /// </value>
-        public string LastName => StatementGeneratorRecipientResult.LastName;
+        public string LastName => Recipient.LastName;
 
         /// <summary>
         /// Gets the name of the nick.
@@ -738,7 +835,7 @@ _recordsCompleted:{recordsCompleted}
         /// <value>
         /// The name of the nick.
         /// </value>
-        public string NickName => StatementGeneratorRecipientResult.NickName;
+        public string NickName => Recipient.NickName;
 
         /// <summary>
         /// The ZipCode/PostalCode for the address on the statement. This will be used in creating merged reports.
@@ -746,7 +843,15 @@ _recordsCompleted:{recordsCompleted}
         /// <value>
         /// The zip code.
         /// </value>
-        public string PostalCode => StatementGeneratorRecipientResult.PostalCode;
+        public string PostalCode => Recipient.PostalCode;
+
+        /// <summary>
+        /// Gets the rendered page count.
+        /// </summary>
+        /// <value>
+        /// The rendered page count.
+        /// </value>
+        public int RenderedPageCount => Recipient.RenderedPageCount ?? 0;
 
         /// <summary>
         /// The total amount of contributions reported on the statement.
@@ -765,7 +870,7 @@ _recordsCompleted:{recordsCompleted}
         public decimal? PledgeTotal => StatementGeneratorRecipientResult.PledgeTotal;
 
         /// <inheritdoc cref="FinancialStatementGeneratorRecipientResult.Country"/>
-        public string Country => StatementGeneratorRecipientResult.Country;
+        public string Country => Recipient.Country;
 
         /// <summary>
         /// Gets a value indicating whether this instance is international address.
@@ -773,11 +878,14 @@ _recordsCompleted:{recordsCompleted}
         /// <value>
         ///   <c>true</c> if this instance is international address; otherwise, <c>false</c>.
         /// </value>
-        public bool IsInternationalAddress => StatementGeneratorRecipientResult.IsInternationalAddress;
+        public bool IsInternationalAddress => Recipient.IsInternationalAddress;
 
         /// <summary>
         /// The PDF document
         /// </summary>
-        internal PdfDocument PdfDocument;
+        internal PdfDocument GetPdfDocument()
+        {
+            return PdfDocument.FromFile( this.PdfTempFileName );
+        }
     }
 }

@@ -104,6 +104,15 @@ namespace Rock.Financial
         public bool EnablePageCountPredetermination { get; set; } = false;
 
         /// <summary>
+        /// Gets or sets the render medium. This is used as a MergeField that the StatementLava can use.
+        /// For example, set RenderMedium 'Block' if this will be rendered in a Block
+        /// </summary>
+        /// <value>
+        /// The render medium.
+        /// </value>
+        public string RenderMedium { get; set; }
+
+        /// <summary>
         /// Gets or sets the individual save options.
         /// </summary>
         /// <value>

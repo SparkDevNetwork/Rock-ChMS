@@ -26,8 +26,32 @@ namespace Rock.Financial
     /// </summary>
     /// <seealso cref="FinancialStatementGeneratorRecipient" />
     [RockClientInclude( "Recipient Result Information for the Statement Generator" )]
-    public class FinancialStatementGeneratorRecipientResult : FinancialStatementGeneratorRecipient
+    public class FinancialStatementGeneratorRecipientResult
     {
+        /// <summary>
+        /// Initializes a new instance of the <see cref="FinancialStatementGeneratorRecipientResult"/> class.
+        /// </summary>
+        public FinancialStatementGeneratorRecipientResult()
+        {
+        }
+
+        /// <summary>
+        /// Initializes a new instance of the <see cref="FinancialStatementGeneratorRecipientResult"/> class.
+        /// </summary>
+        /// <param name="recipient">The recipient.</param>
+        public FinancialStatementGeneratorRecipientResult( FinancialStatementGeneratorRecipient recipient)
+        {
+            Recipient = recipient;
+        }
+
+        /// <summary>
+        /// Gets or sets the recipient.
+        /// </summary>
+        /// <value>
+        /// The recipient.
+        /// </value>
+        public FinancialStatementGeneratorRecipient Recipient { get; set; }
+
         /// <summary>
         /// Gets or sets the HTML.
         /// NOTE: If this is NULL/EmptyString or OptedOut == True, don't show the statement
@@ -68,7 +92,6 @@ namespace Rock.Financial
         /// The pledge total.
         /// </value>
         public decimal? PledgeTotal { get; set; }
-
     }
 
     /// <summary>

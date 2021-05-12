@@ -10,11 +10,7 @@
     Style="{StaticResource pageBackground}"
     mc:Ignorable="d">
 
-
-    <Border
-        Margin="20"
-        BorderBrush="{StaticResource BorderBrush}"
-        BorderThickness="1">
+    <Border Style="{StaticResource borderStyleMain}">
 
         <Grid Background="White">
 
@@ -23,7 +19,6 @@
                 <RowDefinition />
                 <RowDefinition Height="60" />
             </Grid.RowDefinitions>
-
 
             <Border
                 Grid.Row="0"
@@ -38,8 +33,6 @@
                         Style="{StaticResource labelStyleStepCaption}" />
                 </StackPanel>
             </Border>
-
-
 
             <StackPanel Grid.Row="1" Margin="10">
                 <Label Content="Templates Available" Style="{StaticResource labelStyleCaption}" />
