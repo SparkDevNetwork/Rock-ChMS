@@ -17,8 +17,8 @@
 using System;
 using System.Collections.Generic;
 using System.Data.Entity;
-using System.Web.UI;
 using System.Linq;
+using System.Web.UI;
 
 using Rock.Data;
 using Rock.Model;
@@ -33,7 +33,6 @@ namespace Rock.Field.Types
     [Serializable]
     public class FinancialStatementTemplateFieldType : FieldType, IEntityFieldType
     {
-
         #region Formatting
 
         /// <summary>
@@ -58,7 +57,6 @@ namespace Rock.Field.Types
             }
 
             return base.FormatValue( parentControl, formattedValue, null, condensed );
-
         }
 
         #endregion

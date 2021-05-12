@@ -15,14 +15,11 @@
 // </copyright>
 //
 using System;
-using System.Data.Entity;
 using System.Linq;
 using System.Web.UI.WebControls;
 
 using Rock.Data;
-using Rock.Financial;
 using Rock.Model;
-using Rock.Web.Cache;
 
 namespace Rock.Web.UI.Controls
 {
@@ -62,7 +59,6 @@ namespace Rock.Web.UI.Controls
             }
 
             this.SetValue( selectedItem );
-
         }
     }
 }
