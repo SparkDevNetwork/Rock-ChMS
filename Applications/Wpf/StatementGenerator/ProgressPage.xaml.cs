@@ -165,8 +165,6 @@ namespace Rock.Apps.StatementGenerator
         /// <summary>
         /// The _start progress date time
         /// </summary>
-        private DateTime _startProgressDateTime = DateTime.MinValue;
-
         private DateTime _lastUpdate = DateTime.MinValue;
 
         /// <summary>
@@ -177,11 +175,6 @@ namespace Rock.Apps.StatementGenerator
         /// <param name="progressMessage">The progress message.</param>
         private void ShowProgress( int position, int max, string progressMessage )
         {
-            if ( position <= 1 )
-            {
-                _startProgressDateTime = DateTime.Now;
-            }
-
             var timeSinceLastUpdate = DateTime.Now - _lastUpdate;
 
             if ( timeSinceLastUpdate.Seconds < 1.0 && position != max )
@@ -215,7 +208,7 @@ namespace Rock.Apps.StatementGenerator
                     }
 
                     // put the current statements/second in stats box (easter egg)
-                    var duration = DateTime.Now - _startProgressDateTime;
+                    var duration = DateTime.Now - ContributionReport._startDateTime;
                     if ( duration.TotalSeconds > 1 )
                     {
                         double rate = position / duration.TotalSeconds;

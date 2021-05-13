@@ -25,7 +25,6 @@ using System.Threading;
 using System.Threading.Tasks;
 
 using IronPdf;
-using IronPdf.Threading;
 
 using Newtonsoft.Json;
 
@@ -98,6 +97,10 @@ namespace Rock.Apps.StatementGenerator
         private static bool _saveStatementsForIndividualsToDocument;
 
         private static RestClient _uploadPdfDocumentRestClient;
+        public static DateTime _startDateTime;
+
+        private static Stopwatch _stopwatchAll;
+        private static Stopwatch _stopwatchRenderPDFsOverall;
 
         /// <summary>
         /// Runs the report returning the number of statements that were generated
@@ -105,10 +108,11 @@ namespace Rock.Apps.StatementGenerator
         /// <returns></returns>
         public int RunReport()
         {
+            _startDateTime = DateTime.Now;
             var licenseKey = File.ReadAllText( "license.key" );
             IronPdf.License.LicenseKey = licenseKey;
-            var stopWatch = new Stopwatch();
-            stopWatch.Start();
+            _stopwatchAll = new Stopwatch();
+            _stopwatchAll.Start();
 
             RockConfig rockConfig = RockConfig.Load();
 
@@ -164,8 +168,8 @@ namespace Rock.Apps.StatementGenerator
             _statementGeneratorRecipientPdfResults = new ConcurrentBag<StatementGeneratorRecipientPdfResult>();
 
             IronPdf.Installation.TempFolderPath = Path.Combine( ReportRockStatementGeneratorTemporaryDirectory, "IronPdf" );
-            var converter = IronPdf.Installation.InitializeTempFolderPathAndCreateConverter();
-            IronPdf.Installation.SendAnonymousAnalyticsAndCrashData = false;
+            //var converter = IronPdf.Installation.InitializeTempFolderPathAndCreateConverter();
+            //IronPdf.Installation.SendAnonymousAnalyticsAndCrashData = false;
             Directory.CreateDirectory( IronPdf.Installation.TempFolderPath );
 
             ReportRockStatementGeneratorStatementsTemporaryDirectory = Path.Combine( ReportRockStatementGeneratorTemporaryDirectory, "Statements" );
@@ -174,8 +178,9 @@ namespace Rock.Apps.StatementGenerator
             _lastRenderPDFFromHtmlTask = null;
 
             var recipientProgressMax = recipientList.Count;
-            long recipientProgressPosition = 0;
 
+            _startDateTime = DateTime.Now;
+            _stopwatchRenderPDFsOverall = Stopwatch.StartNew();
             foreach ( var recipient in recipientList )
             {
                 if ( _cancelRunning == true )
@@ -183,16 +188,21 @@ namespace Rock.Apps.StatementGenerator
                     break;
                 }
 
-                UpdateProgress( "Generating Individual Documents...", recipientProgressPosition++, recipientProgressMax );
+                var recipientProgressPosition = Interlocked.Read( ref _recordsCompleted );
+
+                UpdateProgress( "Generating Individual Documents...", recipientProgressPosition, recipientProgressMax );
 
                 StartGenerateStatementForRecipient( recipient, restClient );
                 SaveRecipientListStatus( recipientList );
             }
 
-            _lastRenderPDFFromHtmlTask?.Wait();
-
             if ( this.Options.EnablePageCountPredetermination )
             {
+                // all the render tasks should be done, but just in case
+                UpdateProgress( $"Finishing up tasks (first pass)", 0, 0 );
+                Task.WaitAll( _tasks.ToArray() );
+
+                _recordsCompleted = 0;
                 foreach ( var recipient in recipientList )
                 {
                     if ( _cancelRunning == true )
@@ -200,7 +210,10 @@ namespace Rock.Apps.StatementGenerator
                         break;
                     }
 
-                    UpdateProgress( "Generating Individual Documents (2nd Pass)...", recipientProgressPosition++, recipientProgressMax );
+                    var recipientProgressPosition = Interlocked.Read( ref _recordsCompleted );
+                    var secondPassPosition = recipientProgressPosition / 2;
+
+                    UpdateProgress( "Generating Individual Documents (2nd Pass)...", recipientProgressPosition, recipientProgressMax );
 
                     StartGenerateStatementForRecipient( recipient, restClient );
                     SaveRecipientListStatus( recipientList );
@@ -266,13 +279,13 @@ namespace Rock.Apps.StatementGenerator
 
             UpdateProgress( "Complete", 0, 0 );
 
-            stopWatch.Stop();
-            var elapsedSeconds = stopWatch.ElapsedMilliseconds / 1000;
+            _stopwatchAll.Stop();
+            var elapsedSeconds = _stopwatchAll.ElapsedMilliseconds / 1000;
             Debug.WriteLine( $"{elapsedSeconds:n0} seconds" );
             Debug.WriteLine( $"{RecordCount:n0} statements" );
             if ( RecordCount > 0 )
             {
-                Debug.WriteLine( $"{( stopWatch.ElapsedMilliseconds / RecordCount ):n0}ms per statement" );
+                Debug.WriteLine( $"{( _stopwatchAll.ElapsedMilliseconds / RecordCount ):n0}ms per statement" );
             }
 
             return this.RecordCount;
@@ -306,7 +319,7 @@ namespace Rock.Apps.StatementGenerator
             _waitForLastTaskTimingsMS.Add( waitForLastTask.Elapsed.TotalMilliseconds );
 
             // DEBUG. Which of these methods is faster?
-            bool useUniversalRenderJob = true;
+            bool useUniversalRenderJob = false;
 
             _lastRenderPDFFromHtmlTask = new Task( () =>
             {
@@ -315,11 +328,11 @@ namespace Rock.Apps.StatementGenerator
 
                 Stopwatch generatePdfStopWatch = Stopwatch.StartNew();
 
-                IronPdf.PdfDocument pdfDocument;
+                IronPdf.PdfDocument pdfDocument = null;
 
                 if ( useUniversalRenderJob )
                 {
-                    UniversalRenderJob universalRenderJob = new UniversalRenderJob();
+                    /*UniversalRenderJob universalRenderJob = new UniversalRenderJob();
                     universalRenderJob.Options = pdfOptions;
                     universalRenderJob.Html = statementGeneratorPdfResult.StatementGeneratorRecipientResult.Html;
 
@@ -328,7 +341,7 @@ namespace Rock.Apps.StatementGenerator
                     //   -- Start a thread that saves the previously completed document to the temp directory and upload it (if configured to do so).
                     //   -- Get the HTML for the next recipient
                     var pdfBytes = universalRenderJob.DoRemoteRender();
-                    pdfDocument = new PdfDocument( pdfBytes );
+                    pdfDocument = new PdfDocument( pdfBytes );*/
                 }
                 else
                 {
@@ -349,7 +362,6 @@ namespace Rock.Apps.StatementGenerator
                {
                    Stopwatch savePdfStopWatch = Stopwatch.StartNew();
                    recipient.RenderedPageCount = pdfDocument.PageCount;
-                   pdfDocument.Flatten();
 
                    pdfDocument.SaveAs( statementGeneratorPdfResult.PdfTempFileName );
 
@@ -372,7 +384,7 @@ namespace Rock.Apps.StatementGenerator
                        }
                    }
 
-                   pdfDocument.Dispose();
+                   //pdfDocument.Dispose();
 
                    recipient.IsComplete = true;
                    if ( recordsCompleted > 2 && Debugger.IsAttached )
@@ -396,15 +408,19 @@ namespace Rock.Apps.StatementGenerator
                         : ( double? ) null;
 
                     Debug.WriteLine( $@"
-Generate     PDF Avg: {averageGeneratePDFTimingMS} ms (useUniversalRenderJob:{useUniversalRenderJob})
-GetStatementHtml Avg: {averageGetStatementHtmlTimingsMS} ms)
-WaitForLastTask  Avg: {averageWaitForLastTaskTimingsMS} ms)
-Save/Upload  PDF Avg: {averageSaveAndUploadPDFTimingMS} ms)
-
-_recordsCompleted:{recordsCompleted}
+GeneratePDF/thread Avg: {averageGeneratePDFTimingMS} ms (useUniversalRenderJob:{useUniversalRenderJob})
+GetStatementHtml   Avg: {averageGetStatementHtmlTimingsMS} ms)
+WaitForLastTask    Avg: {averageWaitForLastTaskTimingsMS} ms)
+Save/Upload  PDF   Avg: {averageSaveAndUploadPDFTimingMS} ms)
+Total PDFs Elapsed    : {_stopwatchRenderPDFsOverall.Elapsed.TotalMilliseconds} ms 
+_recordsCompleted     : {recordsCompleted}
+Overall ms/PDF     Avg: {_stopwatchRenderPDFsOverall.Elapsed.TotalMilliseconds / recordsCompleted} ms
+Overall PDF/sec    Avg: {recordsCompleted/ _stopwatchRenderPDFsOverall.Elapsed.TotalSeconds }/sec
 " );
                 }
             } );
+
+            _tasks.Add( _lastRenderPDFFromHtmlTask );
 
             _lastRenderPDFFromHtmlTask.Start();
         }
