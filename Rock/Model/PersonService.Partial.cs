@@ -4361,6 +4361,23 @@ FROM (
         }
 
         /// <summary>
+        /// Ensures the GivingId is correct for the given Person.Id. Updates via SQL.
+        /// </summary>
+        /// <param name="personId">The person identifier.</param>
+        /// <param name="rockContext">The rock context.</param>
+        public static void UpdateGivingId( int personId, RockContext rockContext )
+        {
+            var person = new PersonService( rockContext ).Get( personId );
+            var correctGivingId = person.GivingGroupId.HasValue ? $"G{ person.GivingGroupId.Value }" : $"P{ person.Id }";
+
+            // Make sure the GivingId is correct.
+            if ( person.GivingId != correctGivingId )
+            {
+                rockContext.Database.ExecuteSqlCommand( $"UPDATE [Person] SET [GivingId] = '{ correctGivingId }' WHERE [Id] = { personId }" );
+            }
+        }
+
+        /// <summary>
         /// Ensures the GivingId is correct for all person records in the database
         /// </summary>
         /// <param name="rockContext">The rock context.</param>
@@ -4541,5 +4558,41 @@ FROM (
 
         #endregion Anonymous Giver
 
+        /// <summary>
+        /// Gets the merge request query.
+        /// </summary>
+        /// <param name="rockContext">The rock context.</param>
+        /// <returns></returns>
+        public static IQueryable<EntitySet> GetMergeRequestQuery( RockContext rockContext = null )
+        {
+            if ( rockContext == null )
+            {
+                rockContext = new RockContext();
+            }
+
+            var entityTypeId = EntityTypeCache.GetId<Person>();
+            if ( entityTypeId == null )
+            {
+                return null;
+            }
+
+            var entitySetPurposeGuid = SystemGuid.DefinedValue.ENTITY_SET_PURPOSE_PERSON_MERGE_REQUEST.AsGuid();
+            var definedValueId = DefinedValueCache.GetId( entitySetPurposeGuid );
+            if ( definedValueId == null )
+            {
+                return null;
+            }
+
+            var entitySetService = new EntitySetService( rockContext );
+            var expirationDate = RockDateTime.Now;
+
+            var mergeRequestQry = entitySetService
+                .Queryable()
+                .Where( es => es.EntityTypeId == entityTypeId )
+                .Where( es => es.EntitySetPurposeValueId == definedValueId )
+                .Where( es => es.ExpireDateTime == null || es.ExpireDateTime > expirationDate );
+
+            return mergeRequestQry;
+        }
     }
 }
