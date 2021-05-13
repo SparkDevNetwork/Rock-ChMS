@@ -18,12 +18,16 @@ using System;
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.Linq;
+using System.Net;
+using System.Net.Http;
 using System.Web.UI;
 using System.Web.UI.WebControls;
 
 using Rock;
+using Rock.Blocks;
 using Rock.Data;
 using Rock.Model;
+using Rock.Net;
 using Rock.Web.Cache;
 using Rock.Web.UI;
 
@@ -36,8 +40,26 @@ namespace RockWeb.Blocks.Cms
     [Category( "CMS" )]
     [Description( "Displays play statistics for a Media Element." )]
 
-    public partial class MediaElementStatistics : RockBlock
+    public partial class MediaElementStatistics : RockBlock, IRockBlockType
     {
+        #region IRockBlockType
+
+        int IRockBlockType.BlockId
+        {
+            get
+            {
+                return ( ( IRockBlockType ) this ).BlockCache.Id;
+            }
+        }
+
+        BlockCache IRockBlockType.BlockCache { get; set; }
+
+        PageCache IRockBlockType.PageCache { get; set; }
+
+        RockRequestContext IRockBlockType.RequestContext { get; set; }
+
+        #endregion
+
         #region PageParameterKeys
 
         /// <summary>
@@ -79,27 +101,30 @@ namespace RockWeb.Blocks.Cms
             if ( !Page.IsPostBack )
             {
                 ShowDetail( PageParameter( PageParameterKey.MediaElementId ).AsInteger() );
-
-                RegisterStartupScript();
             }
-
         }
 
         /// <summary>
         /// Registers the startup script.
         /// </summary>
-        private void RegisterStartupScript()
+        private void RegisterStartupScript( Guid mediaElementGuid )
         {
             var script = string.Format( @"Sys.Application.add_load(function () {{
     Rock.controls.mediaElementStatistics.initialize({{
         chartId: '{0}',
+        defaultDaysBack: 90,
         defaultDataId: '{1}',
-        tabContainerId: '{2}'
+        tabContainerId: '{2}',
+        mediaElementGuid: '{3}',
+        blockGuid: '{4}'
     }});
 }});",
                 cChart.ClientID,
                 hfLast90DaysVideoData.ClientID,
-                pnlViewDetails.ClientID );
+                pnlViewDetails.ClientID,
+                mediaElementGuid,
+                BlockCache.Guid );
+
             RockPage.ClientScript.RegisterStartupScript( GetType(), "startup-script", script, true );
         }
 
@@ -111,34 +136,10 @@ namespace RockWeb.Blocks.Cms
         {
             var rockContext = new RockContext();
             var mediaElement = new MediaElementService( rockContext ).Get( mediaElementId );
-            var interactionChannelId = InteractionChannelCache.Get( Rock.SystemGuid.InteractionChannel.MEDIA_EVENTS ).Id;
 
-            // Get all the interactions for this media element and then pull
-            // in just the columns we need for performance.
-            var interactionData = new InteractionService( rockContext ).Queryable()
-                .Where( i => i.InteractionComponent.InteractionChannelId == interactionChannelId
-                    && i.InteractionComponent.EntityId == mediaElementId
-                    && i.Operation == "WATCH" )
-                .Select( i => new
-                {
-                    i.Id,
-                    i.InteractionDateTime,
-                    i.InteractionData
-                } )
-                .ToList();
+            var interactions = GetInteractions( mediaElement, null, rockContext );
 
-            // Do some post-processing on the data to parse the watch map and
-            // filter out any that had invalid watch maps.
-            var interactions = interactionData
-                .Select( i => new InteractionData
-                {
-                    InteractionDateTime = i.InteractionDateTime,
-                    WatchMap = i.InteractionData.FromJsonOrNull<WatchMapData>()
-                } )
-                .Where( i => i.WatchMap != null && i.WatchMap.WatchedPercentage > 0 )
-                .ToList();
-
-            lPanelTitle.Text = mediaElement.Name ?? "Statistics";
+            lPanelTitle.Text = mediaElement?.Name ?? "Statistics";
 
             // If we have no media element or no interactions yet then put up
             // a friendly message about not having any statistic data yet.
@@ -162,6 +163,46 @@ namespace RockWeb.Blocks.Cms
             ShowAllTimeDetails( mediaElement, interactions );
             ShowLast12MonthsDetails( mediaElement, interactions );
             ShowLast90DaysDetails( mediaElement, interactions );
+
+            RegisterStartupScript( mediaElement.Guid );
+        }
+
+        /// <summary>
+        /// Gets all of the interactions that have watch map data for the media element.
+        /// </summary>
+        /// <param name="mediaElement">The media element.</param>
+        /// <param name="newerThanDate">The optional date that interactions must be newer than.</param>
+        /// <param name="rockContext">The rock context to load from.</param>
+        /// <returns>A list of interaction data.</returns>
+        private static List<InteractionData> GetInteractions( MediaElement mediaElement, DateTime? newerThanDate, RockContext rockContext )
+        {
+            var interactionChannelId = InteractionChannelCache.Get( Rock.SystemGuid.InteractionChannel.MEDIA_EVENTS ).Id;
+
+            // Get all the interactions for this media element and then pull
+            // in just the columns we need for performance.
+            var interactionData = new InteractionService( rockContext ).Queryable()
+                .Where( i => i.InteractionComponent.InteractionChannelId == interactionChannelId
+                    && ( !newerThanDate.HasValue || i.InteractionDateTime > newerThanDate.Value )
+                    && i.InteractionComponent.EntityId == mediaElement.Id
+                    && i.Operation == "WATCH" )
+                .Select( i => new
+                {
+                    i.Id,
+                    i.InteractionDateTime,
+                    i.InteractionData
+                } )
+                .ToList();
+
+            // Do some post-processing on the data to parse the watch map and
+            // filter out any that had invalid watch maps.
+            return interactionData
+                .Select( i => new InteractionData
+                {
+                    InteractionDateTime = i.InteractionDateTime,
+                    WatchMap = i.InteractionData.FromJsonOrNull<WatchMapData>()
+                } )
+                .Where( i => i.WatchMap != null && i.WatchMap.WatchedPercentage > 0 )
+                .ToList();
         }
 
         /// <summary>
@@ -171,7 +212,7 @@ namespace RockWeb.Blocks.Cms
         /// <param name="interactions">The interactions.</param>
         /// <param name="dateSelector">The date selector used to determine the date of the interaction for grouping purposes.</param>
         /// <returns>A collection of <see cref="InteractionDataForDate"/> instances with the grouped data.</returns>
-        private List<InteractionDataForDate> GetInteractionDataForDates( MediaElement mediaElement, IEnumerable<InteractionData> interactions, Func<InteractionData, DateTime> dateSelector )
+        private static List<InteractionDataForDate> GetInteractionDataForDates( MediaElement mediaElement, IEnumerable<InteractionData> interactions, Func<InteractionData, DateTime> dateSelector )
         {
             // Group the interactions by date, using the provided date selector
             // function to get the date for the interaction.
@@ -206,7 +247,7 @@ namespace RockWeb.Blocks.Cms
         /// <returns>
         /// A collection of KPI metric snippets.
         /// </returns>
-        private List<string> GetStandardKpiMetrics( MediaElement mediaElement, List<InteractionData> interactions )
+        private static List<string> GetStandardKpiMetrics( MediaElement mediaElement, List<InteractionData> interactions )
         {
             var kpiMetrics = new List<string>();
 
@@ -231,7 +272,7 @@ namespace RockWeb.Blocks.Cms
         /// <param name="chartPeriodTitle">The period title that goes above the trend chart.</param>
         /// <param name="periodTitle">The period title that goes on each element of the trend chart.</param>
         /// <returns>A collection of HTML and lava snippets to render the trend charts.</returns>
-        private List<string> GetStandardTrendCharts( List<InteractionDataForDate> interactions, string chartPeriodTitle, string periodTitle )
+        private static List<string> GetStandardTrendCharts( List<InteractionDataForDate> interactions, string chartPeriodTitle, string periodTitle )
         {
             var engagement = interactions
                 .Select( i => $"[[ dataitem label:'{i.Engagement:n1}% average engagement {periodTitle} {i.Date.ToShortDateString()}' value:'{i.Engagement}']][[ enddataitem ]]" )
@@ -260,7 +301,7 @@ namespace RockWeb.Blocks.Cms
         /// <param name="mediaElement">The media element.</param>
         /// <param name="interactions">The interactions.</param>
         /// <returns>a JSON string containing the data.</returns>
-        private string GetVideoDataJson( MediaElement mediaElement, List<InteractionData> interactions )
+        private static string GetVideoDataJson( MediaElement mediaElement, List<InteractionData> interactions )
         {
             var duration = mediaElement.DurationSeconds ?? 0;
             var totalCount = interactions.Count;
@@ -304,8 +345,6 @@ namespace RockWeb.Blocks.Cms
             var lava = "{[kpis]}" + string.Join( string.Empty, metrics ) + "{[endkpis]}";
 
             lAllTimeContent.Text = lava.ResolveMergeFields( new Dictionary<string, object>() );
-
-            hfAllTimeVideoData.Value = GetVideoDataJson( mediaElement, interactions );
         }
 
         /// <summary>
@@ -334,8 +373,6 @@ namespace RockWeb.Blocks.Cms
                 + string.Join( string.Empty, trendCharts );
 
             lLast12MonthsContent.Text = lava.ResolveMergeFields( new Dictionary<string, object>() );
-
-            hfLast12MonthsVideoData.Value = GetVideoDataJson( mediaElement, interactions );
         }
 
         /// <summary>
@@ -360,8 +397,6 @@ namespace RockWeb.Blocks.Cms
                 + string.Join( string.Empty, trendCharts );
 
             lLast90DaysContent.Text = lava.ResolveMergeFields( new Dictionary<string, object>() );
-
-            hfLast90DaysVideoData.Value = GetVideoDataJson( mediaElement, interactions );
         }
 
         /// <summary>
@@ -430,6 +465,37 @@ namespace RockWeb.Blocks.Cms
         private static string GetKpiMetricLava( string styleClass, string iconClass, string value, string label, string description )
         {
             return $"[[kpi icon:'{iconClass}' value:'{value}' label:'{label}' color:'{styleClass}' description:'{description}']][[ endkpi ]]";
+        }
+
+        #endregion
+
+        #region Action Methods
+
+        /// <summary>
+        /// Gets the video metric JSON data for the caller.
+        /// </summary>
+        /// <param name="mediaElementGuid">The media element unique identifier.</param>
+        /// <param name="daysBack">The number of days back to go for interactions.</param>
+        /// <returns>The JSON content that represents the per-second metric data.</returns>
+        [Rock.Blocks.BlockAction]
+        public BlockActionResult GetVideoMetricData( Guid mediaElementGuid, int daysBack )
+        {
+            using ( var rockContext = new RockContext() )
+            {
+                var mediaElement = new MediaElementService( rockContext ).Get( mediaElementGuid );
+
+                if ( mediaElement == null )
+                {
+                    return new BlockActionResult( HttpStatusCode.NotFound );
+                }
+
+                var filterDate = RockDateTime.Now.AddDays( -daysBack ).Date;
+                var interactions = GetInteractions( mediaElement, filterDate, rockContext );
+
+                var content = new StringContent( GetVideoDataJson( mediaElement, interactions ), System.Text.Encoding.UTF8, "application/json" );
+
+                return new BlockActionResult( HttpStatusCode.OK, content, typeof( StringContent ) ); ;
+            }
         }
 
         #endregion

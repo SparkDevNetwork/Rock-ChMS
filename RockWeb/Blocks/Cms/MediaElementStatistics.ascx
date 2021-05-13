@@ -28,23 +28,23 @@
                 <Rock:NotificationBox ID="nbNoData" runat="server" NotificationBoxType="Info" Visible="false" Text="No statistical data is available yet." />
 
                 <asp:Panel ID="pnlViewDetails" runat="server">
-                    <asp:HiddenField ID="hfAllTimeVideoData" runat="server" Value="{}" />
-                    <asp:HiddenField ID="hfLast12MonthsVideoData" runat="server" Value="{}" />
-                    <asp:HiddenField ID="hfLast90DaysVideoData" runat="server" Value="{}" />
+                    <asp:HiddenField ID="hfAllTimeVideoData" runat="server" Value="" />
+                    <asp:HiddenField ID="hfLast12MonthsVideoData" runat="server" Value="" />
+                    <asp:HiddenField ID="hfLast90DaysVideoData" runat="server" Value="" />
 
                     <div class="row">
                         <div class="col-md-6">
                             <ul class="nav nav-tabs">
                               <li role="presentation" class="active">
-                                  <a href="#<%= pnlLast90DaysDetails.ClientID %>" data-toggle="tab" data-video-data="#<%= hfLast90DaysVideoData.ClientID %>">Last 90 Days</a>
+                                  <a href="#<%= pnlLast90DaysDetails.ClientID %>" data-toggle="tab" data-video-data="#<%= hfLast90DaysVideoData.ClientID %>" data-days-back="90">Last 90 Days</a>
                               </li>
 
                               <li role="presentation">
-                                  <a href="#<%= pnlLast12MonthsDetails.ClientID %>" data-toggle="tab" data-video-data="#<%= hfLast12MonthsVideoData.ClientID %>">Last 12 Months</a>
+                                  <a href="#<%= pnlLast12MonthsDetails.ClientID %>" data-toggle="tab" data-video-data="#<%= hfLast12MonthsVideoData.ClientID %>" data-days-back="365">Last 12 Months</a>
                               </li>
 
                               <li role="presentation">
-                                  <a href="#<%= pnlAllTimeDetails.ClientID %>" data-toggle="tab" data-video-data="#<%= hfAllTimeVideoData.ClientID %>">All Time</a>
+                                  <a href="#<%= pnlAllTimeDetails.ClientID %>" data-toggle="tab" data-video-data="#<%= hfAllTimeVideoData.ClientID %>" data-days-back="36500">All Time</a>
                               </li>
                             </ul>
 

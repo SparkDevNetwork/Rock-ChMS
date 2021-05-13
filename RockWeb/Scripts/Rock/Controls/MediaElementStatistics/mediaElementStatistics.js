@@ -75,6 +75,7 @@
         /**
          * Takes the data calculated in the C# code and converts it into data
          * that can be used by the chart plug in.
+         * 
          * @param source The source data to be converted into ChartJS data.
          */
         const buildChartData = function (source) {
@@ -86,6 +87,8 @@
 
             // Shouldn't happen, but just in case...
             if (source.Duration === undefined) {
+                chartData.datasets.push({ data: [] });
+                chartData.datasets.push({ data: [] });
                 return chartData;
             }
 
@@ -150,6 +153,8 @@
         /**
          * Updates the lower and upper limits of the chart to properly display
          * everything we need it to.
+         *
+         * @param chart The chart instance to be updated.
          */
         const updateChartLimits = function (chart) {
             var maxWatched = Math.max.apply(null, chart.data.datasets[1].data);
@@ -158,7 +163,60 @@
             chart.config.options.scales.yAxes[1].ticks.max = parseInt(maxWatched * 1.1);
         };
 
+        /**
+         * Updates the chart from the data we got from the API.
+         * 
+         * @param chart The chart instance to be updated.
+         * @param data The data to use when building the chart.
+         */
+        const updateChartData = function (chart, data) {
+            chart.data = buildChartData(data);
+            updateChartLimits(chart);
+            chart.update();
+        };
+
+        /**
+         * Update the chart with a new user selection. This handles automatically
+         * downloading data from the API on the first call and then caching that
+         * data to be used later.
+         * 
+         * @param chart The chart to be updated.
+         * @param options The configuration options.
+         * @param $hiddenField The hidden field to get and store metric data to.
+         * @param daysBack The number of days back to go when requesting data from the API.
+         */
+        const updateChart = function (chart, options, $hiddenField, daysBack) {
+            // Cheap way to determine if we updated the chart while waiting for API.
+            const updateValue = ++options.updateCount;
+
+            // If we already have data, we can just update the chart.
+            if ($hiddenField.val() !== "") {
+                updateChartData(chart, JSON.parse($hiddenField.val()));
+                return;
+            }
+
+            // Clear the chart so the user knows something happened.
+            chart.clear();
+
+            $.get("/api/blocks/action/" + options.blockGuid + "/GetVideoMetricData?MediaElementGuid=" + options.mediaElementGuid + "&daysBack=" + daysBack)
+                .then(function (data) {
+                    if (data) {
+                        $hiddenField.val(JSON.stringify(data));
+
+                        // Make sure we haven't already repainted the chart.
+                        if (options.updateCount === updateValue) {
+                            updateChartData(chart, data);
+                        }
+                    }
+                });
+        };
+
         var exports = {
+            /**
+             * Initialize the statistics block for dynamically building charts.
+             * 
+             * @param options The configuration options to use.
+             */
             initialize: function (options) {
                 if (!options.chartId) {
                     throw 'chartId is required';
@@ -168,24 +226,26 @@
                     throw 'tabContainerId is required';
                 }
 
+                // Chart is hidden.
+                if ($("#" + options.chartId).length === 0) {
+                    return;
+                }
+
+                options.updateCount = 0;
+
                 // Initialize the chart.
                 const chart = new Chart(document.getElementById(options.chartId), baseChartConfig);
 
                 // Set the default data, limits and then draw the chart.
                 if (options.defaultDataId) {
-                    chart.data = buildChartData(JSON.parse($('#' + options.defaultDataId).val()));
-                    updateChartLimits(chart);
-                    chart.update();
+                    updateChart(chart, options, $("#" + options.defaultDataId), options.defaultDaysBack);
                 }
 
                 // Whenever the user changes tabs, load in a new dataset.
                 $('#' + options.tabContainerId + ' a[data-toggle="tab"]').on('shown.bs.tab', function (e) {
                     const videoDataSelector = $(e.target).data('video-data');
-                    const videoData = JSON.parse($(videoDataSelector).val());
 
-                    chart.data = buildChartData(videoData);
-                    updateChartLimits(chart);
-                    chart.update();
+                    updateChart(chart, options, $(videoDataSelector), $(e.target).data('days-back'));
                 });
             },
         };
