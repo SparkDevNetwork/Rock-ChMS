@@ -4,11 +4,12 @@
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
     xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    xmlns:rockWpfControls="clr-namespace:Rock.Wpf.Controls;assembly=Rock.Wpf"
     Name="startPage"
     Title="Start"
-    Loaded="startPage_Loaded"
     d:DesignHeight="600"
     d:DesignWidth="800"
+    Loaded="startPage_Loaded"
     Style="{StaticResource pageBackground}"
     mc:Ignorable="d">
     <Border Style="{StaticResource borderStyleMainWithToolMenu}">
@@ -50,9 +51,36 @@
             <TextBlock
                 Grid.Row="1"
                 Margin="20"
+                Name="txtIntro"
                 Style="{StaticResource textBlockStyle}"
                 Text="In order to assemble your statements we need to gather a few bits of information from you. We'll break it down into steps to make it easy. Let's get started... "
                 TextWrapping="Wrap" />
+
+            <StackPanel
+                Name="pnlPromptToResume"
+                Grid.Row="1"
+                HorizontalAlignment="Center"
+                VerticalAlignment="Center">
+                <rockWpfControls:AlertLabel
+                    x:Name="lblPromptToResume"
+                    AlertType="Warning"
+                    Content="Want to resume?" />
+                <StackPanel HorizontalAlignment="Center" Orientation="Horizontal">
+
+
+                    <Button x:Name="btnResumeNo" Style="{StaticResource buttonStyle}" Click="btnResumeNo_Click" Margin="0,0,10,0">
+                        <StackPanel Orientation="Horizontal">
+                            <Label Content="No" Style="{StaticResource labelStyleButtonText}" />
+                        </StackPanel>
+                    </Button>
+                    <Button x:Name="btnResumeYes" Style="{StaticResource buttonStylePrimary}" Click="btnResumeYes_Click">
+                        <StackPanel Orientation="Horizontal">
+                            <Label Content="Yes" Style="{StaticResource labelStyleButtonTextPrimary}" />
+                        </StackPanel>
+                    </Button>
+
+                </StackPanel>
+            </StackPanel>
 
 
             <Button

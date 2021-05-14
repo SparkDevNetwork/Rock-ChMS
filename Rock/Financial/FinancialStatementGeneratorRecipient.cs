@@ -177,5 +177,21 @@ namespace Rock.Financial
         ///   <c>true</c> if this instance is complete; otherwise, <c>false</c>.
         /// </value>
         public bool IsComplete { get; set; }
+
+        /// <summary>
+        /// Gets or sets the opted out.
+        /// </summary>
+        /// <value>
+        /// The opted out.
+        /// </value>
+        public bool? OptedOut { get; set; }
+
+        /// <summary>
+        /// Gets or sets the contribution total.
+        /// </summary>
+        /// <value>
+        /// The contribution total.
+        /// </value>
+        public decimal? ContributionTotal { get; set; }
     }
 }

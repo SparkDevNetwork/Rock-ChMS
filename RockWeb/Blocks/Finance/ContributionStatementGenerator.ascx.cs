@@ -139,7 +139,7 @@ namespace RockWeb.Blocks.Finance
             var startDate = new DateTime( statementYear, 1, 1 );
             financialStatementGeneratorOptions.StartDate = startDate;
             financialStatementGeneratorOptions.EndDate = startDate.AddYears( 1 );
-            financialStatementGeneratorOptions.RenderMedium = "Block";
+            financialStatementGeneratorOptions.RenderMedium = "Html";
 
             var financialStatementTemplateGuid = this.GetAttributeValue( AttributeKey.FinancialStatementTemplate ).AsGuidOrNull() ?? Rock.SystemGuid.FinancialStatementTemplate.ROCK_DEFAULT.AsGuid();
 

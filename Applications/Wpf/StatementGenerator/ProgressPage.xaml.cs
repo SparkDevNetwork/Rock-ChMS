@@ -33,14 +33,12 @@ namespace Rock.Apps.StatementGenerator
     /// </summary>
     public partial class ProgressPage : Page
     {
+        /// <summary>
+        /// Initializes a new instance of the <see cref="ProgressPage"/> class.
+        /// </summary>
         public ProgressPage()
         {
             InitializeComponent();
-        }
-
-        private void ProgressPage_Unloaded( object sender, RoutedEventArgs e )
-        {
-            
         }
 
         private void NavigationService_Navigating( object sender, System.Windows.Navigation.NavigatingCancelEventArgs e )
@@ -161,7 +159,6 @@ namespace Rock.Apps.StatementGenerator
             ShowProgress( e.Position, e.Max, e.ProgressMessage );
         }
 
-
         /// <summary>
         /// The _start progress date time
         /// </summary>
@@ -192,6 +189,7 @@ namespace Rock.Apps.StatementGenerator
                     {
                         lblReportProgress.Content = progressMessage;
                     }
+
                     if ( pgReportProgress.Maximum != max )
                     {
                         pgReportProgress.Maximum = max;
@@ -208,10 +206,10 @@ namespace Rock.Apps.StatementGenerator
                     }
 
                     // put the current statements/second in stats box (easter egg)
-                    var duration = DateTime.Now - ContributionReport._startDateTime;
+                    var duration = DateTime.Now - ContributionReport.StartDateTime;
                     if ( duration.TotalSeconds > 1 )
                     {
-                        double rate = position / duration.TotalSeconds;
+                        double rate = ContributionReport.RecordsCompletedCount / duration.TotalSeconds;
                         string statsText = $"{position}/{max} @ {rate:F2} per second";
                         if ( ( string ) lblStats.Content != statsText )
                         {

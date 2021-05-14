@@ -232,6 +232,13 @@ namespace Rock.Client.SystemGuid
 
     /// <summary>
     /// </summary>
+    public class BinaryFile
+    {
+        public const string FINANCIAL_STATEMENT_TEMPLATE_ROCK_DEFAULT_LOGO = "8C453AA3-4F99-40B2-9F88-0DDAB8B8D180";
+    }
+
+    /// <summary>
+    /// </summary>
     public class BinaryFiletype
     {
         public const string BENEVOLENCE_REQUEST_DOCUMENTS = "2599DDBE-40E1-158E-4436-AACA6C00556E";

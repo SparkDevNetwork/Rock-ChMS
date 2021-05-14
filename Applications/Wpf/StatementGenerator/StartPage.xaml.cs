@@ -55,13 +55,51 @@ namespace Rock.Apps.StatementGenerator
             this.NavigationService.Navigate( optionsPage );
         }
 
+        /// <summary>
+        /// Handles the Loaded event of the startPage control.
+        /// </summary>
+        /// <param name="sender">The source of the event.</param>
+        /// <param name="e">The <see cref="RoutedEventArgs"/> instance containing the event data.</param>
         private void startPage_Loaded( object sender, RoutedEventArgs e )
         {
+            ContributionReport.EnsureIncompletedSavedRecipientListCompletedStatus();
             var savedRecipientList = ContributionReport.GetSavedRecipientList();
-            if ( savedRecipientList != null && savedRecipientList.Any( x => x.IsComplete == false ) )
+            if ( savedRecipientList != null )
             {
-                // TODO, prompt to resume...
+                if ( savedRecipientList.Any( a => !a.IsComplete ) )
+                {
+                    pnlPromptToResume.Visibility = Visibility.Visible;
+                    txtIntro.Visibility = Visibility.Collapsed;
+                    return;
+                }
             }
+
+            pnlPromptToResume.Visibility = Visibility.Collapsed;
+            txtIntro.Visibility = Visibility.Visible;
+        }
+
+        /// <summary>
+        /// Handles the Click event of the btnResumeNo control.
+        /// </summary>
+        /// <param name="sender">The source of the event.</param>
+        /// <param name="e">The <see cref="RoutedEventArgs"/> instance containing the event data.</param>
+        private void btnResumeNo_Click( object sender, RoutedEventArgs e )
+        {
+            pnlPromptToResume.Visibility = Visibility.Collapsed;
+            txtIntro.Visibility = Visibility.Visible;
+        }
+
+        /// <summary>
+        /// Handles the Click event of the btnResumeYes control.
+        /// </summary>
+        /// <param name="sender">The source of the event.</param>
+        /// <param name="e">The <see cref="RoutedEventArgs"/> instance containing the event data.</param>
+        private void btnResumeYes_Click( object sender, RoutedEventArgs e )
+        {
+            var nextPage = new ProgressPage();
+            ContributionReport.Resume = true;
+            ReportOptions.LoadFromConfig( RockConfig.Load() );
+            this.NavigationService.Navigate( nextPage );
         }
     }
 }

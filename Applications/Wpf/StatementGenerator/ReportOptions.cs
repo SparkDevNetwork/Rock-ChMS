@@ -17,9 +17,11 @@
 using System;
 using System.Collections.Generic;
 
+using Rock.Client;
+
 namespace Rock.Apps.StatementGenerator
 {
-    public class ReportOptions
+    internal class ReportOptions
     {
         /// <summary>
         /// Gets or sets the current report options
@@ -33,6 +35,19 @@ namespace Rock.Apps.StatementGenerator
             {
                 return _current;
             }
+        }
+
+        public static void LoadFromConfig( RockConfig rockConfig )
+        {
+            //_current.DataViewId = rockConfig.Data
+            _current.EnablePageCountPredetermination = rockConfig.EnablePageCountPredetermination;
+            //_current.EndDate = rockConfig.EndDat
+            //_current.ExcludeInActiveIndividuals
+            //_current.FinancialStatementTemplateId = rockConfig.FinancialStatementTemplateGuid
+            //_current.IncludeBusinesses = rockConfig.In
+            _current.IndividualSaveOptions = rockConfig.IndividualSaveOptionsJson.FromJsonOrNull<FinancialStatementIndividualSaveOptions>();
+            _current.ReportConfigurationList = rockConfig.ReportConfigurationListJson.FromJsonOrNull<List<FinancialStatementReportConfiguration>>();
+            //_current.StartDate
         }
 
         /// <summary>
