@@ -112,7 +112,15 @@ namespace Rock.Apps.StatementGenerator
         /// <value>
         ///   <c>true</c> if resume; otherwise, <c>false</c>.
         /// </value>
-        public static bool Resume { get; internal set; } = false;
+        internal static bool Resume { get; set; } = false;
+
+        /// <summary>
+        /// Gets or sets the resume run date.
+        /// </summary>
+        /// <value>
+        /// The resume run date.
+        /// </value>
+        internal static DateTime? ResumeRunDate { get; set; }
 
         private static FinancialStatementIndividualSaveOptions _individualSaveOptions;
         private static bool _saveStatementsForIndividualsToDocument;
@@ -167,17 +175,19 @@ namespace Rock.Apps.StatementGenerator
 
             List<FinancialStatementGeneratorRecipient> recipientList;
 
-            if ( Resume )
+            if ( Resume && ResumeRunDate.HasValue )
             {
                 // Get Recipients from Rock REST Endpoint from incomplete session
                 UpdateProgress( "Resuming Incomplete Recipients...", 0, 0 );
-                recipientList = GetSavedRecipientList();
+                recipientList = GetSavedRecipientList( ResumeRunDate.Value );
+                SaveGeneratorConfig( ResumeRunDate.Value, true );
             }
             else
             {
                 // Get Recipients from Rock REST Endpoint
                 UpdateProgress( "Getting Statement Recipients...", 0, 0 );
                 recipientList = GetRecipients( restClient );
+                SaveGeneratorConfig( DateTime.Today, false );
             }
 
             _currentDayTemporaryDirectory = GetStatementGeneratorTemporaryDirectory( rockConfig, DateTime.Today );
@@ -488,10 +498,10 @@ Overall PDF/sec    Avg: {recordsCompleted / _stopwatchRenderPDFsOverall.Elapsed.
         /// <summary>
         /// If there are some incomplete recipients, it verifies that the completed ones are really completed.
         /// </summary>
-        public static void EnsureIncompletedSavedRecipientListCompletedStatus()
+        public static void EnsureIncompletedSavedRecipientListCompletedStatus( DateTime runDate )
         {
-            var rockStatementGeneratorTemporaryDirectory = GetStatementGeneratorTemporaryDirectory( RockConfig.Load(), DateTime.Today );
-            var savedRecipientList = GetSavedRecipientList();
+            var rockStatementGeneratorTemporaryDirectory = GetStatementGeneratorTemporaryDirectory( RockConfig.Load(), runDate );
+            var savedRecipientList = GetSavedRecipientList( runDate );
             if ( savedRecipientList == null )
             {
                 // hasn't run
@@ -503,7 +513,7 @@ Overall PDF/sec    Avg: {recordsCompleted / _stopwatchRenderPDFsOverall.Elapsed.
                 // if the whole thing is completed, there everything is all done
                 return;
             }
-            
+
             // if there are some that are not complete, make sure the temp files haven't been cleaned up
             foreach ( var savedRecipient in savedRecipientList.Where( a => a.IsComplete ) )
             {
@@ -522,10 +532,11 @@ Overall PDF/sec    Avg: {recordsCompleted / _stopwatchRenderPDFsOverall.Elapsed.
         /// Gets the recipient list status.
         /// </summary>
         /// <returns></returns>
-        public static List<FinancialStatementGeneratorRecipient> GetSavedRecipientList()
+        public static List<FinancialStatementGeneratorRecipient> GetSavedRecipientList( DateTime runDate )
         {
             var rockConfig = RockConfig.Load();
-            var fileName = Path.Combine( GetStatementGeneratorTemporaryDirectory( rockConfig, DateTime.Today ), "RecipientData.Json" );
+
+            var fileName = Path.Combine( GetStatementGeneratorTemporaryDirectory( rockConfig, runDate ), "RecipientData.Json" );
             if ( File.Exists( fileName ) )
             {
                 var resultsJson = File.ReadAllText( fileName );
@@ -533,6 +544,64 @@ Overall PDF/sec    Avg: {recordsCompleted / _stopwatchRenderPDFsOverall.Elapsed.
             }
 
             return null;
+        }
+
+        /// <summary>
+        /// Saves the generator configuration.
+        /// </summary>
+        /// <param name="runDate">The run date.</param>
+        /// <param name="incrementRunAttempts">if set to <c>true</c> [increment run attempts].</param>
+        private void SaveGeneratorConfig( DateTime runDate, bool incrementRunAttempts )
+        {
+            var rockConfig = RockConfig.Load();
+
+            GeneratorConfig generatorConfig = null;
+
+            var fileName = Path.Combine( GetStatementGeneratorTemporaryDirectory( rockConfig, runDate ), "GeneratorConfig.Json" );
+            if ( File.Exists( fileName ) )
+            {
+                var resultsJson = File.ReadAllText( fileName );
+                generatorConfig = resultsJson.FromJsonOrNull<GeneratorConfig>();
+            }
+
+            if ( generatorConfig == null )
+            {
+                generatorConfig = new GeneratorConfig { RunAttempts = 1 };
+                generatorConfig.RunDate = DateTime.Today;
+            }
+            else if ( incrementRunAttempts )
+            {
+                generatorConfig.RunAttempts++;
+            }
+
+            generatorConfig.ConfiguredOptions = this.Options;
+
+            generatorConfig.ToJsonFile( Formatting.Indented, fileName );
+        }
+
+        /// <summary>
+        /// Gets the last saved generator configuration. Returns null if there wasn't one.
+        /// </summary>
+        /// <returns></returns>
+        public static GeneratorConfig GetSavedGeneratorConfigFromLastRun()
+        {
+            var rockConfig = RockConfig.Load();
+
+            var reportTemporaryDirectoryPath = rockConfig.TemporaryDirectory;
+            if ( reportTemporaryDirectoryPath.IsNotNullOrWhitespace() )
+            {
+                Directory.CreateDirectory( reportTemporaryDirectoryPath );
+            }
+            else
+            {
+                reportTemporaryDirectoryPath = Path.GetTempPath();
+            }
+
+            var previousRunFiles = Directory.EnumerateFiles( reportTemporaryDirectoryPath, "GeneratorConfig.Json", SearchOption.AllDirectories );
+            var generatorConfigs = previousRunFiles.Select( a => File.ReadAllText( a ).FromJsonOrNull<GeneratorConfig>() ).ToList();
+            var mostRecentGeneratorConfig = generatorConfigs.Where( a => a != null ).OrderBy( g => g.RunDate ).FirstOrDefault();
+
+            return mostRecentGeneratorConfig;
         }
 
         /// <summary>
@@ -574,7 +643,7 @@ Overall PDF/sec    Avg: {recordsCompleted / _stopwatchRenderPDFsOverall.Elapsed.
         /// <param name="rockConfig">The rock configuration.</param>
         /// <param name="currentDate">The current date.</param>
         /// <returns></returns>
-        private static string GetStatementGeneratorTemporaryDirectory( RockConfig rockConfig, DateTime currentDate )
+        private static string GetStatementGeneratorTemporaryDirectory( RockConfig rockConfig, DateTime runDate )
         {
             var reportTemporaryDirectory = rockConfig.TemporaryDirectory;
             if ( reportTemporaryDirectory.IsNotNullOrWhitespace() )
@@ -586,7 +655,7 @@ Overall PDF/sec    Avg: {recordsCompleted / _stopwatchRenderPDFsOverall.Elapsed.
                 reportTemporaryDirectory = Path.GetTempPath();
             }
 
-            var reportRockStatementGeneratorTemporaryDirectory = Path.Combine( reportTemporaryDirectory, $"Rock Statement Generator-{currentDate.ToString( "MM_dd_yyyy" )}" );
+            var reportRockStatementGeneratorTemporaryDirectory = Path.Combine( reportTemporaryDirectory, $"Rock Statement Generator-{runDate.ToString( "MM_dd_yyyy" )}" );
             Directory.CreateDirectory( reportRockStatementGeneratorTemporaryDirectory );
             return reportRockStatementGeneratorTemporaryDirectory;
         }

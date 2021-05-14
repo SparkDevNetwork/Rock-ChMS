@@ -14,6 +14,7 @@
 // limitations under the License.
 // </copyright>
 //
+using System;
 using System.Linq;
 using System.Windows;
 using System.Windows.Controls;
@@ -62,18 +63,28 @@ namespace Rock.Apps.StatementGenerator
         /// <param name="e">The <see cref="RoutedEventArgs"/> instance containing the event data.</param>
         private void startPage_Loaded( object sender, RoutedEventArgs e )
         {
-            ContributionReport.EnsureIncompletedSavedRecipientListCompletedStatus();
-            var savedRecipientList = ContributionReport.GetSavedRecipientList();
-            if ( savedRecipientList != null )
+            var lastRunGeneratorConfig = ContributionReport.GetSavedGeneratorConfigFromLastRun();
+            if ( lastRunGeneratorConfig != null )
             {
-                if ( savedRecipientList.Any( a => !a.IsComplete ) )
+                var lastRunDate = lastRunGeneratorConfig.RunDate;
+                ContributionReport.EnsureIncompletedSavedRecipientListCompletedStatus( lastRunDate );
+
+                var savedRecipientList = ContributionReport.GetSavedRecipientList( lastRunDate );
+                if ( savedRecipientList != null )
                 {
-                    pnlPromptToResume.Visibility = Visibility.Visible;
-                    txtIntro.Visibility = Visibility.Collapsed;
-                    return;
+                    var lastIncomplete = savedRecipientList.FirstOrDefault( a => a.IsComplete == false );
+                    if ( lastIncomplete != null )
+                    {
+                        pnlPromptToResume.Visibility = Visibility.Visible;
+                        btnStart.Visibility = Visibility.Hidden;
+                        lblPromptToResume.Text = $"It appears that a previous generation session is active. The last attempted recipient was for (PersonId: {lastIncomplete.PersonId} | GivingGroupId: {lastIncomplete.GroupId}). Do you wish to continue with this session?";
+                        txtIntro.Visibility = Visibility.Collapsed;
+                        return;
+                    }
                 }
             }
 
+            btnStart.Visibility = Visibility.Visible;
             pnlPromptToResume.Visibility = Visibility.Collapsed;
             txtIntro.Visibility = Visibility.Visible;
         }
@@ -87,6 +98,7 @@ namespace Rock.Apps.StatementGenerator
         {
             pnlPromptToResume.Visibility = Visibility.Collapsed;
             txtIntro.Visibility = Visibility.Visible;
+            btnStart.Visibility = Visibility.Visible;
         }
 
         /// <summary>
@@ -96,9 +108,13 @@ namespace Rock.Apps.StatementGenerator
         /// <param name="e">The <see cref="RoutedEventArgs"/> instance containing the event data.</param>
         private void btnResumeYes_Click( object sender, RoutedEventArgs e )
         {
+            var lastRunGeneratorConfig = ContributionReport.GetSavedGeneratorConfigFromLastRun();
+
             var nextPage = new ProgressPage();
             ContributionReport.Resume = true;
-            ReportOptions.LoadFromConfig( RockConfig.Load() );
+            ContributionReport.ResumeRunDate = lastRunGeneratorConfig.RunDate;
+
+            ReportOptions.LoadFromConfig( lastRunGeneratorConfig );
             this.NavigationService.Navigate( nextPage );
         }
     }

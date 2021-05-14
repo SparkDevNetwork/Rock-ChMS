@@ -47,37 +47,49 @@
                 </Grid>
             </Border>
 
-
             <TextBlock
+                Name="txtIntro"
                 Grid.Row="1"
                 Margin="20"
-                Name="txtIntro"
                 Style="{StaticResource textBlockStyle}"
                 Text="In order to assemble your statements we need to gather a few bits of information from you. We'll break it down into steps to make it easy. Let's get started... "
-                TextWrapping="Wrap" />
+                TextWrapping="Wrap"
+                Visibility="Collapsed" />
 
             <StackPanel
                 Name="pnlPromptToResume"
                 Grid.Row="1"
+                Margin="40"
                 HorizontalAlignment="Center"
                 VerticalAlignment="Center">
-                <rockWpfControls:AlertLabel
+                <TextBlock
                     x:Name="lblPromptToResume"
-                    AlertType="Warning"
-                    Content="Want to resume?" />
-                <StackPanel HorizontalAlignment="Center" Orientation="Horizontal">
+                    Style="{StaticResource textBlockStyle}"
+                    Text="It appears that a previous generation session is active. The last attempted recipient was for (PersonId: {lastIncomplete.PersonId} | GivingGroupId: {lastIncomplete.GroupId}). Do you wish to continue with this session?" />
+                <StackPanel
+                    Margin="10"
+                    HorizontalAlignment="Center"
+                    Orientation="Horizontal">
 
-
-                    <Button x:Name="btnResumeNo" Style="{StaticResource buttonStyle}" Click="btnResumeNo_Click" Margin="0,0,10,0">
-                        <StackPanel Orientation="Horizontal">
-                            <Label Content="No" Style="{StaticResource labelStyleButtonText}" />
-                        </StackPanel>
-                    </Button>
-                    <Button x:Name="btnResumeYes" Style="{StaticResource buttonStylePrimary}" Click="btnResumeYes_Click">
+                    <Button
+                        x:Name="btnResumeYes"
+                        Margin="0,0,10,0"
+                        Click="btnResumeYes_Click"
+                        Style="{StaticResource buttonStylePrimary}">
                         <StackPanel Orientation="Horizontal">
                             <Label Content="Yes" Style="{StaticResource labelStyleButtonTextPrimary}" />
                         </StackPanel>
                     </Button>
+
+                    <Button
+                        x:Name="btnResumeNo"
+                        Click="btnResumeNo_Click"
+                        Style="{StaticResource buttonStyle}">
+                        <StackPanel Orientation="Horizontal">
+                            <Label Content="No" Style="{StaticResource labelStyleButtonText}" />
+                        </StackPanel>
+                    </Button>
+
 
                 </StackPanel>
             </StackPanel>

@@ -14,8 +14,15 @@
 // limitations under the License.
 // </copyright>
 //
+using System;
+
+using Rock.Client;
+
 namespace Rock.Apps.StatementGenerator
 {
+    /// <summary>
+    /// 
+    /// </summary>
     public class GeneratorConfig
     {
         /// <summary>
@@ -25,5 +32,21 @@ namespace Rock.Apps.StatementGenerator
         /// The run attempts.
         /// </value>
         public int RunAttempts { get; set; }
+
+        /// <summary>
+        /// Gets or sets the run date.
+        /// </summary>
+        /// <value>
+        /// The run date.
+        /// </value>
+        public DateTime RunDate { get; set; }
+
+        /// <summary>
+        /// Gets or sets the configured options.
+        /// </summary>
+        /// <value>
+        /// The configured options.
+        /// </value>
+        public FinancialStatementGeneratorOptions ConfiguredOptions { get; set; }
     }
 }
