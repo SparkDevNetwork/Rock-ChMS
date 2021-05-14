@@ -31,8 +31,20 @@ namespace Rock.Migrations
         {
             PagesBlocks_Up();
 
+
+            // 
+            Sql( $"UPDATE [BlockType] SET [Name] = '{2}' WHERE [Guid] = '{Rock.SystemGuid.BlockType.CONTRIBUTION_STATEMENT_LAVA_LEGACY}'" );
+
+            RenameLegacyStatementGeneratedDefinedType();
             AddRockDefaultTemplateLogo();
             AddRockDefaultTemplate();
+        }
+
+        private void RenameLegacyStatementGeneratedDefinedType()
+        {
+#pragma warning disable CS0618 // Type or member is obsolete
+            Sql( $@"UPDATE [DefinedType] SET  [Name] = 'Statement Generator Lava Template (Legacy)' WHERE [Guid] = '{Rock.SystemGuid.DefinedType.STATEMENT_GENERATOR_LAVA_TEMPLATE_LEGACY}'" );
+#pragma warning restore CS0618 // Type or member is obsolete
         }
 
         private void AddRockDefaultTemplateLogo()

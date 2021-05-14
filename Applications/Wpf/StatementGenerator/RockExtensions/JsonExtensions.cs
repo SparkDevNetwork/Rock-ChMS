@@ -17,6 +17,7 @@
 using System;
 using System.Collections.Generic;
 using System.Dynamic;
+using System.IO;
 using System.Linq;
 
 using Newtonsoft.Json;
@@ -81,6 +82,31 @@ namespace Rock
             }
 
             return JsonConvert.SerializeObject( obj, settings );
+        }
+
+        /// <summary>
+        /// Converts object to JSON string with an option to ignore errors
+        /// </summary>
+        /// <param name="obj">Object.</param>
+        /// <param name="format">The format.</param>
+        /// <param name="ignoreErrors">if set to <c>true</c> [ignore errors].</param>
+        /// <returns></returns>
+        public static void ToJsonFile( this object obj, Formatting format, string fileName)
+        {
+            var settings = new JsonSerializerSettings
+            {
+                ReferenceLoopHandling = ReferenceLoopHandling.Ignore,
+                Formatting = format,
+                NullValueHandling = NullValueHandling.Ignore,
+                DefaultValueHandling = DefaultValueHandling.Ignore,
+            };
+
+            // serialize JSON directly to a file
+            using ( StreamWriter file = File.CreateText( fileName ) )
+            {
+                JsonSerializer serializer = JsonSerializer.CreateDefault( settings );
+                serializer.Serialize( file, obj );
+            }
         }
 
         /// <summary>

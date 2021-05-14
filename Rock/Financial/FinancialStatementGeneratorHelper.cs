@@ -263,7 +263,7 @@ namespace Rock.Financial
 
             using ( var rockContext = new RockContext() )
             {
-                FinancialStatementTemplate financialStatementTemplate = new FinancialStatementTemplateService( rockContext ).Get( financialStatementGeneratorOptions.FinancialStatementTemplateId ?? 0 );
+                FinancialStatementTemplate financialStatementTemplate = new FinancialStatementTemplateService( rockContext ).GetNoTracking( financialStatementGeneratorOptions.FinancialStatementTemplateId ?? 0 );
                 if ( financialStatementTemplate == null )
                 {
                     throw new FinancialGivingStatementArgumentException( "FinancialStatementTemplate must be specified." );
@@ -277,14 +277,14 @@ namespace Rock.Financial
                 Person person = null;
                 if ( personId.HasValue )
                 {
-                    person = new PersonService( rockContext ).Queryable().Include( a => a.Aliases ).Where( a => a.Id == personId.Value ).FirstOrDefault();
+                    person = new PersonService( rockContext ).Queryable().Include( a => a.Aliases ).Include( a => a.PrimaryFamily ).Where( a => a.Id == personId.Value ).FirstOrDefault();
                     personList.Add( person );
                 }
                 else
                 {
                     // get transactions for all the persons in the specified group that have specified that group as their GivingGroup
                     GroupMemberService groupMemberService = new GroupMemberService( rockContext );
-                    personList = groupMemberService.GetByGroupId( groupId ).Where( a => a.Person.GivingGroupId == groupId ).Select( s => s.Person ).Include( a => a.Aliases ).ToList();
+                    personList = groupMemberService.GetByGroupId( groupId ).Where( a => a.Person.GivingGroupId == groupId ).Select( s => s.Person ).Include( a => a.Aliases ).Include( a => a.PrimaryFamily ).ToList();
                     person = personList.FirstOrDefault();
                 }
 

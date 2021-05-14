@@ -105,7 +105,6 @@ namespace Rock.Apps.StatementGenerator
         private static ConcurrentBag<double> _saveAndUploadPdfTimingsMS = null;
         private static ConcurrentBag<double> _waitForLastTaskTimingsMS = null;
         private static ConcurrentBag<double> _getStatementHtmlTimingsMS = null;
-        private static ConcurrentBag<FinancialStatementGeneratorRecipientResult> _financialStatementGeneratorRecipientResults = null;
 
         /// <summary>
         /// Gets a value indicating whether this <see cref="ContributionReport"/> is resume.
@@ -173,17 +172,6 @@ namespace Rock.Apps.StatementGenerator
                 // Get Recipients from Rock REST Endpoint from incomplete session
                 UpdateProgress( "Resuming Incomplete Recipients...", 0, 0 );
                 recipientList = GetSavedRecipientList();
-
-                var savedRecipientsResults = GetSavedRecipientResults();
-                if ( savedRecipientsResults != null )
-                {
-                    _financialStatementGeneratorRecipientResults = new ConcurrentBag<FinancialStatementGeneratorRecipientResult>( savedRecipientsResults );
-                }
-                else
-                {
-                    // this could happen if we are resuming and but nobody in the list is completed
-                    _financialStatementGeneratorRecipientResults = new ConcurrentBag<FinancialStatementGeneratorRecipientResult>();
-                }
             }
             else
             {
@@ -308,7 +296,6 @@ namespace Rock.Apps.StatementGenerator
 
             SaveRecipientListStatus( recipientList, _currentDayTemporaryDirectory );
 
-            _financialStatementGeneratorRecipientResults = new ConcurrentBag<FinancialStatementGeneratorRecipientResult>( _financialStatementGeneratorRecipientResults.Where( a => a.Html != null ) );
             this.RecordCount = recipientList.Count( x => x.IsComplete );
 
             var reportCount = this.Options.ReportConfigurationList.Count();
@@ -326,7 +313,7 @@ namespace Rock.Apps.StatementGenerator
                     UpdateProgress( $"Generating Report {reportNumber}", reportNumber, reportCount );
                 }
 
-                WriteStatementPDFs( financialStatementReportConfiguration, _financialStatementGeneratorRecipientResults );
+                WriteStatementPDFs( financialStatementReportConfiguration, recipientList );
             }
 
             UpdateProgress( "Cleaning up temporary files.", 0, 0 );
@@ -394,9 +381,10 @@ namespace Rock.Apps.StatementGenerator
         {
             FinancialStatementGeneratorRecipientResult financialStatementGeneratorRecipientResult = GetFinancialStatementGeneratorRecipientResult( restClient, recipient );
 
+            recipient.OptedOut = financialStatementGeneratorRecipientResult.OptedOut;
+            recipient.ContributionTotal = financialStatementGeneratorRecipientResult.ContributionTotal;
+
             var statementGeneratorPdfResult = financialStatementGeneratorRecipientResult;
-            _financialStatementGeneratorRecipientResults.Add( statementGeneratorPdfResult );
-            SaveRecipientResults( _financialStatementGeneratorRecipientResults, _currentDayTemporaryDirectory );
 
             if ( string.IsNullOrWhiteSpace( financialStatementGeneratorRecipientResult.Html ) )
             {
@@ -415,7 +403,7 @@ namespace Rock.Apps.StatementGenerator
 
                 Stopwatch generatePdfStopWatch = Stopwatch.StartNew();
 
-                IronPdf.PdfDocument pdfDocument = pdfDocument = HtmlToPdf.StaticRenderHtmlAsPdf( financialStatementGeneratorRecipientResult.Html, pdfOptions );
+                IronPdf.PdfDocument pdfDocument = HtmlToPdf.StaticRenderHtmlAsPdf( financialStatementGeneratorRecipientResult.Html, pdfOptions );
 
                 generatePdfStopWatch.Stop();
 
@@ -493,19 +481,8 @@ Overall PDF/sec    Avg: {recordsCompleted / _stopwatchRenderPDFsOverall.Elapsed.
         /// <summary>
         private static void SaveRecipientListStatus( List<FinancialStatementGeneratorRecipient> recipientList, string reportRockStatementGeneratorTemporaryDirectory )
         {
-            var recipientListJson = recipientList.ToJson( Formatting.Indented );
             var recipientListJsonFileName = Path.Combine( reportRockStatementGeneratorTemporaryDirectory, "RecipientData.Json" );
-            File.WriteAllText( recipientListJsonFileName, recipientListJson );
-        }
-
-        [Obsolete("TODO, this might not be needed")]
-        private void SaveRecipientResults( IEnumerable<FinancialStatementGeneratorRecipientResult> recipientResultList, string reportRockStatementGeneratorTemporaryDirectory )
-        {
-            var recipientListResultJson = recipientResultList.ToJson( Formatting.None );
-            var recipientListResultJsonFileName = Path.Combine( reportRockStatementGeneratorTemporaryDirectory, "RecipientResultsData.Json" );
-            Stopwatch stopwatchWriteAllText = Stopwatch.StartNew();
-            File.WriteAllText( recipientListResultJsonFileName, recipientListResultJson );
-            Debug.WriteLine( $"stopwatchWriteAllText:{ stopwatchWriteAllText.Elapsed.TotalMilliseconds } ms" );
+            recipientList.ToJsonFile( Formatting.None, recipientListJsonFileName );
         }
 
         /// <summary>
@@ -521,36 +498,18 @@ Overall PDF/sec    Avg: {recordsCompleted / _stopwatchRenderPDFsOverall.Elapsed.
                 return;
             }
 
-            if ( !savedRecipientList.Any( a => a.IsComplete ) )
+            if ( savedRecipientList.Any( a => !a.IsComplete ) == false )
             {
                 // if the whole thing is completed, there everything is all done
                 return;
             }
-
-            var savedResults = GetSavedRecipientResults();
-            HashSet<string> savedResultKeys;
-            if ( savedResults != null )
-            {
-                savedResultKeys = new HashSet<string>( savedResults.Select( a => a.Recipient.GetRecipientKey() ).ToList() );
-            }
-            else
-            {
-                savedResultKeys = new HashSet<string>();
-            }
-
+            
             // if there are some that are not complete, make sure the temp files haven't been cleaned up
             foreach ( var savedRecipient in savedRecipientList.Where( a => a.IsComplete ) )
             {
                 if ( savedRecipient.GetPdfDocument( rockStatementGeneratorTemporaryDirectory ) == null )
                 {
                     // if it was marked complete, but the temp file is gone, we'll have to re-do this recipient
-                    savedRecipient.IsComplete = false;
-                    continue;
-                }
-
-                if ( !savedResultKeys.Contains( savedRecipient.GetRecipientKey() ) )
-                {
-                    // if it was marked complete, but the result hasn't been saved, we'll have to re-do this recipient
                     savedRecipient.IsComplete = false;
                     continue;
                 }
@@ -571,23 +530,6 @@ Overall PDF/sec    Avg: {recordsCompleted / _stopwatchRenderPDFsOverall.Elapsed.
             {
                 var resultsJson = File.ReadAllText( fileName );
                 return resultsJson.FromJsonOrNull<List<FinancialStatementGeneratorRecipient>>();
-            }
-
-            return null;
-        }
-
-        /// <summary>
-        /// Gets the saved recipient results.
-        /// </summary>
-        /// <returns></returns>
-        private static List<FinancialStatementGeneratorRecipientResult> GetSavedRecipientResults()
-        {
-            var rockConfig = RockConfig.Load();
-            var fileName = Path.Combine( GetStatementGeneratorTemporaryDirectory( rockConfig, DateTime.Today ), "RecipientResultsData.Json" );
-            if ( File.Exists( fileName ) )
-            {
-                var resultsJson = File.ReadAllText( fileName );
-                return resultsJson.FromJsonOrNull<List<FinancialStatementGeneratorRecipientResult>>();
             }
 
             return null;
@@ -715,54 +657,54 @@ Overall PDF/sec    Avg: {recordsCompleted / _stopwatchRenderPDFsOverall.Elapsed.
         /// <param name="financialStatementReportConfiguration">The financial statement report configuration.</param>
         /// <param name="financialStatementGeneratorRecipientResults">The statement generator recipient PDF results.</param>
         /// <returns></returns>
-        private void WriteStatementPDFs( FinancialStatementReportConfiguration financialStatementReportConfiguration, ConcurrentBag<FinancialStatementGeneratorRecipientResult> financialStatementGeneratorRecipientResults )
+        private void WriteStatementPDFs( FinancialStatementReportConfiguration financialStatementReportConfiguration, IEnumerable<FinancialStatementGeneratorRecipient> financialStatementGeneratorRecipientResults )
         {
             if ( !financialStatementGeneratorRecipientResults.Any() )
             {
                 return;
             }
 
-            var recipientList = financialStatementGeneratorRecipientResults.Where( a => a.Html != null ).ToList();
+            var recipientList = financialStatementGeneratorRecipientResults.Where( a => a.IsComplete ).ToList();
 
             if ( financialStatementReportConfiguration.ExcludeOptedOutIndividuals )
             {
-                recipientList = recipientList.Where( a => a.Recipient.OptedOut == false ).ToList();
+                recipientList = recipientList.Where( a => a.OptedOut == false ).ToList();
             }
 
             if ( financialStatementReportConfiguration.MinimumContributionAmount.HasValue )
             {
-                recipientList = recipientList.Where( a => a.Recipient.ContributionTotal >= financialStatementReportConfiguration.MinimumContributionAmount.Value ).ToList();
+                recipientList = recipientList.Where( a => a.ContributionTotal >= financialStatementReportConfiguration.MinimumContributionAmount.Value ).ToList();
             }
 
             if ( financialStatementReportConfiguration.IncludeInternationalAddresses == false )
             {
-                recipientList = recipientList.Where( a => a.Recipient.IsInternationalAddress == false ).ToList();
+                recipientList = recipientList.Where( a => a.IsInternationalAddress == false ).ToList();
             }
 
-            IOrderedEnumerable<FinancialStatementGeneratorRecipientResult> sortedRecipientList = SortByPrimaryAndSecondaryOrder( financialStatementReportConfiguration, recipientList );
+            IOrderedEnumerable<FinancialStatementGeneratorRecipient> sortedRecipientList = SortByPrimaryAndSecondaryOrder( financialStatementReportConfiguration, recipientList );
             recipientList = sortedRecipientList.ToList();
 
             var useChapters = financialStatementReportConfiguration.MaxStatementsPerChapter.HasValue;
             var splitOnPrimary = financialStatementReportConfiguration.SplitFilesOnPrimarySortValue;
 
-            Dictionary<string, List<FinancialStatementGeneratorRecipientResult>> recipientsByPrimarySortKey;
+            Dictionary<string, List<FinancialStatementGeneratorRecipient>> recipientsByPrimarySortKey;
             if ( financialStatementReportConfiguration.PrimarySortOrder == FinancialStatementOrderBy.PageCount )
             {
                 recipientsByPrimarySortKey = recipientList
-                    .GroupBy( k => k.Recipient.RenderedPageCount )
+                    .GroupBy( k => k.RenderedPageCount.ToString() )
                     .ToDictionary( k => k.Key.ToString(), v => v.ToList() );
             }
             else if ( financialStatementReportConfiguration.PrimarySortOrder == FinancialStatementOrderBy.LastName )
             {
                 recipientsByPrimarySortKey = recipientList
-                    .GroupBy( k => k.Recipient.LastName )
+                    .GroupBy( k => k.LastName )
                     .ToDictionary( k => k.Key, v => v.ToList() );
             }
             else
             {
                 // group by postal code
                 recipientsByPrimarySortKey = recipientList
-                    .GroupBy( k => k.Recipient.PostalCode ?? "00000" )
+                    .GroupBy( k => k.PostalCode ?? "00000" )
                     .ToDictionary( k => k.Key, v => v.ToList() );
             }
 
@@ -796,10 +738,10 @@ Overall PDF/sec    Avg: {recordsCompleted / _stopwatchRenderPDFsOverall.Elapsed.
         /// </summary>
         /// <param name="financialStatementReportConfiguration">The financial statement report configuration.</param>
         /// <param name="recipientsByPrimarySortKey">The recipients by primary sort key.</param>
-        private void SaveToChapters( FinancialStatementReportConfiguration financialStatementReportConfiguration, Dictionary<string, List<FinancialStatementGeneratorRecipientResult>> recipientsByPrimarySortKey )
+        private void SaveToChapters( FinancialStatementReportConfiguration financialStatementReportConfiguration, Dictionary<string, List<FinancialStatementGeneratorRecipient>> recipientsByPrimarySortKey )
         {
             var maxStatementsPerChapter = financialStatementReportConfiguration.MaxStatementsPerChapter.Value;
-            List<FinancialStatementGeneratorRecipientResult> recipientsForChapter = new List<FinancialStatementGeneratorRecipientResult>();
+            List<FinancialStatementGeneratorRecipient> recipientsForChapter = new List<FinancialStatementGeneratorRecipient>();
             int chapterIndex = 1;
             string chapterStartPrimarySortKey = recipientsByPrimarySortKey.Keys.FirstOrDefault();
             string currentPrimarySortKey = chapterStartPrimarySortKey;
@@ -815,7 +757,7 @@ Overall PDF/sec    Avg: {recordsCompleted / _stopwatchRenderPDFsOverall.Elapsed.
                     {
                         SaveChapterDoc( financialStatementReportConfiguration, chapterIndex, chapterStartPrimarySortKey, currentPrimarySortKey, recipientsForChapter );
                         chapterStartPrimarySortKey = primarySort.Key;
-                        recipientsForChapter = new List<FinancialStatementGeneratorRecipientResult>();
+                        recipientsForChapter = new List<FinancialStatementGeneratorRecipient>();
                         chapterIndex++;
                     }
                 }
@@ -829,7 +771,7 @@ Overall PDF/sec    Avg: {recordsCompleted / _stopwatchRenderPDFsOverall.Elapsed.
                         {
                             SaveChapterDoc( financialStatementReportConfiguration, chapterIndex, chapterStartPrimarySortKey, currentPrimarySortKey, recipientsForChapter );
                             chapterStartPrimarySortKey = primarySort.Key;
-                            recipientsForChapter = new List<FinancialStatementGeneratorRecipientResult>();
+                            recipientsForChapter = new List<FinancialStatementGeneratorRecipient>();
                             chapterIndex++;
                         }
                     }
@@ -850,7 +792,7 @@ Overall PDF/sec    Avg: {recordsCompleted / _stopwatchRenderPDFsOverall.Elapsed.
         /// <param name="chapterStartPrimarySortKey">The chapter start primary sort key.</param>
         /// <param name="chapterEndPrimarySortKey">The chapter end primary sort key.</param>
         /// <param name="statementsForChapter">The statements for chapter.</param>
-        private void SaveChapterDoc( FinancialStatementReportConfiguration financialStatementReportConfiguration, int chapterIndex, string chapterStartPrimarySortKey, string chapterEndPrimarySortKey, List<FinancialStatementGeneratorRecipientResult> statementsForChapter )
+        private void SaveChapterDoc( FinancialStatementReportConfiguration financialStatementReportConfiguration, int chapterIndex, string chapterStartPrimarySortKey, string chapterEndPrimarySortKey, List<FinancialStatementGeneratorRecipient> statementsForChapter )
         {
             var primarySortRange = $"{chapterStartPrimarySortKey}-{chapterEndPrimarySortKey}";
             var chapterFileName = $"{financialStatementReportConfiguration.FilenamePrefix}{primarySortRange}-{chapterIndex}.pdf".MakeValidFileName();
@@ -863,21 +805,24 @@ Overall PDF/sec    Avg: {recordsCompleted / _stopwatchRenderPDFsOverall.Elapsed.
         /// </summary>
         /// <param name="mergedFileName">Name of the merged file.</param>
         /// <param name="recipientList">The recipient list.</param>
-        private void SaveToMergedDocument( string mergedFileName, List<FinancialStatementGeneratorRecipientResult> recipientList )
+        private void SaveToMergedDocument( string mergedFileName, List<FinancialStatementGeneratorRecipient> recipientList )
         {
-            // no chapters, so just write all to one single document
-            double mergeTotal = recipientList.Count();
-            double mergeProgress = 0;
+            Stopwatch stopwatchMerging = Stopwatch.StartNew();
 
+            // 2700 merge, 2700 save with AsEnumerable
+            // 1700 merge, 1500-150000! Save ToList
             var allPdfsEnumerable = recipientList.Select( a =>
             {
-                mergeProgress++;
-                Debug.WriteLine( $"Merging {mergeProgress / mergeTotal}" );
-                return a.Recipient.GetPdfDocument( _currentDayTemporaryDirectory );
+                return a.GetPdfDocument( _currentDayTemporaryDirectory );
             } );
 
             var singleFinalDoc = IronPdf.PdfDocument.Merge( allPdfsEnumerable );
+            Debug.WriteLine( $"{stopwatchMerging.Elapsed.TotalMilliseconds} stopwatchMerging.Elapsed.TotalMilliseconds MERGE" );
+            stopwatchMerging.Restart();
+
             singleFinalDoc.SaveAs( mergedFileName );
+
+            Debug.WriteLine( $"{stopwatchMerging.Elapsed.TotalMilliseconds} stopwatchMerging.Elapsed.TotalMilliseconds SAVE" );
         }
 
         /// <summary>
@@ -886,28 +831,28 @@ Overall PDF/sec    Avg: {recordsCompleted / _stopwatchRenderPDFsOverall.Elapsed.
         /// <param name="financialStatementReportConfiguration">The financial statement report configuration.</param>
         /// <param name="recipientList">The recipient list.</param>
         /// <returns></returns>
-        private static IOrderedEnumerable<FinancialStatementGeneratorRecipientResult> SortByPrimaryAndSecondaryOrder( FinancialStatementReportConfiguration financialStatementReportConfiguration, List<FinancialStatementGeneratorRecipientResult> recipientList )
+        private static IOrderedEnumerable<FinancialStatementGeneratorRecipient> SortByPrimaryAndSecondaryOrder( FinancialStatementReportConfiguration financialStatementReportConfiguration, List<FinancialStatementGeneratorRecipient> recipientList )
         {
-            IOrderedEnumerable<FinancialStatementGeneratorRecipientResult> sortedRecipientList;
+            IOrderedEnumerable<FinancialStatementGeneratorRecipient> sortedRecipientList;
 
             switch ( financialStatementReportConfiguration.PrimarySortOrder )
             {
                 case FinancialStatementOrderBy.PageCount:
                     {
-                        sortedRecipientList = recipientList.OrderBy( a => a.Recipient.RenderedPageCount );
+                        sortedRecipientList = recipientList.OrderBy( a => a.RenderedPageCount );
                         break;
                     }
 
                 case FinancialStatementOrderBy.PostalCode:
                     {
-                        sortedRecipientList = recipientList.OrderBy( a => a.Recipient.PostalCode );
+                        sortedRecipientList = recipientList.OrderBy( a => a.PostalCode );
                         break;
                     }
 
                 case FinancialStatementOrderBy.LastName:
                 default:
                     {
-                        sortedRecipientList = recipientList.OrderBy( a => a.Recipient.LastName ).ThenBy( a => a.Recipient.NickName );
+                        sortedRecipientList = recipientList.OrderBy( a => a.LastName ).ThenBy( a => a.NickName );
                         break;
                     }
             }
@@ -916,20 +861,20 @@ Overall PDF/sec    Avg: {recordsCompleted / _stopwatchRenderPDFsOverall.Elapsed.
             {
                 case FinancialStatementOrderBy.PageCount:
                     {
-                        sortedRecipientList = sortedRecipientList.ThenBy( a => a.Recipient.RenderedPageCount );
+                        sortedRecipientList = sortedRecipientList.ThenBy( a => a.RenderedPageCount );
                         break;
                     }
 
                 case FinancialStatementOrderBy.PostalCode:
                     {
-                        sortedRecipientList = sortedRecipientList.ThenBy( a => a.Recipient.PostalCode );
+                        sortedRecipientList = sortedRecipientList.ThenBy( a => a.PostalCode );
                         break;
                     }
 
                 case FinancialStatementOrderBy.LastName:
                 default:
                     {
-                        sortedRecipientList = sortedRecipientList.ThenBy( a => a.Recipient.LastName ).ThenBy( a => a.Recipient.NickName );
+                        sortedRecipientList = sortedRecipientList.ThenBy( a => a.LastName ).ThenBy( a => a.NickName );
                         break;
                     }
             }

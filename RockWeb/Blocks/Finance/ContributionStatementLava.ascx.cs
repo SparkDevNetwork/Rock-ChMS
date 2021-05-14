@@ -34,9 +34,9 @@ using Rock.Security;
 namespace RockWeb.Blocks.Finance
 {
     /// <summary>
-    /// This is obsolete. Use ContributionStatementGenerator instead.
+    /// This is the legacy version. Use ContributionStatementGenerator instead.
     /// </summary>
-    [DisplayName( "Contribution Statement Lava ( Obsolete )" )]
+    [DisplayName( "Contribution Statement Lava ( Legacy )" )]
     [Category( "Finance" )]
     [Description( "Obsolete. Use ContributionStatementGenerator instead." )]
     [AccountsField( "Accounts", "A selection of accounts to include on the statement. If none are selected all accounts that are tax-deductible will be used.", false, order: 0 )]
