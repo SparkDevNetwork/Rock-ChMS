@@ -33,6 +33,7 @@ namespace Rock.Apps.StatementGenerator
     public partial class ReportConfigurationModalWindow : Window
     {
         private DateTime? FinancialStatementReportConfigurationCreateDateTime { get; set; }
+
         private Guid FinancialStatementReportConfigurationGuid { get; set; }
 
         /// <summary>

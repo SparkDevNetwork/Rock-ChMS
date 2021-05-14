@@ -28,13 +28,12 @@ namespace Rock.Apps.StatementGenerator
     /// </summary>
     public partial class SelectFinancialStatementTemplatePage : Page
     {
-      
+        /// <summary>
+        /// Initializes a new instance of the <see cref="SelectFinancialStatementTemplatePage"/> class.
+        /// </summary>
         public SelectFinancialStatementTemplatePage()
         {
             InitializeComponent();
-
-            
-
             LoadFinancialStatementTemplates();
         }
 

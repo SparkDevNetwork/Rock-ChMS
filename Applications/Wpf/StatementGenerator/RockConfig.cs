@@ -16,9 +16,6 @@
 //
 using System;
 using System.Configuration;
-using System.Windows;
-
-using Rock.Client;
 
 namespace Rock.Apps.StatementGenerator
 {
@@ -133,6 +130,12 @@ namespace Rock.Apps.StatementGenerator
             }
         }
 
+        /// <summary>
+        /// Gets or sets the individual save options json.
+        /// </summary>
+        /// <value>
+        /// The individual save options json.
+        /// </value>
         [DefaultSettingValue( "" )]
         [UserScopedSetting]
         public string IndividualSaveOptionsJson
@@ -141,6 +144,12 @@ namespace Rock.Apps.StatementGenerator
             set => this["IndividualSaveOptionsJson"] = value;
         }
 
+        /// <summary>
+        /// Gets or sets the report configuration list json.
+        /// </summary>
+        /// <value>
+        /// The report configuration list json.
+        /// </value>
         [DefaultSettingValue( "" )]
         [UserScopedSetting]
         public string ReportConfigurationListJson
@@ -149,6 +158,12 @@ namespace Rock.Apps.StatementGenerator
             set => this["ReportConfigurationListJson"] = value;
         }
 
+        /// <summary>
+        /// Gets or sets a value indicating whether [enable page count predetermination].
+        /// </summary>
+        /// <value>
+        ///   <c>true</c> if [enable page count predetermination]; otherwise, <c>false</c>.
+        /// </value>
         [UserScopedSetting]
         public bool EnablePageCountPredetermination
         {
@@ -185,8 +200,10 @@ namespace Rock.Apps.StatementGenerator
             }
         }
 
-        
-
+        /// <summary>
+        /// Loads this instance.
+        /// </summary>
+        /// <returns></returns>
         public static RockConfig Load()
         {
             return RockConfig.Default;

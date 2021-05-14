@@ -1,4 +1,4 @@
-// <copyright>
+﻿// <copyright>
 // Copyright by the Spark Development Network
 //
 // Licensed under the Rock Community License (the "License");
@@ -744,7 +744,6 @@ namespace Rock
             for ( int i = 0; i < str.Length; i += maxChunkSize )
                 yield return str.Substring( i, Math.Min( maxChunkSize, str.Length - i ) );
         }
-
 
         /// <summary>
         /// Removes any carriage return and/or line feed characters.

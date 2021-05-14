@@ -196,7 +196,6 @@ namespace Rock
                 {
                     singleObjectException = firstException;
                     dynamicObject = JsonConvert.DeserializeObject<List<ExpandoObject>>( val, converter );
-
                 }
                 catch ( Exception secondException )
                 {

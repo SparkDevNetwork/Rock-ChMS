@@ -21,9 +21,7 @@ using System.Linq;
 using System.Web;
 using System.Windows;
 using System.Windows.Controls;
-using System.Windows.Documents;
 using System.Windows.Input;
-using System.Xml;
 
 using RestSharp;
 
@@ -36,7 +34,6 @@ namespace Rock.Apps.StatementGenerator
     /// </summary>
     public partial class SelectPersonsPage : System.Windows.Controls.Page
     {
-
         private RestClient _restClient;
 
         /// <summary>
@@ -82,7 +79,6 @@ namespace Rock.Apps.StatementGenerator
         /// <param name="e">The <see cref="RoutedEventArgs"/> instance containing the event data.</param>
         private void btnNext_Click( object sender, RoutedEventArgs e )
         {
-
             if ( SaveChanges( true ) )
             {
                 var nextPage = new SelectFinancialStatementTemplatePage();
@@ -181,7 +177,6 @@ namespace Rock.Apps.StatementGenerator
         {
             var searchTerm = txtPersonSearch.Text.Trim();
 
-
             var searchBackgroundWorkersList = activeSearchBackgroundWorkers.ToList();
             for ( int i = 0; i < searchBackgroundWorkersList.Count; i++ )
             {
@@ -250,7 +245,7 @@ namespace Rock.Apps.StatementGenerator
                 return;
             }
 
-            string searchUrl =$"api/People/Search?name={HttpUtility.UrlEncode( searchValue )}&includeHtml=false&includeDetails=true&includeBusinesses=true&includeDeceased=true";
+            string searchUrl = $"api/People/Search?name={HttpUtility.UrlEncode( searchValue )}&includeHtml=false&includeDetails=true&includeBusinesses=true&includeDeceased=true";
             var getSearchRequest = new RestRequest( searchUrl );
             getSearchRequest.Timeout = 10000;
             var getSearchResponse = _restClient.Execute<List<PersonSearchResult>>( getSearchRequest );

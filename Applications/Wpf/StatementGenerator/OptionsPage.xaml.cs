@@ -98,7 +98,6 @@ namespace Rock.Apps.StatementGenerator
 
             rockConfig.TemporaryDirectory = txtTemporaryDirectory.Text;
 
-
             rockConfig.Save();
 
             this.NavigationService.GoBack();

@@ -21,6 +21,9 @@ using Rock.Client;
 
 namespace Rock.Apps.StatementGenerator
 {
+    /// <summary>
+    /// 
+    /// </summary>
     internal class ReportOptions
     {
         /// <summary>
@@ -37,17 +40,13 @@ namespace Rock.Apps.StatementGenerator
             }
         }
 
-        public static void LoadFromConfig( RockConfig rockConfig )
+        /// <summary>
+        /// Loads from configuration.
+        /// </summary>
+        /// <param name="generatorConfig">The generator configuration.</param>
+        public static void LoadFromConfig( GeneratorConfig generatorConfig )
         {
-            //_current.DataViewId = rockConfig.Data
-            _current.EnablePageCountPredetermination = rockConfig.EnablePageCountPredetermination;
-            //_current.EndDate = rockConfig.EndDat
-            //_current.ExcludeInActiveIndividuals
-            //_current.FinancialStatementTemplateId = rockConfig.FinancialStatementTemplateGuid
-            //_current.IncludeBusinesses = rockConfig.In
-            _current.IndividualSaveOptions = rockConfig.IndividualSaveOptionsJson.FromJsonOrNull<FinancialStatementIndividualSaveOptions>();
-            _current.ReportConfigurationList = rockConfig.ReportConfigurationListJson.FromJsonOrNull<List<FinancialStatementReportConfiguration>>();
-            //_current.StartDate
+            _current = generatorConfig.ConfiguredOptions;
         }
 
         /// <summary>

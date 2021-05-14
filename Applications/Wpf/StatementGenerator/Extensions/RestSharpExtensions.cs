@@ -22,6 +22,9 @@ using RestSharp.Serializers.NewtonsoftJson;
 
 namespace Rock.Apps.StatementGenerator
 {
+    /// <summary>
+    /// 
+    /// </summary>
     public static class RestSharpExtensions
     {
         /// <summary>
