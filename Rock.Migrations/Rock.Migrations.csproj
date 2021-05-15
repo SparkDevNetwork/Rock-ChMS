@@ -2961,7 +2961,6 @@
       <Link>SqlServerTypes\x86\SqlServerSpatial110.dll</Link>
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
-    <None Include="Migrations\202105122159281_StatementGenerator_RockDefaultTemplate.lava" />
     <Content Include="Migrations\Version 12.0\Version 1.12.4\202104291818024_GroupSalutation_spAnalytics_ETL_Family.sql">
       <DependentUpon>202104291818024_GroupSalutation.cs</DependentUpon>
     </Content>
@@ -3164,6 +3163,9 @@
       <DependentUpon>201907082136571_Rollup0708.cs</DependentUpon>
     </Content>
     <Content Include="SqlServerTypes\readme.htm" />
+    <None Include="Migrations\202105122159281_StatementGenerator_RockDefaultTemplate.lava">
+      <DependentUpon>202105122159281_StatementGenerator.cs</DependentUpon>
+    </None>
     <None Include="Migrations\Version 10.0\Version 1.10.2\201912092001240_FamilyAnalyticsGivingId_spCrm_FamilyAnalyticsEraDataset.sql">
       <DependentUpon>201912092001240_FamilyAnalyticsGivingId.cs</DependentUpon>
     </None>

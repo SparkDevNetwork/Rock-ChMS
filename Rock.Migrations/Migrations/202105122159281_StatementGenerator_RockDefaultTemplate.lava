@@ -6,7 +6,7 @@
 {% assign organizationPhone = 'Global' | Attribute:'OrganizationPhone' %}
 {% assign currencySymbol = 'Global' | Attribute:'CurrencySymbol' %}
 {% assign bodyPadding = '0 0 0 0' %}
-{% if RenderMedium == 'Block' %}
+{% if RenderMedium == 'Html' %}
   {% assign bodyPadding = '10px 10px 10px 10px' %}
 {% endif %}
 <!DOCTYPE html>

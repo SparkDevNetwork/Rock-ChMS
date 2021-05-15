@@ -63,6 +63,8 @@ namespace Rock.Migrations
 		VALUES ( 'FinancialGivingStatement', 'Rock.StatementGenerator.Rest.FinancialGivingStatementController', NEWID() )
 " );
 
+            Sql( "DELETE FROM [Auth] WHERE [Guid] IN ('72E3DC93-50F9-4A2F-A95B-774D6A19621F', '0B8A3A47-FFBB-4B17-9FF1-3832BD8F69D8', 'B7BD3533-745D-4F0E-B745-0E0BB68606ED', '93A2D2B7-3F41-422C-A599-307485239071')" );
+
             Sql( @"
 INSERT INTO [Auth] ( [EntityTypeId], [EntityId], [Order], [Action], [AllowOrDeny], [SpecialRole], [GroupId], [Guid] ) 
 	VALUES (
@@ -247,6 +249,39 @@ END";
             //   Attribute: core.EnableDefaultWorkflowLauncher
             //   Attribute Value: True
             RockMigrationHelper.AddBlockAttributeValue( "A2022D1F-041C-4DA6-AD96-0C1FB3076703", "AFD65005-BD37-400F-8574-47CAC2EFFFF7", @"True" );
+
+
+            // Add/Update BlockType Contribution Statement Generator
+            RockMigrationHelper.UpdateBlockType( "Contribution Statement Generator", "Block for generating a Contribution Statement", "~/Blocks/Finance/ContributionStatementGenerator.ascx", "Finance", "E0A699C3-61AA-4522-9067-1FE56FA80972" );
+
+            // Add Block Contribution Statement Generator to Page: Contribution Statement, Site: External Website
+            RockMigrationHelper.AddBlock( true, "FC44FC7F-5EA2-4F0E-8182-D8D6C9C75E28".AsGuid(), null, "F3F82256-2D66-432B-9D67-3552CD2F4C2B".AsGuid(), "E0A699C3-61AA-4522-9067-1FE56FA80972".AsGuid(), "Contribution Statement Generator", "Main", @"", @"", 1, "C8C9A67B-2E23-4A2B-ADA8-8137E360D203" );
+
+            // Add Block Contribution Statement Generator to Page: Contribution Statement, Site: Rock RMS
+            RockMigrationHelper.AddBlock( true, "98EBADAF-CCA9-4893-9DD3-D8201D8BD7FA".AsGuid(), null, "C2D29296-6A87-47A9-A753-EE4E9159C4C4".AsGuid(), "E0A699C3-61AA-4522-9067-1FE56FA80972".AsGuid(), "Contribution Statement Generator", "Main", @"", @"", 1, "BCC85FF4-88A5-4526-996C-DB102339B71F" );
+
+            // Attribute for BlockType: Contribution Statement Generator:Allow Person QueryString
+            RockMigrationHelper.AddOrUpdateBlockTypeAttribute( "E0A699C3-61AA-4522-9067-1FE56FA80972", "1EDAFDED-DFE6-4334-B019-6EECBA89E05A", "Allow Person QueryString", "AllowPersonQueryString", "Allow Person QueryString", @"Determines if any person other than the currently logged in person is allowed to be passed through the query string. For security reasons this is not allowed by default.", 0, @"False", "40180E49-CAC2-47A0-9234-04E3415DAA7D" );
+
+            // Attribute for BlockType: Contribution Statement Generator:Statement Template
+            RockMigrationHelper.AddOrUpdateBlockTypeAttribute( "E0A699C3-61AA-4522-9067-1FE56FA80972", "9E0CD807-D69F-4888-A9BE-BCD11DD083FE", "Statement Template", "FinancialStatementTemplate", "Statement Template", @"", 1, @"4B93657A-DD5F-4D8A-A13F-1B4E9ADBDAD0", "0D158AF4-F98B-410B-B227-D91166903CD6" );
+
+            // Add Block Attribute Value
+            //   Block: Contribution Statement Generator
+            //   BlockType: Contribution Statement Generator
+            //   Block Location: Page=Contribution Statement, Site=Rock RMS
+            //   Attribute: Allow Person QueryString
+            //   Attribute Value: True
+            RockMigrationHelper.AddBlockAttributeValue( "BCC85FF4-88A5-4526-996C-DB102339B71F", "40180E49-CAC2-47A0-9234-04E3415DAA7D", @"True" );
+
+            // Add Block Attribute Value
+            //   Block: Contribution Statement Generator
+            //   BlockType: Contribution Statement Generator
+            //   Block Location: Page=Contribution Statement, Site=Rock RMS
+            //   Attribute: Statement Template
+            //   Attribute Value: 4B93657A-DD5F-4D8A-A13F-1B4E9ADBDAD0
+            RockMigrationHelper.AddBlockAttributeValue( "BCC85FF4-88A5-4526-996C-DB102339B71F", "0D158AF4-F98B-410B-B227-D91166903CD6", @"4B93657A-DD5F-4D8A-A13F-1B4E9ADBDAD0" );
+
         }
 
         /// <summary>
@@ -285,6 +320,23 @@ END";
 
             // Delete Page Statement Templates from Site:Rock RMS
             RockMigrationHelper.DeletePage( "B59F9E88-C6A1-463E-8FA0-DB381C617C89" ); //  Page: Statement Templates, Layout: Full Width, Site: Rock RMS
+
+
+            // Statement Template Attribute for BlockType: Contribution Statement Generator
+            RockMigrationHelper.DeleteAttribute( "0D158AF4-F98B-410B-B227-D91166903CD6" );
+
+            // Allow Person QueryString Attribute for BlockType: Contribution Statement Generator
+            RockMigrationHelper.DeleteAttribute( "40180E49-CAC2-47A0-9234-04E3415DAA7D" );
+
+            // Remove Block: Contribution Statement Generator, from Page: Contribution Statement, Site: External Website
+            RockMigrationHelper.DeleteBlock( "C8C9A67B-2E23-4A2B-ADA8-8137E360D203" );
+
+            // Remove Block: Contribution Statement Generator, from Page: Contribution Statement, Site: Rock RMS
+            RockMigrationHelper.DeleteBlock( "BCC85FF4-88A5-4526-996C-DB102339B71F" );
+
+            // Delete BlockType Contribution Statement Generator
+            RockMigrationHelper.DeleteBlockType( "E0A699C3-61AA-4522-9067-1FE56FA80972" ); // Contribution Statement Generator
+
         }
     }
 }
