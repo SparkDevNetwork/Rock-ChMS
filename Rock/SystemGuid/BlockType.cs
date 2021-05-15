@@ -280,7 +280,7 @@ namespace Rock.SystemGuid
         /// <summary>
         /// The contribution statement lava (Legacy)
         /// </summary>
-        [Obsolete("Use ")]
+        [Obsolete( "Use ContributionStatementGenerator instead" )]
         public const string CONTRIBUTION_STATEMENT_LAVA_LEGACY = "AF986B72-ADD9-4E05-971F-1DE4EBED8667";
     }
 }

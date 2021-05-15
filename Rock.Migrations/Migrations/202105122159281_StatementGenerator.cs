@@ -31,13 +31,75 @@ namespace Rock.Migrations
         {
             PagesBlocks_Up();
 
-
-            // 
-            Sql( $"UPDATE [BlockType] SET [Name] = '{2}' WHERE [Guid] = '{Rock.SystemGuid.BlockType.CONTRIBUTION_STATEMENT_LAVA_LEGACY}'" );
-
+            BlockUpdates_Up();
             RenameLegacyStatementGeneratedDefinedType();
             AddRockDefaultTemplateLogo();
             AddRockDefaultTemplate();
+
+            UpdateRestSecurity();
+        }
+
+        private void BlockUpdates_Up()
+        {
+            // Internal Contribution Statement Lava (Legacy)
+            RockMigrationHelper.DeleteBlock( "A1C9B68E-BD41-43E1-A40F-BAD33EBD4124" );
+
+            // External Contribution Statement Lava (Legacy)
+            RockMigrationHelper.DeleteBlock( "680D8BC7-9F39-45AA-A89E-D542BC7AC57D" );
+
+            // 
+#pragma warning disable CS0618 // Type or member is obsolete
+            Sql( $"UPDATE [BlockType] SET [Name] = 'Contribution Statement Lava ( Legacy )' WHERE [Guid] = '{Rock.SystemGuid.BlockType.CONTRIBUTION_STATEMENT_LAVA_LEGACY}'" );
+#pragma warning restore CS0618 // Type or member is obsolete
+        }
+
+        /// <summary>
+        /// Updates the rest security.
+        /// </summary>
+        private void UpdateRestSecurity()
+        {
+            Sql( @"IF NOT EXISTS (SELECT [Id] FROM [RestController] WHERE [ClassName] = 'Rock.StatementGenerator.Rest.FinancialGivingStatementController') 
+	INSERT INTO [RestController] ( [Name], [ClassName], [Guid] )
+		VALUES ( 'FinancialGivingStatement', 'Rock.StatementGenerator.Rest.FinancialGivingStatementController', NEWID() )
+" );
+
+            Sql( @"
+INSERT INTO [Auth] ( [EntityTypeId], [EntityId], [Order], [Action], [AllowOrDeny], [SpecialRole], [GroupId], [Guid] ) 
+	VALUES (
+		(SELECT [Id] FROM [EntityType] WHERE [Guid] = '65CDFD5B-A9AA-48FA-8D22-669612D5EA7D'), 
+		(SELECT [Id] FROM [RestController] WHERE [ClassName] = 'Rock.StatementGenerator.Rest.FinancialGivingStatementController'), 
+		0, 'View', 'A', 0, 
+		(SELECT [Id] FROM [Group] WHERE [Guid] = '6246A7EF-B7A3-4C8C-B1E4-3FF114B84559'), 
+		'72E3DC93-50F9-4A2F-A95B-774D6A19621F')
+
+
+INSERT INTO [Auth] ( [EntityTypeId], [EntityId], [Order], [Action], [AllowOrDeny], [SpecialRole], [GroupId], [Guid] ) 
+	VALUES (
+		(SELECT [Id] FROM [EntityType] WHERE [Guid] = '65CDFD5B-A9AA-48FA-8D22-669612D5EA7D'), 
+		(SELECT [Id] FROM [RestController] WHERE [ClassName] = 'Rock.StatementGenerator.Rest.FinancialGivingStatementController'), 
+		1, 'View', 'A', 0, 
+		(SELECT [Id] FROM [Group] WHERE [Guid] = '2539CF5D-E2CE-4706-8BBF-4A9DF8E763E9'), 
+		'0B8A3A47-FFBB-4B17-9FF1-3832BD8F69D8')
+
+
+INSERT INTO [Auth] ( [EntityTypeId], [EntityId], [Order], [Action], [AllowOrDeny], [SpecialRole], [GroupId], [Guid] ) 
+	VALUES (
+		(SELECT [Id] FROM [EntityType] WHERE [Guid] = '65CDFD5B-A9AA-48FA-8D22-669612D5EA7D'), 
+		(SELECT [Id] FROM [RestController] WHERE [ClassName] = 'Rock.StatementGenerator.Rest.FinancialGivingStatementController'), 
+		2, 'View', 'A', 0, 
+		(SELECT [Id] FROM [Group] WHERE [Guid] = '628C51A8-4613-43ED-A18D-4A6FB999273E'), 
+		'B7BD3533-745D-4F0E-B745-0E0BB68606ED')
+
+
+INSERT INTO [Auth] ( [EntityTypeId], [EntityId], [Order], [Action], [AllowOrDeny], [SpecialRole], [GroupId], [Guid] ) 
+	VALUES (
+		(SELECT [Id] FROM [EntityType] WHERE [Guid] = '65CDFD5B-A9AA-48FA-8D22-669612D5EA7D'), 
+		(SELECT [Id] FROM [RestController] WHERE [ClassName] = 'Rock.StatementGenerator.Rest.FinancialGivingStatementController'), 
+		3, 'View', 'D', 1, 
+		NULL, 
+		'93A2D2B7-3F41-422C-A599-307485239071')
+" );
+
         }
 
         private void RenameLegacyStatementGeneratedDefinedType()
@@ -77,8 +139,8 @@ END
             var defaultTemplate = MigrationSQL._202105122159281_StatementGenerator_RockDefaultTemplate.Replace( "'", "''" );
             var defaultTemplateName = "Rock Default";
             var defaultTemplateDescription = "The default statement generator lava template. It includes a transaction list, account summary, non-cash contributions section and a pledges section. Use this as a starting point for making a custom template. A logo size of 240 x 80px works best for this template.";
-            var reportSettingsJson = @"{""TransactionSettings"":{""AccountSelectionOption"":0,""SelectedAccountIds"":[1],""CurrencyTypesForCashGiftIds"":[9,6,156,157,725,726,677,724],""CurrencyTypesForNonCashIds"":[667],""TransactionTypeIds"":[53],""HideRefundedTransactions"":true,""HideCorrectedTransactionOnSameData"":true},""PledgeSettings"":{""AccountIds"":[0],""IncludeGiftsToChildAccounts"":false,""IncludeNonCashGifts"":false},""PDFSettings"":{""PaperSize"":1,""MarginRightMillimeters"":10,""MarginLeftMillimeters"":10,""MarginBottomMillimeters"":10,""MarginTopMillimeters"":10}}";
-            var footerSettingsJson = @"{""HtmlFragment"":"" < table style = 'width: 100%' >\n < tr >\n < td style =\""text-align:left; font-size:11px; opacity:.5\"">\n            {{ Salutation }}\n        </td>\n        <td style=\""text-align:right; font-size:11px; opacity:.5\"">\n            Page <span class='page'></span> of <span class='total-pages'></span>\n        </td>\n    </tr>\n</table>""}";
+            var reportSettingsJson = @"{""TransactionSettings"":{""AccountSelectionOption"":0,""SelectedAccountIds"":[1],""CurrencyTypesForCashGiftIds"":[9,6,156,157,725,726,677,724],""CurrencyTypesForNonCashIds"":[667],""TransactionTypeIds"":[53],""HideRefundedTransactions"":true,""HideCorrectedTransactionOnSameData"":true},""PledgeSettings"":{""AccountIds"":[0],""IncludeGiftsToChildAccounts"":false,""IncludeNonCashGifts"":false},""PDFSettings"":{""PaperSize"":1,""MarginRightMillimeters"":10,""MarginLeftMillimeters"":10,""MarginBottomMillimeters"":10,""MarginTopMillimeters"":10}}".Replace( "'", "''" );
+            var footerSettingsJson = @"{""HtmlFragment"":"" < table style = 'width: 100%' >\n < tr >\n < td style =\""text-align:left; font-size:11px; opacity:.5\"">\n            {{ Salutation }}\n        </td>\n        <td style=\""text-align:right; font-size:11px; opacity:.5\"">\n            Page <span class='page'></span> of <span class='total-pages'></span>\n        </td>\n    </tr>\n</table>""}".Replace( "'", "''" );
 
             var defaultTemplateSQL = $@"DECLARE @rockDefaultTemplateGuid UNIQUEIDENTIFIER = '{Rock.SystemGuid.FinancialStatementTemplate.ROCK_DEFAULT}'
 	,@logoBinaryFileId INT = (
@@ -131,7 +193,6 @@ BEGIN
 END";
 
             Sql( defaultTemplateSQL );
-
         }
 
         private void PagesBlocks_Up()
