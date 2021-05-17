@@ -463,4 +463,13 @@
   <data name="_202105122159281_StatementGenerator_RockDefaultTemplate" type="System.Resources.ResXFileRef, System.Windows.Forms">
     <value>202105122159281_statementgenerator_rockdefaulttemplate.lava;System.String, mscorlib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089;utf-8</value>
   </data>
+  <data name="_202105122159281_StatementGenerator_RockDefaultTemplateFooter" type="System.Resources.ResXFileRef, System.Windows.Forms">
+    <value>202105122159281_statementgenerator_rockdefaulttemplatefooter.json;System.String, mscorlib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089;utf-8</value>
+  </data>
+  <data name="_202105122159281_StatementGenerator_RockDefaultTemplateLogo" type="System.Resources.ResXFileRef, System.Windows.Forms">
+    <value>202105122159281_statementgenerator_rockdefaulttemplatelogo.data;System.String, mscorlib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089;utf-8</value>
+  </data>
+  <data name="_202105122159281_StatementGenerator_RockDefaultTemplateReportSettings" type="System.Resources.ResXFileRef, System.Windows.Forms">
+    <value>202105122159281_statementgenerator_rockdefaulttemplatereportsettings.json;System.String, mscorlib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089;utf-8</value>
+  </data>
 </root>

@@ -191,8 +191,8 @@ namespace Rock.Financial
                     else
                     {
                         var lookupValue = nickNameLastNameLookupByGivingGroupId.GetValueOrNull( recipient.GroupId );
-                        recipient.NickName = lookupValue.NickName;
-                        recipient.LastName = lookupValue.LastName;
+                        recipient.NickName = lookupValue?.NickName;
+                        recipient.LastName = lookupValue?.LastName;
                     }
                 }
 
@@ -465,20 +465,23 @@ namespace Rock.Financial
                 List<FinancialTransactionDetail> transactionDetailListCash = transactionDetailListAll;
                 List<FinancialTransactionDetail> transactionDetailListNonCash = new List<FinancialTransactionDetail>();
 
-                if ( transactionSettings.CurrencyTypesForCashGiftIds != null )
+                var currencyTypesForCashGiftIds = transactionSettings.CurrencyTypesForCashGiftGuids?.Select( a => DefinedTypeCache.GetId( a ) ).Where( a => a.HasValue ).Select( a => a.Value ).ToList();
+                var currencyTypesForNotCashGiftIds = transactionSettings.CurrencyTypesForNonCashGuids?.Select( a => DefinedTypeCache.GetId( a ) ).Where( a => a.HasValue ).Select( a => a.Value ).ToList();
+
+                if ( currencyTypesForCashGiftIds != null )
                 {
                     // NOTE: if there isn't a FinancialPaymentDetail record, assume it is Cash
                     transactionDetailListCash = transactionDetailListCash.Where( a =>
                         ( a.Transaction.FinancialPaymentDetailId == null ) ||
-                        ( a.Transaction.FinancialPaymentDetail.CurrencyTypeValueId.HasValue && transactionSettings.CurrencyTypesForCashGiftIds.Contains( a.Transaction.FinancialPaymentDetail.CurrencyTypeValueId.Value ) ) ).ToList();
+                        ( a.Transaction.FinancialPaymentDetail.CurrencyTypeValueId.HasValue && currencyTypesForCashGiftIds.Contains( a.Transaction.FinancialPaymentDetail.CurrencyTypeValueId.Value ) ) ).ToList();
                 }
 
-                if ( transactionSettings.CurrencyTypesForNonCashIds != null )
+                if ( currencyTypesForNotCashGiftIds != null )
                 {
                     transactionDetailListNonCash = transactionDetailListAll.Where( a =>
                         a.Transaction.FinancialPaymentDetailId.HasValue &&
                         a.Transaction.FinancialPaymentDetail.CurrencyTypeValueId.HasValue
-                        && transactionSettings.CurrencyTypesForNonCashIds.Contains( a.Transaction.FinancialPaymentDetail.CurrencyTypeValueId.Value ) ).ToList();
+                        && currencyTypesForNotCashGiftIds.Contains( a.Transaction.FinancialPaymentDetail.CurrencyTypeValueId.Value ) ).ToList();
                 }
 
                 // Add Merge Fields for Transactions for custom Statements that might want to organize the output by Transaction instead of TransactionDetail
@@ -593,13 +596,16 @@ namespace Rock.Financial
                 var transactionSettings = financialStatementTemplate.ReportSettings.TransactionSettings;
                 var pledgeSettings = financialStatementTemplate.ReportSettings.PledgeSettings;
 
+                var currencyTypesForCashGiftIds = transactionSettings.CurrencyTypesForCashGiftGuids?.Select( a => DefinedTypeCache.GetId( a ) ).Where( a => a.HasValue ).Select(a => a.Value).ToList();
+                var currencyTypesForNotCashGiftIds = transactionSettings.CurrencyTypesForNonCashGuids?.Select( a => DefinedTypeCache.GetId( a ) ).Where( a => a.HasValue ).Select(a => a.Value).ToList();
+
                 List<int> pledgeCurrencyTypeIds = null;
-                if ( transactionSettings.CurrencyTypesForCashGiftIds != null )
+                if ( currencyTypesForCashGiftIds != null )
                 {
-                    pledgeCurrencyTypeIds = transactionSettings.CurrencyTypesForCashGiftIds;
-                    if ( pledgeSettings.IncludeNonCashGifts && transactionSettings.CurrencyTypesForNonCashIds != null )
+                    pledgeCurrencyTypeIds = currencyTypesForCashGiftIds;
+                    if ( pledgeSettings.IncludeNonCashGifts && currencyTypesForNotCashGiftIds != null )
                     {
-                        pledgeCurrencyTypeIds = transactionSettings.CurrencyTypesForCashGiftIds.Union( transactionSettings.CurrencyTypesForNonCashIds ).ToList();
+                        pledgeCurrencyTypeIds = currencyTypesForCashGiftIds.Union( currencyTypesForNotCashGiftIds ).ToList();
                     }
                 }
 
@@ -741,7 +747,6 @@ namespace Rock.Financial
             var reportSettings = financialStatementTemplate.ReportSettings;
             var transactionSettings = reportSettings.TransactionSettings;
             var pledgeSettings = reportSettings.PledgeSettings;
-            pledgeSettings.AccountIds = pledgeSettings.AccountIds.Where( a => a > 0 ).ToList();
 
             // pledge information
             var pledgeQry = new FinancialPledgeService( rockContext ).Queryable();
@@ -842,23 +847,24 @@ namespace Rock.Financial
 
             // default to Contributions if nothing specified
             var transactionTypeContribution = DefinedValueCache.Get( Rock.SystemGuid.DefinedValue.TRANSACTION_TYPE_CONTRIBUTION.AsGuid() );
-            if ( transactionSettings.TransactionTypeIds == null || !transactionSettings.TransactionTypeIds.Any() )
+            var transactionTypeIds = transactionSettings.TransactionTypeGuids?.Select( a => DefinedValueCache.GetId( a ) ).Where( a => a.HasValue ).Select( a => a.Value ).ToList();
+            if ( transactionTypeIds == null || !transactionTypeIds.Any() )
             {
-                transactionSettings.TransactionTypeIds = new List<int>();
+                transactionTypeIds = new List<int>();
                 if ( transactionTypeContribution != null )
                 {
-                    transactionSettings.TransactionTypeIds.Add( transactionTypeContribution.Id );
+                    transactionTypeIds.Add( transactionTypeContribution.Id );
                 }
             }
 
-            if ( transactionSettings.TransactionTypeIds.Count() == 1 )
+            if ( transactionTypeIds.Count() == 1 )
             {
-                int selectedTransactionTypeId = transactionSettings.TransactionTypeIds[0];
+                int selectedTransactionTypeId = transactionTypeIds[0];
                 financialTransactionQry = financialTransactionQry.Where( a => a.TransactionTypeValueId == selectedTransactionTypeId );
             }
             else
             {
-                financialTransactionQry = financialTransactionQry.Where( a => transactionSettings.TransactionTypeIds.Contains( a.TransactionTypeValueId ) );
+                financialTransactionQry = financialTransactionQry.Where( a => transactionTypeIds.Contains( a.TransactionTypeValueId ) );
             }
 
             var includedTransactionAccountIds = transactionSettings.GetIncludedAccountIds( rockContext );

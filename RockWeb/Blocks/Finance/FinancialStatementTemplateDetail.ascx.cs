@@ -171,9 +171,9 @@ namespace RockWeb.Blocks.Finance
 
             var transactionSetting = new FinancialStatementTemplateTransactionSetting();
 
-            transactionSetting.CurrencyTypesForCashGiftIds = dvpCurrencyTypesCashGifts.SelectedValuesAsInt;
-            transactionSetting.CurrencyTypesForNonCashIds = dvpCurrencyTypesNonCashGifts.SelectedValuesAsInt;
-            transactionSetting.TransactionTypeIds = dvpTransactionType.SelectedValuesAsInt;
+            transactionSetting.CurrencyTypesForCashGiftGuids = dvpCurrencyTypesCashGifts.SelectedValuesAsInt.Select( a => DefinedValueCache.Get( a )?.Guid ).Where( a => a.HasValue ).Select( a => a.Value ).ToList();
+            transactionSetting.CurrencyTypesForNonCashGuids = dvpCurrencyTypesNonCashGifts.SelectedValuesAsInt.Select( a => DefinedValueCache.Get( a )?.Guid ).Where( a => a.HasValue ).Select( a => a.Value ).ToList();
+            transactionSetting.TransactionTypeGuids = dvpTransactionType.SelectedValuesAsInt.Select( a => DefinedValueCache.Get( a )?.Guid ).Where( a => a.HasValue ).Select( a => a.Value ).ToList();
             transactionSetting.HideRefundedTransactions = cbHideRefundedTransactions.Checked;
             transactionSetting.HideCorrectedTransactionOnSameData = cbHideModifiedTransactions.Checked;
             if ( rbAllTaxDeductibleAccounts.Checked )
@@ -189,13 +189,13 @@ namespace RockWeb.Blocks.Finance
                 transactionSetting.AccountSelectionOption = FinancialStatementTemplateTransactionSettingAccountSelectionOption.SelectedAccounts;
             }
 
-            transactionSetting.SelectedAccountIds = apTransactionAccountsCustom.SelectedValuesAsInt().ToList();
+            transactionSetting.SelectedAccountIds = apTransactionAccountsCustom.SelectedIds.ToList();
             financialStatementTemplate.ReportSettings.TransactionSettings = transactionSetting;
 
             var pledgeSetting = new FinancialStatementTemplatePledgeSettings();
             pledgeSetting.IncludeGiftsToChildAccounts = cbIncludeGiftsToChildAccounts.Checked;
             pledgeSetting.IncludeNonCashGifts = cbIncludeNonCashGifts.Checked;
-            pledgeSetting.AccountIds = apPledgeAccounts.SelectedValuesAsInt().ToList();
+            pledgeSetting.AccountIds = apPledgeAccounts.SelectedIds.ToList();
             financialStatementTemplate.ReportSettings.PledgeSettings = pledgeSetting;
 
             int? existingLogoId = null;
@@ -353,9 +353,9 @@ namespace RockWeb.Blocks.Finance
                     }
                 }
 
-                if ( transactionSettings.TransactionTypeIds.Any() )
+                if ( transactionSettings.TransactionTypeGuids.Any() )
                 {
-                    var transactionTypes = transactionSettings.TransactionTypeIds.Select( a => DefinedValueCache.GetName( a ) ).ToList();
+                    var transactionTypes = transactionSettings.TransactionTypeGuids.Select( a => DefinedValueCache.Get( a )?.Value ?? string.Empty ).ToList();
                     detailsDescription.Add( "Transaction Types", transactionTypes.AsDelimited( "<br/>" ) );
                 }
 
@@ -400,9 +400,9 @@ namespace RockWeb.Blocks.Finance
             var transactionSetting = financialStatementTemplate.ReportSettings.TransactionSettings;
             cbHideRefundedTransactions.Checked = transactionSetting.HideRefundedTransactions;
             cbHideModifiedTransactions.Checked = transactionSetting.HideCorrectedTransactionOnSameData;
-            dvpCurrencyTypesCashGifts.SetValues( transactionSetting.CurrencyTypesForCashGiftIds );
-            dvpCurrencyTypesNonCashGifts.SetValues( transactionSetting.CurrencyTypesForNonCashIds );
-            dvpTransactionType.SetValues( transactionSetting.TransactionTypeIds );
+            dvpCurrencyTypesCashGifts.SetValues( transactionSetting.CurrencyTypesForCashGiftGuids.Select( a => DefinedValueCache.GetId( a ) ).Where( a => a.HasValue ).Select( a => a.Value ).ToList() );
+            dvpCurrencyTypesNonCashGifts.SetValues( transactionSetting.CurrencyTypesForNonCashGuids.Select( a => DefinedValueCache.GetId( a )).Where( a => a.HasValue ).Select( a => a.Value ).ToList() );
+            dvpTransactionType.SetValues( transactionSetting.TransactionTypeGuids.Select( a => DefinedValueCache.GetId( a ) ).Where( a => a.HasValue ).Select( a => a.Value ).ToList() );
             rbAllTaxDeductibleAccounts.Checked = transactionSetting.AccountSelectionOption == FinancialStatementTemplateTransactionSettingAccountSelectionOption.AllTaxDeductibleAccounts;
             rbUseCustomAccountIds.Checked = transactionSetting.AccountSelectionOption != FinancialStatementTemplateTransactionSettingAccountSelectionOption.AllTaxDeductibleAccounts;
             if ( transactionSetting.SelectedAccountIds.Any() )

@@ -25,6 +25,7 @@ using System.Threading;
 using System.Threading.Tasks;
 
 using IronPdf;
+using IronPdf.Threading;
 
 using Newtonsoft.Json;
 
@@ -404,6 +405,9 @@ namespace Rock.Apps.StatementGenerator
 
             Stopwatch waitForLastTask = Stopwatch.StartNew();
 
+            // HtmlToPdf is not thread-safe, so we'll wait to due the next Render until the last one completes,
+            // but we will have other threads that are safe to run (Uploading and saving PDFs, etc) in the meantime.
+            _lastRenderPDFFromHtmlTask?.Wait();
             waitForLastTask.Stop();
             _waitForLastTaskTimingsMS.Add( waitForLastTask.Elapsed.TotalMilliseconds );
 
@@ -413,7 +417,18 @@ namespace Rock.Apps.StatementGenerator
 
                 Stopwatch generatePdfStopWatch = Stopwatch.StartNew();
 
-                IronPdf.PdfDocument pdfDocument = HtmlToPdf.StaticRenderHtmlAsPdf( financialStatementGeneratorRecipientResult.Html, pdfOptions );
+                UniversalRenderJob universalRenderJob = new UniversalRenderJob();
+                universalRenderJob.Options = pdfOptions;
+                universalRenderJob.Html = financialStatementGeneratorRecipientResult.Html;
+
+                // this is not thread-safe, so we'll wait to do this until the last one is done
+                // In the mean time, we'll
+                //   -- Start a thread that saves the previously completed document to the temp directory and upload it (if configured to do so).
+                //   -- Get the HTML for the next recipient
+                var pdfBytes = universalRenderJob.DoRemoteRender();
+                var pdfDocument = new PdfDocument( pdfBytes );
+
+                //IronPdf.PdfDocument pdfDocument = HtmlToPdf.StaticRenderHtmlAsPdf( financialStatementGeneratorRecipientResult.Html, pdfOptions );
 
                 generatePdfStopWatch.Stop();
 
@@ -488,11 +503,62 @@ Overall PDF/sec    Avg: {recordsCompleted / _stopwatchRenderPDFsOverall.Elapsed.
             _lastRenderPDFFromHtmlTask.Start();
         }
 
+        // From https://stackoverflow.com/a/41262413/1755417
+        // Do this to prevent corrupting the RecipientData.Json file
+        private static ReaderWriterLockSlim recipientDataJsonFileLocker = new ReaderWriterLockSlim();
+
         /// <summary>
+        /// Saves the recipient list status.
+        /// </summary>
+        /// <param name="recipientList">The recipient list.</param>
+        /// <param name="reportRockStatementGeneratorTemporaryDirectory">The report rock statement generator temporary directory.</param>
         private static void SaveRecipientListStatus( List<FinancialStatementGeneratorRecipient> recipientList, string reportRockStatementGeneratorTemporaryDirectory )
         {
             var recipientListJsonFileName = Path.Combine( reportRockStatementGeneratorTemporaryDirectory, "RecipientData.Json" );
-            recipientList.ToJsonFile( Formatting.None, recipientListJsonFileName );
+            try
+            {
+                // if still writing, just skip. It is OK if it is a little behind
+                if ( recipientDataJsonFileLocker.WaitingWriteCount > 0 )
+                {
+                    Debug.WriteLine( $"recipientDataJsonFileLocker.WaitingWriteCount: {recipientDataJsonFileLocker.WaitingWriteCount}" );
+                    return;
+                }
+
+                recipientDataJsonFileLocker.EnterWriteLock();
+                recipientList.ToJsonFile( Formatting.None, recipientListJsonFileName );
+            }
+            finally
+            {
+                recipientDataJsonFileLocker.ExitWriteLock();
+            }
+        }
+
+        /// <summary>
+        /// Gets the recipient list status.
+        /// </summary>
+        /// <returns></returns>
+        public static List<FinancialStatementGeneratorRecipient> GetSavedRecipientList( DateTime runDate )
+        {
+            var rockConfig = RockConfig.Load();
+
+            var fileName = Path.Combine( GetStatementGeneratorTemporaryDirectory( rockConfig, runDate ), "RecipientData.Json" );
+            if ( File.Exists( fileName ) )
+            {
+                string resultsJson;
+                try
+                {
+                    recipientDataJsonFileLocker.EnterReadLock();
+                    resultsJson = File.ReadAllText( fileName );
+                }
+                finally
+                {
+                    recipientDataJsonFileLocker.ExitReadLock();
+                }
+
+                return resultsJson.FromJsonOrNull<List<FinancialStatementGeneratorRecipient>>();
+            }
+
+            return null;
         }
 
         /// <summary>
@@ -526,24 +592,6 @@ Overall PDF/sec    Avg: {recordsCompleted / _stopwatchRenderPDFsOverall.Elapsed.
             }
 
             SaveRecipientListStatus( savedRecipientList.ToList(), rockStatementGeneratorTemporaryDirectory );
-        }
-
-        /// <summary>
-        /// Gets the recipient list status.
-        /// </summary>
-        /// <returns></returns>
-        public static List<FinancialStatementGeneratorRecipient> GetSavedRecipientList( DateTime runDate )
-        {
-            var rockConfig = RockConfig.Load();
-
-            var fileName = Path.Combine( GetStatementGeneratorTemporaryDirectory( rockConfig, runDate ), "RecipientData.Json" );
-            if ( File.Exists( fileName ) )
-            {
-                var resultsJson = File.ReadAllText( fileName );
-                return resultsJson.FromJsonOrNull<List<FinancialStatementGeneratorRecipient>>();
-            }
-
-            return null;
         }
 
         /// <summary>
@@ -886,6 +934,7 @@ Overall PDF/sec    Avg: {recordsCompleted / _stopwatchRenderPDFsOverall.Elapsed.
             } );
 
             var singleFinalDoc = IronPdf.PdfDocument.Merge( allPdfsEnumerable );
+
             Debug.WriteLine( $"{stopwatchMerging.Elapsed.TotalMilliseconds} stopwatchMerging.Elapsed.TotalMilliseconds MERGE" );
             stopwatchMerging.Restart();
 

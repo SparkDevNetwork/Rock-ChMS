@@ -2508,5 +2508,37 @@ namespace Rock.Migrations.Migrations {
                 return ResourceManager.GetString("_202105122159281_StatementGenerator_RockDefaultTemplate", resourceCulture);
             }
         }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to { &quot;HtmlFragment&quot;: &quot;&lt;table style=&apos;width: 999%&apos;&gt;\n    &lt;tr&gt;\n        &lt;td style=\&quot;text-align:left; font-size:11px; opacity:.5\&quot;&gt;\n            {{ Salutation }}\n        &lt;/td&gt;\n        &lt;td style=\&quot;text-align:right; font-size:11px; opacity:.5\&quot;&gt;\n            Page &lt;span class=&apos;page&apos;&gt;&lt;/span&gt; of &lt;span class=&apos;total-pages&apos;&gt;&lt;/span&gt;\n        &lt;/td&gt;\n    &lt;/tr&gt;\n&lt;/table&gt;&quot; }.
+        /// </summary>
+        public static string _202105122159281_StatementGenerator_RockDefaultTemplateFooter {
+            get {
+                return ResourceManager.GetString("_202105122159281_StatementGenerator_RockDefaultTemplateFooter", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to 0xFFD8FFE000104A46494600010101006000600000FFE1003A4578696600004D4D002A000000080003511000010000000101000000511100040000000100000EC4511200040000000100000EC400000000FFDB0043000201010101010201010102020202020403020202020504040304060506060605060606070908060709070606080B08090A0A0A0A0A06080B0C0B0A0C090A0A0AFFDB004301020202020202050303050A0706070A0A0A0A0A0A0A0A0A0A0A0A0A0A0A0A0A0A0A0A0A0A0A0A0A0A0A0A0A0A0A0A0A0A0A0A0A0A0A0A0A0A0A0A0A0A0A0A0A0AFFC000110800C8025803012200021101031101FFC4001F0000010501010101010100000000 [rest of string was truncated]&quot;;.
+        /// </summary>
+        public static string _202105122159281_StatementGenerator_RockDefaultTemplateLogo {
+            get {
+                return ResourceManager.GetString("_202105122159281_StatementGenerator_RockDefaultTemplateLogo", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to {
+        ///  &quot;TransactionSettings&quot;: {
+        ///    &quot;AccountSelectionOption&quot;: 0,
+        ///    &quot;SelectedAccountIds&quot;: [ 1 ],
+        ///    &quot;CurrencyTypesForCashGiftGuids&quot;: [ &quot;8b086a19-405a-451f-8d44-174e92d6b402&quot;, &quot;f3adc889-1ee8-4eb6-b3fd-8c10f3c8af93&quot;, &quot;928a2e04-c77b-4282-888f-ec549cee026a&quot;, &quot;dabee8fd-aedf-43e1-8547-4c97fa14d9b6&quot;, &quot;d42c4df7-1ae9-4dde-ada2-774b866b798c&quot;, &quot;6151f6e0-3223-46ba-a59e-e091be4af75c&quot;, &quot;56c9ae9c-b5eb-46d5-9650-2ef86b14f856&quot;, &quot;0fdf0bb3-b483-4c0a-9dff-a35abe3b688d&quot; ],
+        ///    &quot;CurrencyTypesForNonCashGuids&quot;: [ &quot;7950ff66-80e [rest of string was truncated]&quot;;.
+        /// </summary>
+        public static string _202105122159281_StatementGenerator_RockDefaultTemplateReportSettings {
+            get {
+                return ResourceManager.GetString("_202105122159281_StatementGenerator_RockDefaultTemplateReportSettings", resourceCulture);
+            }
+        }
     }
 }
