@@ -98,7 +98,7 @@ namespace Rock.Apps.StatementGenerator
 
         private static ConcurrentBag<Task> _saveAndUploadTasks;
 
-        private static ConcurrentBag<Task> _tasks;
+        private static ConcurrentBag<Task> _renderPdfTasks;
 
         private static FinancialStatementTemplateReportSettings _reportSettings;
 
@@ -196,7 +196,7 @@ namespace Rock.Apps.StatementGenerator
             this.RecordCount = recipientList.Count;
             _recordsCompleted = 0;
 
-            _tasks = new ConcurrentBag<Task>();
+            _renderPdfTasks = new ConcurrentBag<Task>();
             _saveAndUploadTasks = new ConcurrentBag<Task>();
 
             _generatePdfTimingsMS = new ConcurrentBag<double>();
@@ -227,6 +227,8 @@ namespace Rock.Apps.StatementGenerator
                 incompleteRecipients = recipientList;
             }
 
+            var enablePageCountPredetermination = this.Options.EnablePageCountPredetermination;
+
             foreach ( var recipient in incompleteRecipients )
             {
                 if ( _cancelRunning == true )
@@ -243,32 +245,8 @@ namespace Rock.Apps.StatementGenerator
                     continue;
                 }
 
-                StartGenerateStatementForRecipient( recipient, restClient );
+                StartGenerateStatementForRecipient( recipient, restClient, enablePageCountPredetermination );
                 SaveRecipientListStatus( recipientList, _currentDayTemporaryDirectory );
-            }
-
-            if ( this.Options.EnablePageCountPredetermination )
-            {
-                // all the render tasks should be done, but just in case
-                UpdateProgress( $"Finishing up tasks (first pass)", 0, 0 );
-                Task.WaitAll( _tasks.ToArray() );
-
-                _recordsCompleted = 0;
-                foreach ( var recipient in recipientList )
-                {
-                    if ( _cancelRunning == true )
-                    {
-                        break;
-                    }
-
-                    var recipientProgressPosition = Interlocked.Read( ref _recordsCompleted );
-                    var secondPassPosition = recipientProgressPosition / 2;
-
-                    UpdateProgress( "Generating Individual Documents (2nd Pass)...", recipientProgressPosition, recipientProgressMax );
-
-                    StartGenerateStatementForRecipient( recipient, restClient );
-                    SaveRecipientListStatus( recipientList, _currentDayTemporaryDirectory );
-                }
             }
 
             _lastRenderPDFFromHtmlTask?.Wait();
@@ -277,7 +255,7 @@ namespace Rock.Apps.StatementGenerator
             UpdateProgress( $"Finishing up tasks", 0, 0 );
 
             // some of the 'Save and Upload' tasks could be running, so wait for those
-            var remainingRenderTasks = _tasks.ToArray().Where( a => a.Status != TaskStatus.RanToCompletion ).ToList();
+            var remainingRenderTasks = _renderPdfTasks.ToArray().Where( a => a.Status != TaskStatus.RanToCompletion ).ToList();
             while ( remainingRenderTasks.Any() )
             {
                 var finishedTask = Task.WhenAny( remainingRenderTasks.ToArray() );
@@ -286,7 +264,7 @@ namespace Rock.Apps.StatementGenerator
                 UpdateProgress( $"Finishing up {remainingRenderTasks.Count() } Individual Statements...", recipientProgressPosition, recipientProgressMax );
             }
 
-            Task.WaitAll( _tasks.ToArray() );
+            Task.WaitAll( _renderPdfTasks.ToArray() );
 
             // some of the 'Save and Upload' tasks could be running, so wait for those
             var remainingDocumentUploadTasks = _saveAndUploadTasks.ToArray().Where( a => a.Status != TaskStatus.RanToCompletion ).ToList();
@@ -388,14 +366,12 @@ namespace Rock.Apps.StatementGenerator
         /// </summary>
         /// <param name="recipient">The recipient.</param>
         /// <param name="restClient">The rest client.</param>
-        private void StartGenerateStatementForRecipient( FinancialStatementGeneratorRecipient recipient, RestClient restClient )
+        private void StartGenerateStatementForRecipient( FinancialStatementGeneratorRecipient recipient, RestClient restClient, bool enablePageCountPredetermination )
         {
             FinancialStatementGeneratorRecipientResult financialStatementGeneratorRecipientResult = GetFinancialStatementGeneratorRecipientResult( restClient, recipient );
 
             recipient.OptedOut = financialStatementGeneratorRecipientResult.OptedOut;
             recipient.ContributionTotal = financialStatementGeneratorRecipientResult.ContributionTotal;
-
-            var statementGeneratorPdfResult = financialStatementGeneratorRecipientResult;
 
             if ( string.IsNullOrWhiteSpace( financialStatementGeneratorRecipientResult.Html ) )
             {
@@ -405,7 +381,7 @@ namespace Rock.Apps.StatementGenerator
 
             Stopwatch waitForLastTask = Stopwatch.StartNew();
 
-            // HtmlToPdf is not thread-safe, so we'll wait to due the next Render until the last one completes,
+            // IronPdf.HtmlToPdf is not thread-safe, so we'll wait to due the next Render until the last one completes,
             // but we will have other threads that are safe to run (Uploading and saving PDFs, etc) in the meantime.
             _lastRenderPDFFromHtmlTask?.Wait();
             waitForLastTask.Stop();
@@ -413,63 +389,56 @@ namespace Rock.Apps.StatementGenerator
 
             _lastRenderPDFFromHtmlTask = new Task( () =>
             {
-                var pdfOptions = GetPdfPrintOptions( _reportSettings.PDFSettings, financialStatementGeneratorRecipientResult );
-
                 Stopwatch generatePdfStopWatch = Stopwatch.StartNew();
-
-                UniversalRenderJob universalRenderJob = new UniversalRenderJob();
-                universalRenderJob.Options = pdfOptions;
-                universalRenderJob.Html = financialStatementGeneratorRecipientResult.Html;
-
-                // this is not thread-safe, so we'll wait to do this until the last one is done
-                // In the mean time, we'll
-                //   -- Start a thread that saves the previously completed document to the temp directory and upload it (if configured to do so).
-                //   -- Get the HTML for the next recipient
-                var pdfBytes = universalRenderJob.DoRemoteRender();
-                var pdfDocument = new PdfDocument( pdfBytes );
-
-                //IronPdf.PdfDocument pdfDocument = HtmlToPdf.StaticRenderHtmlAsPdf( financialStatementGeneratorRecipientResult.Html, pdfOptions );
-
+                PdfDocument pdfDocument = RenderPDFDocument( financialStatementGeneratorRecipientResult );
+                recipient.RenderedPageCount = pdfDocument.PageCount;
                 generatePdfStopWatch.Stop();
+                if ( enablePageCountPredetermination )
+                {
+                    financialStatementGeneratorRecipientResult = GetFinancialStatementGeneratorRecipientResult( restClient, recipient );
+                    generatePdfStopWatch.Start();
+                    pdfDocument = RenderPDFDocument( financialStatementGeneratorRecipientResult );
+                    recipient.RenderedPageCount = pdfDocument.PageCount;
+                    generatePdfStopWatch.Stop();
+                }
 
                 var recordsCompleted = Interlocked.Increment( ref _recordsCompleted );
 
                 // launch a task to save and upload the document
                 // This is thread safe, so we can spin these up as needed 
                 var saveAndUploadTask = new Task( () =>
-               {
-                   Stopwatch savePdfStopWatch = Stopwatch.StartNew();
-                   recipient.RenderedPageCount = pdfDocument.PageCount;
+                {
+                    Stopwatch savePdfStopWatch = Stopwatch.StartNew();
 
-                   var pdfTempFilePath = statementGeneratorPdfResult.Recipient.GetPdfDocumentFilePath( _currentDayTemporaryDirectory );
+                    var pdfTempFilePath = recipient.GetPdfDocumentFilePath( _currentDayTemporaryDirectory );
 
-                   pdfDocument.SaveAs( pdfTempFilePath );
+                    pdfDocument.SaveAs( pdfTempFilePath );
 
-                   if ( _saveStatementsForIndividualsToDocument )
-                   {
-                       FinancialStatementGeneratorUploadGivingStatementData uploadGivingStatementData = new FinancialStatementGeneratorUploadGivingStatementData
-                       {
-                           FinancialStatementGeneratorRecipient = recipient,
-                           FinancialStatementIndividualSaveOptions = _individualSaveOptions,
-                           PDFData = pdfDocument.BinaryData
-                       };
+                    if ( _saveStatementsForIndividualsToDocument )
+                    {
+                        FinancialStatementGeneratorUploadGivingStatementData uploadGivingStatementData = new FinancialStatementGeneratorUploadGivingStatementData
+                        {
+                            FinancialStatementGeneratorRecipient = recipient,
+                            FinancialStatementIndividualSaveOptions = _individualSaveOptions,
+                            PDFData = pdfDocument.BinaryData
+                        };
 
-                       RestRequest uploadDocumentRequest = new RestRequest( "api/FinancialGivingStatement/UploadGivingStatementDocument" );
-                       uploadDocumentRequest.AddJsonBody( uploadGivingStatementData );
+                        RestRequest uploadDocumentRequest = new RestRequest( "api/FinancialGivingStatement/UploadGivingStatementDocument" );
+                        uploadDocumentRequest.AddJsonBody( uploadGivingStatementData );
 
-                       var uploadDocumentResponse = _uploadPdfDocumentRestClient.ExecutePostAsync( uploadDocumentRequest ).Result;
-                       if ( uploadDocumentResponse.ErrorException != null )
-                       {
-                           throw uploadDocumentResponse.ErrorException;
-                       }
-                   }
+                        var uploadDocumentResponse = _uploadPdfDocumentRestClient.ExecutePostAsync( uploadDocumentRequest ).Result;
+                        if ( uploadDocumentResponse.ErrorException != null )
+                        {
+                            throw uploadDocumentResponse.ErrorException;
+                        }
+                    }
 
-                   recipient.IsComplete = true;
-                   if ( recordsCompleted > 2 && Debugger.IsAttached )
-                   {
-                       _saveAndUploadPdfTimingsMS.Add( savePdfStopWatch.Elapsed.TotalMilliseconds );
-                   }
-               } );
+                    recipient.IsComplete = true;
+                    if ( recordsCompleted > 2 && Debugger.IsAttached )
+                    {
+                        _saveAndUploadPdfTimingsMS.Add( savePdfStopWatch.Elapsed.TotalMilliseconds );
+                    }
+                } );
 
                 _saveAndUploadTasks.Add( saveAndUploadTask );
                 saveAndUploadTask.Start();
@@ -485,22 +454,47 @@ namespace Rock.Apps.StatementGenerator
                         Math.Round( _saveAndUploadPdfTimingsMS.Average(), 0 )
                         : ( double? ) null;
 
+                    var overallMSPerPDF = Math.Round( _stopwatchRenderPDFsOverall.Elapsed.TotalMilliseconds / recordsCompleted, 2 );
+                    var overallPDFPerSecond = Math.Round( ( recordsCompleted / _stopwatchRenderPDFsOverall.Elapsed.TotalSeconds ), 2 );
+
                     Debug.WriteLine( $@"
-GeneratePDF/thread Avg: {averageGeneratePDFTimingMS} ms)
-GetStatementHtml   Avg: {averageGetStatementHtmlTimingsMS} ms)
-WaitForLastTask    Avg: {averageWaitForLastTaskTimingsMS} ms)
-Save/Upload  PDF   Avg: {averageSaveAndUploadPDFTimingMS} ms)
-Total PDFs Elapsed    : {_stopwatchRenderPDFsOverall.Elapsed.TotalMilliseconds} ms 
-_recordsCompleted     : {recordsCompleted}
-Overall ms/PDF     Avg: {_stopwatchRenderPDFsOverall.Elapsed.TotalMilliseconds / recordsCompleted} ms
-Overall PDF/sec    Avg: {recordsCompleted / _stopwatchRenderPDFsOverall.Elapsed.TotalSeconds }/sec
+RenderPDF          Avg: {averageGeneratePDFTimingMS} ms
+GetStatementHtml   Avg: {averageGetStatementHtmlTimingsMS} ms
+WaitForLastTask    Avg: {averageWaitForLastTaskTimingsMS} ms
+Save/Upload  PDF   Avg: {averageSaveAndUploadPDFTimingMS} ms
+Total PDFs Elapsed    : {Math.Round( _stopwatchRenderPDFsOverall.Elapsed.TotalSeconds, 2 )} seconds 
+Records Completed     : {recordsCompleted}
+Overall ms/PDF     Avg: {overallMSPerPDF} ms
+Overall PDF/sec    Avg: {overallPDFPerSecond }/sec
 " );
                 }
             } );
 
-            _tasks.Add( _lastRenderPDFFromHtmlTask );
+            _renderPdfTasks.Add( _lastRenderPDFFromHtmlTask );
 
             _lastRenderPDFFromHtmlTask.Start();
+        }
+
+        /// <summary>
+        /// Renders the PDF document.
+        /// </summary>
+        /// <param name="financialStatementGeneratorRecipientResult">The financial statement generator recipient result.</param>
+        /// <returns></returns>
+        private static PdfDocument RenderPDFDocument( FinancialStatementGeneratorRecipientResult financialStatementGeneratorRecipientResult )
+        {
+            var pdfOptions = GetPdfPrintOptions( _reportSettings.PDFSettings, financialStatementGeneratorRecipientResult );
+
+            UniversalRenderJob universalRenderJob = new UniversalRenderJob();
+            universalRenderJob.Options = pdfOptions;
+            universalRenderJob.Html = financialStatementGeneratorRecipientResult.Html;
+
+            // this is not thread-safe, so we'll wait to do this until the last one is done
+            // In the mean time, we'll
+            //   -- Start a thread that saves the previously completed document to the temp directory and upload it (if configured to do so).
+            //   -- Get the HTML for the next recipient
+            var pdfBytes = universalRenderJob.DoRemoteRender();
+            var pdfDocument = new PdfDocument( pdfBytes );
+            return pdfDocument;
         }
 
         // From https://stackoverflow.com/a/41262413/1755417

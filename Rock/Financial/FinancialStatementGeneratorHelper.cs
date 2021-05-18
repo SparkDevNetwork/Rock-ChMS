@@ -106,7 +106,7 @@ namespace Rock.Financial
                                            {
                                                PersonId = pg.PersonId,
                                                GroupId = pg.GroupId,
-                                               LocationGuid = ( Guid? ) l.Location.Guid,
+                                               LocationId = ( int? ) l.Location.Id,
                                                PostalCode = l.Location.PostalCode,
                                                Country = l.Location.Country
                                            };
@@ -114,10 +114,10 @@ namespace Rock.Financial
                 // Require that LocationId has a value unless this is for a specific person, a dataview, or the IncludeIndividualsWithNoAddress option is enabled
                 if ( financialStatementGeneratorOptions.PersonId == null && financialStatementGeneratorOptions.DataViewId == null && !financialStatementGeneratorOptions.IncludeIndividualsWithNoAddress )
                 {
-                    unionJoinLocationQry = unionJoinLocationQry.Where( a => a.LocationGuid.HasValue );
+                    unionJoinLocationQry = unionJoinLocationQry.Where( a => a.LocationId.HasValue );
                 }
 
-                var givingIdsQry = unionJoinLocationQry.Select( a => new { a.PersonId, a.GroupId, a.LocationGuid, a.PostalCode, a.Country } );
+                var givingIdsQry = unionJoinLocationQry.Select( a => new { a.PersonId, a.GroupId, a.LocationId, a.PostalCode, a.Country } );
 
                 var localCountry = GlobalAttributesCache.Get().OrganizationLocation?.Country;
 
@@ -126,7 +126,7 @@ namespace Rock.Financial
                     {
                         GroupId = a.GroupId,
                         PersonId = a.PersonId,
-                        LocationGuid = a.LocationGuid,
+                        LocationId = a.LocationId,
                         PostalCode = a.PostalCode,
                         Country = a.Country,
 
@@ -174,8 +174,9 @@ namespace Rock.Financial
 
                 var nickNameLastNameLookupByPersonId = qryNickNameLastNameAsIndividual.ToDictionary( k => k.PersonId, v => new { v.NickName, v.LastName } );
 
+                var givingLeaderGivingIdsQuery = givingIdsQry.Where( a => !a.PersonId.HasValue );
                 var qryNickNameLastNameAsGivingLeader = from p in personQuery.Where( a => a.GivingLeaderId == a.Id && a.GivingGroupId.HasValue )
-                                                        join gg in givingIdsQry on p.GivingGroupId equals gg.GroupId
+                                                        join gg in givingLeaderGivingIdsQuery on p.GivingGroupId equals gg.GroupId
                                                         select new { gg.GroupId, p.NickName, p.LastName };
 
                 var nickNameLastNameLookupByGivingGroupId = qryNickNameLastNameAsGivingLeader.ToDictionary( k => k.GroupId, v => new { v.NickName, v.LastName } );
@@ -257,7 +258,7 @@ namespace Rock.Financial
 
             var groupId = financialStatementGeneratorRecipientRequest.FinancialStatementGeneratorRecipient.GroupId;
             var personId = financialStatementGeneratorRecipientRequest.FinancialStatementGeneratorRecipient.PersonId;
-            var locationGuid = financialStatementGeneratorRecipientRequest.FinancialStatementGeneratorRecipient.LocationGuid;
+            var locationId = financialStatementGeneratorRecipientRequest.FinancialStatementGeneratorRecipient.LocationId;
 
             var recipientResult = new FinancialStatementGeneratorRecipientResult( financialStatementGeneratorRecipientRequest.FinancialStatementGeneratorRecipient );
 
@@ -370,10 +371,10 @@ namespace Rock.Financial
 
                 Location mailingAddress;
 
-                if ( locationGuid.HasValue )
+                if ( locationId.HasValue )
                 {
                     // get the location that was specified for the recipient
-                    mailingAddress = new LocationService( rockContext ).Get( locationGuid.Value );
+                    mailingAddress = new LocationService( rockContext ).Get( locationId.Value );
                 }
                 else
                 {
@@ -465,8 +466,8 @@ namespace Rock.Financial
                 List<FinancialTransactionDetail> transactionDetailListCash = transactionDetailListAll;
                 List<FinancialTransactionDetail> transactionDetailListNonCash = new List<FinancialTransactionDetail>();
 
-                var currencyTypesForCashGiftIds = transactionSettings.CurrencyTypesForCashGiftGuids?.Select( a => DefinedTypeCache.GetId( a ) ).Where( a => a.HasValue ).Select( a => a.Value ).ToList();
-                var currencyTypesForNotCashGiftIds = transactionSettings.CurrencyTypesForNonCashGuids?.Select( a => DefinedTypeCache.GetId( a ) ).Where( a => a.HasValue ).Select( a => a.Value ).ToList();
+                var currencyTypesForCashGiftIds = transactionSettings.CurrencyTypesForCashGiftGuids?.Select( a => DefinedValueCache.GetId( a ) ).Where( a => a.HasValue ).Select( a => a.Value ).ToList();
+                var currencyTypesForNotCashGiftIds = transactionSettings.CurrencyTypesForNonCashGuids?.Select( a => DefinedValueCache.GetId( a ) ).Where( a => a.HasValue ).Select( a => a.Value ).ToList();
 
                 if ( currencyTypesForCashGiftIds != null )
                 {
@@ -596,8 +597,8 @@ namespace Rock.Financial
                 var transactionSettings = financialStatementTemplate.ReportSettings.TransactionSettings;
                 var pledgeSettings = financialStatementTemplate.ReportSettings.PledgeSettings;
 
-                var currencyTypesForCashGiftIds = transactionSettings.CurrencyTypesForCashGiftGuids?.Select( a => DefinedTypeCache.GetId( a ) ).Where( a => a.HasValue ).Select(a => a.Value).ToList();
-                var currencyTypesForNotCashGiftIds = transactionSettings.CurrencyTypesForNonCashGuids?.Select( a => DefinedTypeCache.GetId( a ) ).Where( a => a.HasValue ).Select(a => a.Value).ToList();
+                var currencyTypesForCashGiftIds = transactionSettings.CurrencyTypesForCashGiftGuids?.Select( a => DefinedValueCache.GetId( a ) ).Where( a => a.HasValue ).Select(a => a.Value).ToList();
+                var currencyTypesForNotCashGiftIds = transactionSettings.CurrencyTypesForNonCashGuids?.Select( a => DefinedValueCache.GetId( a ) ).Where( a => a.HasValue ).Select(a => a.Value).ToList();
 
                 List<int> pledgeCurrencyTypeIds = null;
                 if ( currencyTypesForCashGiftIds != null )

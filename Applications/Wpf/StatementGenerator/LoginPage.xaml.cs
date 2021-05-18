@@ -55,17 +55,18 @@ namespace Rock.Apps.StatementGenerator
             lblLoginWarning.Visibility = Visibility.Hidden;
             txtUsername.Text = txtUsername.Text.Trim();
             txtRockUrl.Text = txtRockUrl.Text.Trim();
-            Uri rockUrl = new Uri( txtRockUrl.Text );
+            Uri rockUri = new Uri( txtRockUrl.Text );
             var validSchemes = new string[] { Uri.UriSchemeHttp, Uri.UriSchemeHttps };
-            if ( !validSchemes.Contains( rockUrl.Scheme ) )
+            if ( !validSchemes.Contains( rockUri.Scheme ) )
             {
-                txtRockUrl.Text = "http://" + rockUrl.AbsoluteUri;
+                txtRockUrl.Text = "http://" + rockUri.AbsoluteUri;
             }
 
             RestClient restClient = new RestClient( txtRockUrl.Text );
 
             string userName = txtUsername.Text;
             string password = txtPassword.Password;
+            string rockUrl = txtRockUrl.Text;
 
             if ( string.IsNullOrWhiteSpace( userName ) )
             {
@@ -116,9 +117,9 @@ namespace Rock.Apps.StatementGenerator
 
                 Rock.Client.Person person = getByUserNameResponse.Data;
                 RockConfig rockConfig = RockConfig.Load();
-                rockConfig.RockBaseUrl = txtRockUrl.Text;
-                rockConfig.Username = txtUsername.Text;
-                rockConfig.Password = txtPassword.Password;
+                rockConfig.RockBaseUrl = rockUrl;
+                rockConfig.Username = userName;
+                rockConfig.Password = password;
                 rockConfig.Save();
 
                 if ( this.NavigationService.CanGoBack )

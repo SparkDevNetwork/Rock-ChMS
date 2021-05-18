@@ -50,7 +50,7 @@ namespace Rock.Client
         public string LastName { get; set; }
 
         /// <summary />
-        public Guid? LocationGuid { get; set; }
+        public int? LocationId { get; set; }
 
         /// <summary />
         public string NickName { get; set; }
@@ -79,7 +79,7 @@ namespace Rock.Client
             this.IsComplete = source.IsComplete;
             this.IsInternationalAddress = source.IsInternationalAddress;
             this.LastName = source.LastName;
-            this.LocationGuid = source.LocationGuid;
+            this.LocationId = source.LocationId;
             this.NickName = source.NickName;
             this.OptedOut = source.OptedOut;
             this.PersonId = source.PersonId;

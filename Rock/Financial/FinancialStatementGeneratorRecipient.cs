@@ -126,7 +126,7 @@ namespace Rock.Financial
         /// <value>
         /// The location identifier.
         /// </value>
-        public Guid? LocationGuid { get; set; }
+        public int? LocationId { get; set; }
 
         /// <summary>
         /// Gets or sets the postal code.

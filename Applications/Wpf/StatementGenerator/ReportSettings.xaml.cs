@@ -16,6 +16,7 @@
 //
 using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using System.Windows;
 using System.Windows.Controls;
@@ -70,7 +71,7 @@ namespace Rock.Apps.StatementGenerator
                 reportConfigurationList = new List<FinancialStatementReportConfiguration>();
                 var defaultConfiguration = new FinancialStatementReportConfiguration
                 {
-                    DestinationFolder = Environment.GetFolderPath( Environment.SpecialFolder.Desktop ),
+                    DestinationFolder = Path.Combine( Environment.GetFolderPath( Environment.SpecialFolder.Desktop ), "Statements" ),
                     ExcludeOptedOutIndividuals = true,
                     FilenamePrefix = "statement-",
                     IncludeInternationalAddresses = false,
@@ -141,7 +142,11 @@ namespace Rock.Apps.StatementGenerator
         /// <returns></returns>
         private bool SaveChanges( bool showWarnings )
         {
-            RockConfig.Load().EnablePageCountPredetermination = cbEnablePageCountPredetermination.IsChecked == true;
+            var rockConfig = RockConfig.Load();
+            rockConfig.EnablePageCountPredetermination = cbEnablePageCountPredetermination.IsChecked == true;
+            rockConfig.Save();
+            ReportOptions.Current.EnablePageCountPredetermination = rockConfig.EnablePageCountPredetermination;
+
             return true;
         }
 

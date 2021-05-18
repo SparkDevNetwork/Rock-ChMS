@@ -100,7 +100,6 @@ namespace Rock.Apps.StatementGenerator
         /// </summary>
         /// <param name="sender">The source of the event.</param>
         /// <param name="e">The <see cref="RunWorkerCompletedEventArgs"/> instance containing the event data.</param>
-        /// <exception cref="System.NotImplementedException"></exception>
         protected void bw_RunWorkerCompleted( object sender, RunWorkerCompletedEventArgs e )
         {
             btnPrev.Visibility = Visibility.Visible;
@@ -133,7 +132,6 @@ namespace Rock.Apps.StatementGenerator
         /// </summary>
         /// <param name="sender">The source of the event.</param>
         /// <param name="e">The <see cref="DoWorkEventArgs"/> instance containing the event data.</param>
-        /// <exception cref="System.NotImplementedException"></exception>
         protected void bw_DoWork( object sender, DoWorkEventArgs e )
         {
             _contributionReport = new ContributionReport( ReportOptions.Current );
@@ -204,23 +202,23 @@ namespace Rock.Apps.StatementGenerator
                     {
                         pgReportProgress.Visibility = Visibility.Visible;
                     }
-
-                    // put the current statements/second in stats box (easter egg)
-                    var duration = DateTime.Now - ContributionReport.StartDateTime;
-                    if ( duration.TotalSeconds > 1 )
-                    {
-                        double rate = ContributionReport.RecordsCompletedCount / duration.TotalSeconds;
-                        string statsText = $"{position}/{max} @ {rate:F2} per second";
-                        if ( ( string ) lblStats.Content != statsText )
-                        {
-                            lblStats.Content = statsText;
-                        }
-                    }
                 }
                 else
                 {
                     lblReportProgress.Content = progressMessage;
                     pgReportProgress.Visibility = Visibility.Collapsed;
+                }
+
+                // put the current statements/second in stats box (easter egg)
+                var duration = DateTime.Now - ContributionReport.StartDateTime;
+                if ( duration.TotalSeconds > 1 )
+                {
+                    double rate = ContributionReport.RecordsCompletedCount / duration.TotalSeconds;
+                    string statsText = $"{position}/{max} @ {rate:F2} per second";
+                    if ( ( string ) lblStats.Content != statsText )
+                    {
+                        lblStats.Content = statsText;
+                    }
                 }
             } );
         }
