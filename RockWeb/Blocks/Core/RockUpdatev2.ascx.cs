@@ -279,7 +279,7 @@ namespace RockWeb.Blocks.Core
             string version = e.CommandArgument.ToString();
 
             hdnInstallVersion.Value = version;
-            litConfirmationMessage.Text = $"Are you sure you want to upgrade to Rock {RockVersion( new Version( version ) )}?";
+            litConfirmationMessage.Text = string.Format( "Are you sure you want to upgrade to Rock {0}?", RockVersion( new Version( version ) ) );
             mdConfirmInstall.Show();
         }
 
