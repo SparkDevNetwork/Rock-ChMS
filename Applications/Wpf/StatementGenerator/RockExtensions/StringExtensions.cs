@@ -54,7 +54,7 @@ namespace Rock
         /// </summary>
         /// <param name="str">The string.</param>
         /// <returns></returns>
-        public static bool IsNotNullOrWhitespace( this string str )
+        public static bool IsNotNullOrWhiteSpace( this string str )
         {
             return !string.IsNullOrWhiteSpace( str );
         }

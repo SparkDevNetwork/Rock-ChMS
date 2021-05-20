@@ -82,7 +82,7 @@ namespace Rock.Apps.StatementGenerator
 
             rockConfig.RockBaseUrl = txtRockUrl.Text;
 
-            if ( txtTemporaryDirectory.Text.IsNotNullOrWhitespace() )
+            if ( txtTemporaryDirectory.Text.IsNotNullOrWhiteSpace() )
             {
                 try
                 {

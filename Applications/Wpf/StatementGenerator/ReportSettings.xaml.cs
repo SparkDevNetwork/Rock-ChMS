@@ -54,7 +54,7 @@ namespace Rock.Apps.StatementGenerator
 
             try
             {
-                if ( rockConfig.ReportConfigurationListJson.IsNotNullOrWhitespace() )
+                if ( rockConfig.ReportConfigurationListJson.IsNotNullOrWhiteSpace() )
                 {
                     reportConfigurationList = rockConfig.ReportConfigurationListJson.FromJsonOrNull<List<FinancialStatementReportConfiguration>>();
                 }
@@ -159,7 +159,7 @@ namespace Rock.Apps.StatementGenerator
         {
             if ( SaveChanges( true ) )
             {
-                var nextPage = new ProgressPage();
+                var nextPage = new ProgressPage( false, null );
                 this.NavigationService.Navigate( nextPage );
             }
         }

@@ -25,7 +25,6 @@ using System.Threading;
 using System.Threading.Tasks;
 
 using IronPdf;
-using IronPdf.Threading;
 
 using Newtonsoft.Json;
 
@@ -113,7 +112,7 @@ namespace Rock.Apps.StatementGenerator
         /// <value>
         ///   <c>true</c> if resume; otherwise, <c>false</c>.
         /// </value>
-        internal static bool Resume { get; set; } = false;
+        internal bool Resume { get; set; } = false;
 
         /// <summary>
         /// Gets or sets the resume run date.
@@ -121,7 +120,7 @@ namespace Rock.Apps.StatementGenerator
         /// <value>
         /// The resume run date.
         /// </value>
-        internal static DateTime? ResumeRunDate { get; set; }
+        internal DateTime? ResumeRunDate { get; set; }
 
         private static FinancialStatementIndividualSaveOptions _individualSaveOptions;
         private static bool _saveStatementsForIndividualsToDocument;
@@ -144,6 +143,7 @@ namespace Rock.Apps.StatementGenerator
         /// <returns></returns>
         public int RunReport()
         {
+            System.Threading.Tasks.TaskScheduler.UnobservedTaskException += TaskScheduler_UnobservedTaskException;
             StartDateTime = DateTime.Now;
             var licenseKey = File.ReadAllText( "license.key" );
             IronPdf.License.LicenseKey = licenseKey;
@@ -176,6 +176,8 @@ namespace Rock.Apps.StatementGenerator
 
             List<FinancialStatementGeneratorRecipient> recipientList;
 
+            _currentDayTemporaryDirectory = GetStatementGeneratorTemporaryDirectory( rockConfig, DateTime.Today );
+
             if ( Resume && ResumeRunDate.HasValue )
             {
                 // Get Recipients from Rock REST Endpoint from incomplete session
@@ -185,13 +187,31 @@ namespace Rock.Apps.StatementGenerator
             }
             else
             {
+                try
+                {
+                    if ( rockConfig.TemporaryDirectory.IsNotNullOrWhiteSpace() )
+                    {
+                        if ( Directory.Exists( rockConfig.TemporaryDirectory ) )
+                        {
+                            Directory.Delete( rockConfig.TemporaryDirectory, true );
+                        }
+                    }
+
+                    if ( Directory.Exists( _currentDayTemporaryDirectory ) )
+                    {
+                        Directory.Delete( _currentDayTemporaryDirectory, true );
+                    }
+                }
+                catch ( Exception ex )
+                {
+                    Debug.WriteLine( $"Error deleting temp directories: {ex.Message}" );
+                }
+
                 // Get Recipients from Rock REST Endpoint
                 UpdateProgress( "Getting Statement Recipients...", 0, 0 );
                 recipientList = GetRecipients( restClient );
                 SaveGeneratorConfig( DateTime.Today, false );
             }
-
-            _currentDayTemporaryDirectory = GetStatementGeneratorTemporaryDirectory( rockConfig, DateTime.Today );
 
             this.RecordCount = recipientList.Count;
             _recordsCompleted = 0;
@@ -239,11 +259,6 @@ namespace Rock.Apps.StatementGenerator
                 var recipientProgressPosition = Interlocked.Read( ref _recordsCompleted );
 
                 UpdateProgress( "Generating Individual Documents...", recipientProgressPosition + progressOffset, recipientProgressMax );
-                if ( Resume && recipient.IsComplete )
-                {
-                    Interlocked.Increment( ref _recordsCompleted );
-                    continue;
-                }
 
                 StartGenerateStatementForRecipient( recipient, restClient, enablePageCountPredetermination );
                 SaveRecipientListStatus( recipientList, _currentDayTemporaryDirectory );
@@ -379,15 +394,16 @@ namespace Rock.Apps.StatementGenerator
                 return;
             }
 
+            var taskToWaitFor = _lastRenderPDFFromHtmlTask;
             Stopwatch waitForLastTask = Stopwatch.StartNew();
 
-            // IronPdf.HtmlToPdf is not thread-safe, so we'll wait to due the next Render until the last one completes,
+            // IronPdf.HtmlToPdf is not thread-safe, so we'll wait to do the next Render until the last one completes,
             // but we will have other threads that are safe to run (Uploading and saving PDFs, etc) in the meantime.
-            _lastRenderPDFFromHtmlTask?.Wait();
+            taskToWaitFor?.Wait();
             waitForLastTask.Stop();
             _waitForLastTaskTimingsMS.Add( waitForLastTask.Elapsed.TotalMilliseconds );
 
-            _lastRenderPDFFromHtmlTask = new Task( () =>
+            var renderPDFFromHtmlTask = new Task( () =>
             {
                 Stopwatch generatePdfStopWatch = Stopwatch.StartNew();
                 PdfDocument pdfDocument = RenderPDFDocument( financialStatementGeneratorRecipientResult );
@@ -401,6 +417,8 @@ namespace Rock.Apps.StatementGenerator
                     recipient.RenderedPageCount = pdfDocument.PageCount;
                     generatePdfStopWatch.Stop();
                 }
+
+                var generatePdfStopWatchElapsedMS = generatePdfStopWatch.Elapsed.TotalMilliseconds;
 
                 var recordsCompleted = Interlocked.Increment( ref _recordsCompleted );
 
@@ -445,7 +463,7 @@ namespace Rock.Apps.StatementGenerator
 
                 if ( recordsCompleted > 2 && Debugger.IsAttached && recordsCompleted % 10 == 0 )
                 {
-                    _generatePdfTimingsMS.Add( generatePdfStopWatch.Elapsed.TotalMilliseconds );
+                    _generatePdfTimingsMS.Add( generatePdfStopWatchElapsedMS );
 
                     var averageGetStatementHtmlTimingsMS = _getStatementHtmlTimingsMS.Any() ? Math.Round( _getStatementHtmlTimingsMS.Average(), 0 ) : 0;
                     var averageWaitForLastTaskTimingsMS = _waitForLastTaskTimingsMS.Any() ? Math.Round( _waitForLastTaskTimingsMS.Average(), 0 ) : 0;
@@ -455,7 +473,7 @@ namespace Rock.Apps.StatementGenerator
                         : ( double? ) null;
 
                     var overallMSPerPDF = Math.Round( _stopwatchRenderPDFsOverall.Elapsed.TotalMilliseconds / recordsCompleted, 2 );
-                    var overallPDFPerSecond = Math.Round( ( recordsCompleted / _stopwatchRenderPDFsOverall.Elapsed.TotalSeconds ), 2 );
+                    var overallPDFPerSecond = Math.Round( recordsCompleted / _stopwatchRenderPDFsOverall.Elapsed.TotalSeconds, 2 );
 
                     Debug.WriteLine( $@"
 RenderPDF          Avg: {averageGeneratePDFTimingMS} ms
@@ -470,9 +488,14 @@ Overall PDF/sec    Avg: {overallPDFPerSecond }/sec
                 }
             } );
 
-            _renderPdfTasks.Add( _lastRenderPDFFromHtmlTask );
+            _lastRenderPDFFromHtmlTask = renderPDFFromHtmlTask;
+            _renderPdfTasks.Add( renderPDFFromHtmlTask );
+            renderPDFFromHtmlTask.Start();
+        }
 
-            _lastRenderPDFFromHtmlTask.Start();
+        private void TaskScheduler_UnobservedTaskException( object sender, UnobservedTaskExceptionEventArgs e )
+        {
+            Debug.WriteLine( e.Exception );
         }
 
         /// <summary>
@@ -482,19 +505,9 @@ Overall PDF/sec    Avg: {overallPDFPerSecond }/sec
         /// <returns></returns>
         private static PdfDocument RenderPDFDocument( FinancialStatementGeneratorRecipientResult financialStatementGeneratorRecipientResult )
         {
+            var html = financialStatementGeneratorRecipientResult.Html;
             var pdfOptions = GetPdfPrintOptions( _reportSettings.PDFSettings, financialStatementGeneratorRecipientResult );
-
-            UniversalRenderJob universalRenderJob = new UniversalRenderJob();
-            universalRenderJob.Options = pdfOptions;
-            universalRenderJob.Html = financialStatementGeneratorRecipientResult.Html;
-
-            // this is not thread-safe, so we'll wait to do this until the last one is done
-            // In the mean time, we'll
-            //   -- Start a thread that saves the previously completed document to the temp directory and upload it (if configured to do so).
-            //   -- Get the HTML for the next recipient
-            var pdfBytes = universalRenderJob.DoRemoteRender();
-            var pdfDocument = new PdfDocument( pdfBytes );
-            return pdfDocument;
+            return HtmlToPdf.StaticRenderHtmlAsPdf( html, pdfOptions );
         }
 
         // From https://stackoverflow.com/a/41262413/1755417
@@ -630,7 +643,7 @@ Overall PDF/sec    Avg: {overallPDFPerSecond }/sec
             var rockConfig = RockConfig.Load();
 
             var reportTemporaryDirectoryPath = rockConfig.TemporaryDirectory;
-            if ( reportTemporaryDirectoryPath.IsNotNullOrWhitespace() )
+            if ( reportTemporaryDirectoryPath.IsNotNullOrWhiteSpace() )
             {
                 Directory.CreateDirectory( reportTemporaryDirectoryPath );
             }
@@ -688,7 +701,7 @@ Overall PDF/sec    Avg: {overallPDFPerSecond }/sec
         private static string GetStatementGeneratorTemporaryDirectory( RockConfig rockConfig, DateTime runDate )
         {
             var reportTemporaryDirectory = rockConfig.TemporaryDirectory;
-            if ( reportTemporaryDirectory.IsNotNullOrWhitespace() )
+            if ( reportTemporaryDirectory.IsNotNullOrWhiteSpace() )
             {
                 Directory.CreateDirectory( reportTemporaryDirectory );
             }
@@ -751,7 +764,7 @@ Overall PDF/sec    Avg: {overallPDFPerSecond }/sec
             }
 
             // see https://ironpdf.com/examples/html-headers-and-footers/
-            if ( statementGeneratorRecipientResult.FooterHtmlFragment.IsNotNullOrWhitespace() )
+            if ( statementGeneratorRecipientResult.FooterHtmlFragment.IsNotNullOrWhiteSpace() )
             {
                 pdfPrintOptions.Footer = new HtmlHeaderFooter()
                 {

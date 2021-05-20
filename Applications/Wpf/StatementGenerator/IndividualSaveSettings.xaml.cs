@@ -44,7 +44,7 @@ namespace Rock.Apps.StatementGenerator
 
             try
             {
-                if ( rockConfig.IndividualSaveOptionsJson.IsNotNullOrWhitespace() )
+                if ( rockConfig.IndividualSaveOptionsJson.IsNotNullOrWhiteSpace() )
                 {
                     saveOptions = rockConfig.IndividualSaveOptionsJson.FromJsonOrNull<FinancialStatementIndividualSaveOptions>();
                 }

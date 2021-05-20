@@ -110,9 +110,7 @@ namespace Rock.Apps.StatementGenerator
         {
             var lastRunGeneratorConfig = ContributionReport.GetSavedGeneratorConfigFromLastRun();
 
-            var nextPage = new ProgressPage();
-            ContributionReport.Resume = true;
-            ContributionReport.ResumeRunDate = lastRunGeneratorConfig.RunDate;
+            var nextPage = new ProgressPage( true, lastRunGeneratorConfig.RunDate );
 
             ReportOptions.LoadFromConfig( lastRunGeneratorConfig );
             this.NavigationService.Navigate( nextPage );

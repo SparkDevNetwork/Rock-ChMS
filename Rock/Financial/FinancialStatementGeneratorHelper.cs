@@ -30,6 +30,45 @@ namespace Rock.Financial
     /// </summary>
     public static class FinancialStatementGeneratorHelper
     {
+
+        #region MergeField Keys
+
+        /// <summary>
+        /// Keys to use for Page Parameters
+        /// </summary>
+        private static class MergeFieldKey
+        {
+            public const string RenderMedium = "RenderMedium";
+            public const string LogoSrcBase64 = "LogoSrcBase64";
+            public const string FinancialStatementTemplate = "FinancialStatementTemplate";
+            public const string RenderedPageCount = "RenderedPageCount";
+            public const string PersonList = "PersonList";
+            public const string StatementStartDate = "StatementStartDate";
+            public const string StatementEndDate = "StatementEndDate";
+            public const string Salutation = "Salutation";
+            public const string MailingAddress = "MailingAddress";
+            public const string StreetAddress1 = "StreetAddress1";
+            public const string StreetAddress2 = "StreetAddress2";
+            public const string City = "City";
+            public const string State = "State";
+            public const string PostalCode = "PostalCode";
+            public const string Country = "Country";
+            public const string Transactions = "Transactions";
+            public const string TransactionsNonCash = "TransactionsNonCash";
+            public const string TransactionDetails = "TransactionDetails";
+            public const string TransactionDetailsNonCash = "TransactionDetailsNonCash";
+            public const string TotalContributionAmount = "TotalContributionAmount";
+            public const string TotalContributionCount = "TotalContributionCount";
+            public const string TotalContributionAmountNonCash = "TotalContributionAmountNonCash";
+            public const string TotalContributionCountNonCash = "TotalContributionCountNonCash";
+            public const string AccountSummary = "AccountSummary";
+            public const string AccountSummaryNonCash = "AccountSummaryNonCash";
+            public const string Pledges = "Pledges";
+            public const string Options = "Options";
+        }
+
+        #endregion MergeField Keys
+
         /// <summary>
         /// Gets the financial statement generator recipients.
         /// </summary>
@@ -339,15 +378,23 @@ namespace Rock.Financial
                 var lavaTemplateLava = financialStatementTemplate.ReportTemplate;
                 var lavaTemplateFooterHtmlFragment = financialStatementTemplate.FooterSettings.HtmlFragment;
 
-                var mergeFields = Rock.Lava.LavaHelper.GetCommonMergeFields( null, null, new Lava.CommonMergeFieldsOptions { GetLegacyGlobalMergeFields = false, GetDeviceFamily = false, GetOSFamily = false, GetPageContext = false, GetPageParameters = false, GetCampuses = true, GetCurrentPerson = true } );
-                mergeFields.Add( "RenderMedium", financialStatementGeneratorOptions.RenderMedium );
-                mergeFields.Add( "FinancialStatementTemplate", financialStatementTemplate );
-                mergeFields.Add( "RenderedPageCount", financialStatementGeneratorRecipientRequest.FinancialStatementGeneratorRecipient.RenderedPageCount );
+                var logoBytes = financialStatementTemplate.LogoBinaryFile?.DatabaseData?.Content;
+                string logoSrcBase64 = null;
+                if ( logoBytes != null )
+                {
+                    logoSrcBase64 = $"data:{financialStatementTemplate.LogoBinaryFile.MimeType}; {Convert.ToBase64String( logoBytes )}";
+                }
 
-                mergeFields.Add( "PersonList", personList );
-                mergeFields.Add( "StatementStartDate", financialStatementGeneratorOptions.StartDate );
+                var mergeFields = Rock.Lava.LavaHelper.GetCommonMergeFields( null, null, new Lava.CommonMergeFieldsOptions { GetLegacyGlobalMergeFields = false, GetDeviceFamily = false, GetOSFamily = false, GetPageContext = false, GetPageParameters = false, GetCampuses = true, GetCurrentPerson = true } );
+                mergeFields.Add( MergeFieldKey.RenderMedium, financialStatementGeneratorOptions.RenderMedium );
+                mergeFields.Add( MergeFieldKey.LogoSrcBase64, logoSrcBase64 );
+                mergeFields.Add( MergeFieldKey.FinancialStatementTemplate, financialStatementTemplate );
+                mergeFields.Add( MergeFieldKey.RenderedPageCount, financialStatementGeneratorRecipientRequest.FinancialStatementGeneratorRecipient.RenderedPageCount );
+
+                mergeFields.Add( MergeFieldKey.PersonList, personList );
+                mergeFields.Add( MergeFieldKey.StatementStartDate, financialStatementGeneratorOptions.StartDate );
                 var humanFriendlyEndDate = financialStatementGeneratorOptions.EndDate.HasValue ? financialStatementGeneratorOptions.EndDate.Value.AddDays( -1 ) : RockDateTime.Now.Date;
-                mergeFields.Add( "StatementEndDate", humanFriendlyEndDate );
+                mergeFields.Add( MergeFieldKey.StatementEndDate, humanFriendlyEndDate );
 
                 string familyTitle;
                 if ( person != null && person.PrimaryFamilyId == groupId )
@@ -367,7 +414,7 @@ namespace Rock.Financial
                     familyTitle = person.FullName;
                 }
 
-                mergeFields.Add( "Salutation", familyTitle );
+                mergeFields.Add( MergeFieldKey.Salutation, familyTitle );
 
                 Location mailingAddress;
 
@@ -383,25 +430,25 @@ namespace Rock.Financial
                     mailingAddress = groupLocationsQry.Where( a => a.GroupId == groupId ).Select( a => a.Location ).FirstOrDefault();
                 }
 
-                mergeFields.Add( "MailingAddress", mailingAddress );
+                mergeFields.Add( MergeFieldKey.MailingAddress, mailingAddress );
 
                 if ( mailingAddress != null )
                 {
-                    mergeFields.Add( "StreetAddress1", mailingAddress.Street1 );
-                    mergeFields.Add( "StreetAddress2", mailingAddress.Street2 );
-                    mergeFields.Add( "City", mailingAddress.City );
-                    mergeFields.Add( "State", mailingAddress.State );
-                    mergeFields.Add( "PostalCode", mailingAddress.PostalCode );
-                    mergeFields.Add( "Country", mailingAddress.Country );
+                    mergeFields.Add( MergeFieldKey.StreetAddress1, mailingAddress.Street1 );
+                    mergeFields.Add( MergeFieldKey.StreetAddress2, mailingAddress.Street2 );
+                    mergeFields.Add( MergeFieldKey.City, mailingAddress.City );
+                    mergeFields.Add( MergeFieldKey.State, mailingAddress.State );
+                    mergeFields.Add( MergeFieldKey.PostalCode, mailingAddress.PostalCode );
+                    mergeFields.Add( MergeFieldKey.Country, mailingAddress.Country );
                 }
                 else
                 {
-                    mergeFields.Add( "StreetAddress1", string.Empty );
-                    mergeFields.Add( "StreetAddress2", string.Empty );
-                    mergeFields.Add( "City", string.Empty );
-                    mergeFields.Add( "State", string.Empty );
-                    mergeFields.Add( "PostalCode", string.Empty );
-                    mergeFields.Add( "Country", string.Empty );
+                    mergeFields.Add( MergeFieldKey.StreetAddress1, string.Empty );
+                    mergeFields.Add( MergeFieldKey.StreetAddress2, string.Empty );
+                    mergeFields.Add( MergeFieldKey.City, string.Empty );
+                    mergeFields.Add( MergeFieldKey.State, string.Empty );
+                    mergeFields.Add( MergeFieldKey.PostalCode, string.Empty );
+                    mergeFields.Add( MergeFieldKey.Country, string.Empty );
                 }
 
                 var transactionDetailListAll = financialTransactionsList.SelectMany( a => a.TransactionDetails ).ToList();
@@ -488,23 +535,23 @@ namespace Rock.Financial
                 // Add Merge Fields for Transactions for custom Statements that might want to organize the output by Transaction instead of TransactionDetail
                 var transactionListCash = transactionDetailListCash.GroupBy( a => a.Transaction ).Select( a => a.Key ).ToList();
                 var transactionListNonCash = transactionDetailListNonCash.GroupBy( a => a.Transaction ).Select( a => a.Key ).ToList();
-                mergeFields.Add( "Transactions", transactionListCash );
-                mergeFields.Add( "TransactionsNonCash", transactionListNonCash );
+                mergeFields.Add( MergeFieldKey.Transactions, transactionListCash );
+                mergeFields.Add( MergeFieldKey.TransactionsNonCash, transactionListNonCash );
 
                 // Add the standard TransactionDetails and TransactionDetailsNonCash that the default Rock templates use
-                mergeFields.Add( "TransactionDetails", transactionDetailListCash );
-                mergeFields.Add( "TransactionDetailsNonCash", transactionDetailListNonCash );
+                mergeFields.Add( MergeFieldKey.TransactionDetails, transactionDetailListCash );
+                mergeFields.Add( MergeFieldKey.TransactionDetailsNonCash, transactionDetailListNonCash );
 
-                mergeFields.Add( "TotalContributionAmount", transactionDetailListCash.Sum( a => a.Amount ) );
-                mergeFields.Add( "TotalContributionCount", transactionDetailListCash.Count() );
+                mergeFields.Add( MergeFieldKey.TotalContributionAmount, transactionDetailListCash.Sum( a => a.Amount ) );
+                mergeFields.Add( MergeFieldKey.TotalContributionCount, transactionDetailListCash.Count() );
 
-                mergeFields.Add( "TotalContributionAmountNonCash", transactionDetailListNonCash.Sum( a => a.Amount ) );
-                mergeFields.Add( "TotalContributionCountNonCash", transactionDetailListNonCash.Count() );
+                mergeFields.Add( MergeFieldKey.TotalContributionAmountNonCash, transactionDetailListNonCash.Sum( a => a.Amount ) );
+                mergeFields.Add( MergeFieldKey.TotalContributionCountNonCash, transactionDetailListNonCash.Count() );
 
                 recipientResult.ContributionTotal = transactionDetailListCash.Sum( a => a.Amount );
 
                 mergeFields.Add(
-                    "AccountSummary",
+                    MergeFieldKey.AccountSummary,
                     transactionDetailListCash
                         .GroupBy( t => t.Account.PublicName )
                         .Select( s => new AccountSummaryInfo
@@ -516,7 +563,7 @@ namespace Rock.Financial
                         .OrderBy( s => s.Order ) );
 
                 mergeFields.Add(
-                    "AccountSummaryNonCash",
+                    MergeFieldKey.AccountSummaryNonCash,
                     transactionDetailListNonCash
                         .GroupBy( t => t.Account.PublicName )
                         .Select( s => new AccountSummaryInfo
@@ -536,10 +583,10 @@ namespace Rock.Financial
                     recipientResult.PledgeTotal = pledgeSummaryList.Sum( s => s.AmountPledged );
 
                     // Pledges ( organized by each Account in case an account is used by more than one pledge )
-                    mergeFields.Add( "Pledges", pledgeSummaryList );
+                    mergeFields.Add( MergeFieldKey.Pledges, pledgeSummaryList );
                 }
 
-                mergeFields.Add( "Options", financialStatementGeneratorOptions );
+                mergeFields.Add( MergeFieldKey.Options, financialStatementGeneratorOptions );
                 recipientResult.Html = lavaTemplateLava.ResolveMergeFields( mergeFields, currentPerson );
                 if ( !string.IsNullOrEmpty( lavaTemplateFooterHtmlFragment ) )
                 {
@@ -597,8 +644,8 @@ namespace Rock.Financial
                 var transactionSettings = financialStatementTemplate.ReportSettings.TransactionSettings;
                 var pledgeSettings = financialStatementTemplate.ReportSettings.PledgeSettings;
 
-                var currencyTypesForCashGiftIds = transactionSettings.CurrencyTypesForCashGiftGuids?.Select( a => DefinedValueCache.GetId( a ) ).Where( a => a.HasValue ).Select(a => a.Value).ToList();
-                var currencyTypesForNotCashGiftIds = transactionSettings.CurrencyTypesForNonCashGuids?.Select( a => DefinedValueCache.GetId( a ) ).Where( a => a.HasValue ).Select(a => a.Value).ToList();
+                var currencyTypesForCashGiftIds = transactionSettings.CurrencyTypesForCashGiftGuids?.Select( a => DefinedValueCache.GetId( a ) ).Where( a => a.HasValue ).Select( a => a.Value ).ToList();
+                var currencyTypesForNotCashGiftIds = transactionSettings.CurrencyTypesForNonCashGuids?.Select( a => DefinedValueCache.GetId( a ) ).Where( a => a.HasValue ).Select( a => a.Value ).ToList();
 
                 List<int> pledgeCurrencyTypeIds = null;
                 if ( currencyTypesForCashGiftIds != null )

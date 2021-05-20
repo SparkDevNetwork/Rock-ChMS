@@ -36,10 +36,15 @@ namespace Rock.Apps.StatementGenerator
         /// <summary>
         /// Initializes a new instance of the <see cref="ProgressPage"/> class.
         /// </summary>
-        public ProgressPage()
+        public ProgressPage( bool resume, DateTime? resumeDateTime )
         {
+            this.Resume = resume;
+            this.ResumeRunDate = resumeDateTime;
             InitializeComponent();
         }
+
+        private readonly bool Resume;
+        private readonly DateTime? ResumeRunDate;
 
         private void NavigationService_Navigating( object sender, System.Windows.Navigation.NavigatingCancelEventArgs e )
         {
@@ -135,12 +140,20 @@ namespace Rock.Apps.StatementGenerator
         protected void bw_DoWork( object sender, DoWorkEventArgs e )
         {
             _contributionReport = new ContributionReport( ReportOptions.Current );
+            _contributionReport.Resume = this.Resume;
+            _contributionReport.ResumeRunDate = this.ResumeRunDate;
             _contributionReport.OnProgress += ContributionReport_OnProgress;
-            _wasCancelled = false;
-            _isRunning = true;
-            _statementCount = _contributionReport.RunReport();
-            _isRunning = false;
-            _wasCancelled = _contributionReport.IsCancelled;
+            try
+            {
+                _wasCancelled = false;
+                _isRunning = true;
+                _statementCount = _contributionReport.RunReport();
+            }
+            finally
+            {
+                _isRunning = false;
+                _wasCancelled = _contributionReport.IsCancelled;
+            }
 
             _contributionReport = null;
 
