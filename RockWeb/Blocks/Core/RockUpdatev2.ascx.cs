@@ -227,7 +227,7 @@ namespace RockWeb.Blocks.Core
                     if ( ( package.RequiresVersion.IsNotNullOrWhiteSpace() && new Version( package.RequiresVersion ) <= _installedVersion )
                         || ( package.RequiresVersion.IsNullOrWhiteSpace() && new Version( package.SemanticVersion ) > _installedVersion ) )
                     {
-                        var release = _releases.Where( r => r.SemanticVersion == package.Version.ToString() ).FirstOrDefault();
+                        var release = _releases.Where( r => r.Version == package.Version.ToString() ).FirstOrDefault();
                         if ( !_isEarlyAccessOrganization && release != null && release.RequiresEarlyAccess )
                         {
                             lbInstall.Enabled = false;
@@ -265,6 +265,8 @@ namespace RockWeb.Blocks.Core
                         lbInstall.AddCssClass( "btn-xs" );
                         lbInstall.Text = "Package doesn't exists.";
                     }
+                    // If any packages can be installed we need to show the backup message.
+                    nbBackupMessage.Visible = nbBackupMessage.Visible || lbInstall.Enabled;
                 }
             }
         }
