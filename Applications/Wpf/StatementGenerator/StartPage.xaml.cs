@@ -81,6 +81,14 @@ namespace Rock.Apps.StatementGenerator
                         txtIntro.Visibility = Visibility.Collapsed;
                         return;
                     }
+                    else if (!lastRunGeneratorConfig.ReportsCompleted )
+                    {
+                        pnlPromptToResume.Visibility = Visibility.Visible;
+                        btnStart.Visibility = Visibility.Hidden;
+                        lblPromptToResume.Text = $"It appears that a previous generation session has not completed. Do you wish to continue with this session?";
+                        txtIntro.Visibility = Visibility.Collapsed;
+                        return;
+                    }
                 }
             }
 

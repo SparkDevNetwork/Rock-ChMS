@@ -30,16 +30,14 @@ namespace Rock.Financial
     /// </summary>
     public static class FinancialStatementGeneratorHelper
     {
-
         #region MergeField Keys
 
         /// <summary>
-        /// Keys to use for Page Parameters
+        /// Keys to use for Lava MergeField keys
         /// </summary>
         private static class MergeFieldKey
         {
             public const string RenderMedium = "RenderMedium";
-            public const string LogoSrcBase64 = "LogoSrcBase64";
             public const string FinancialStatementTemplate = "FinancialStatementTemplate";
             public const string RenderedPageCount = "RenderedPageCount";
             public const string PersonList = "PersonList";
@@ -211,22 +209,31 @@ namespace Rock.Financial
                                                       join gg in personGivingIdsQuery on p.Id equals gg.PersonId.Value
                                                       select new { gg.PersonId, p.NickName, p.LastName };
 
-                var nickNameLastNameLookupByPersonId = qryNickNameLastNameAsIndividual.ToDictionary( k => k.PersonId, v => new { v.NickName, v.LastName } );
+                var nickNameLastNameLookupByPersonId = qryNickNameLastNameAsIndividual
+                    .Select( a => new { a.PersonId, a.NickName, a.LastName } )
+                    .ToList()
+                    .Where( a => a.PersonId.HasValue )
+                    .GroupBy( a => a.PersonId.Value )
+                    .ToDictionary( k => k.Key, v => v.Select( a => new { a.NickName, a.LastName } ).FirstOrDefault() );
 
                 var givingLeaderGivingIdsQuery = givingIdsQry.Where( a => !a.PersonId.HasValue );
                 var qryNickNameLastNameAsGivingLeader = from p in personQuery.Where( a => a.GivingLeaderId == a.Id && a.GivingGroupId.HasValue )
                                                         join gg in givingLeaderGivingIdsQuery on p.GivingGroupId equals gg.GroupId
                                                         select new { gg.GroupId, p.NickName, p.LastName };
 
-                var nickNameLastNameLookupByGivingGroupId = qryNickNameLastNameAsGivingLeader.ToDictionary( k => k.GroupId, v => new { v.NickName, v.LastName } );
+                var nickNameLastNameLookupByGivingGroupId = qryNickNameLastNameAsGivingLeader
+                    .Select( a => new { a.GroupId, a.NickName, a.LastName } )
+                    .ToList()
+                    .GroupBy( a => a.GroupId )
+                    .ToDictionary( k => k.Key, v => v.Select( a => new { a.NickName, a.LastName } ).FirstOrDefault() );
 
                 foreach ( var recipient in recipientList )
                 {
                     if ( recipient.PersonId.HasValue )
                     {
                         var lookupValue = nickNameLastNameLookupByPersonId.GetValueOrNull( recipient.PersonId.Value );
-                        recipient.NickName = lookupValue.NickName;
-                        recipient.LastName = lookupValue.LastName;
+                        recipient.NickName = lookupValue?.NickName;
+                        recipient.LastName = lookupValue?.LastName;
                     }
                     else
                     {
@@ -378,16 +385,8 @@ namespace Rock.Financial
                 var lavaTemplateLava = financialStatementTemplate.ReportTemplate;
                 var lavaTemplateFooterHtmlFragment = financialStatementTemplate.FooterSettings.HtmlFragment;
 
-                var logoBytes = financialStatementTemplate.LogoBinaryFile?.DatabaseData?.Content;
-                string logoSrcBase64 = null;
-                if ( logoBytes != null )
-                {
-                    logoSrcBase64 = $"data:{financialStatementTemplate.LogoBinaryFile.MimeType}; {Convert.ToBase64String( logoBytes )}";
-                }
-
                 var mergeFields = Rock.Lava.LavaHelper.GetCommonMergeFields( null, null, new Lava.CommonMergeFieldsOptions { GetLegacyGlobalMergeFields = false, GetDeviceFamily = false, GetOSFamily = false, GetPageContext = false, GetPageParameters = false, GetCampuses = true, GetCurrentPerson = true } );
                 mergeFields.Add( MergeFieldKey.RenderMedium, financialStatementGeneratorOptions.RenderMedium );
-                mergeFields.Add( MergeFieldKey.LogoSrcBase64, logoSrcBase64 );
                 mergeFields.Add( MergeFieldKey.FinancialStatementTemplate, financialStatementTemplate );
                 mergeFields.Add( MergeFieldKey.RenderedPageCount, financialStatementGeneratorRecipientRequest.FinancialStatementGeneratorRecipient.RenderedPageCount );
 

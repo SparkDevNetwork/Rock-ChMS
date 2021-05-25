@@ -16,13 +16,9 @@
 //
 using System;
 using System.ComponentModel;
-using System.Diagnostics;
-using System.IO;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
-
-using Microsoft.Win32;
 
 using Rock.Wpf;
 
@@ -75,12 +71,15 @@ namespace Rock.Apps.StatementGenerator
 
             NavigationService.Navigating += NavigationService_Navigating;
             btnPrev.Visibility = Visibility.Hidden;
-            lblReportProgress.Visibility = Visibility.Hidden;
-            lblReportProgress.Content = "Progress - Creating Statements";
-            lblReportProgress.Content = "Progress - Creating Statements";
-            pgReportProgress.Visibility = Visibility.Hidden;
-            WpfHelper.FadeIn( pgReportProgress, 2000 );
-            WpfHelper.FadeIn( lblReportProgress, 2000 );
+            lblRenderStatementsProgress.Visibility = Visibility.Hidden;
+            lblRenderStatementsProgress.Content = "Progress - Creating Statements";
+            pgRenderStatementsProgress.Visibility = Visibility.Hidden;
+
+            lblSaveMergeDocProgress.Visibility = Visibility.Hidden;
+            pgSaveMergeDocProgress.Visibility = Visibility.Hidden;
+
+            WpfHelper.FadeIn( pgRenderStatementsProgress, 2000 );
+            WpfHelper.FadeIn( lblRenderStatementsProgress, 2000 );
             BackgroundWorker bw = new BackgroundWorker();
             bw.DoWork += bw_DoWork;
             bw.RunWorkerCompleted += bw_RunWorkerCompleted;
@@ -108,27 +107,27 @@ namespace Rock.Apps.StatementGenerator
         protected void bw_RunWorkerCompleted( object sender, RunWorkerCompletedEventArgs e )
         {
             btnPrev.Visibility = Visibility.Visible;
-            pgReportProgress.Visibility = Visibility.Collapsed;
+            pgRenderStatementsProgress.Visibility = Visibility.Collapsed;
 
             if ( e.Error != null )
             {
-                lblReportProgress.Content = "Error: " + e.Error.Message;
+                lblRenderStatementsProgress.Content = "Error: " + e.Error.Message;
                 throw e.Error;
             }
 
             if ( _statementCount == 0 )
             {
-                lblReportProgress.Content = @"Warning: No records matched your criteria. No statements have been created.";
+                lblRenderStatementsProgress.Content = @"Warning: No records matched your criteria. No statements have been created.";
             }
             else if ( _wasCancelled )
             {
-                lblReportProgress.Style = this.FindResource( "labelStyleAlertWarning" ) as Style;
-                lblReportProgress.Content = $@"Canceled: {_statementCount} statements created.";
+                lblRenderStatementsProgress.Style = this.FindResource( "labelStyleAlertWarning" ) as Style;
+                lblRenderStatementsProgress.Content = $@"Canceled: {_statementCount} statements created.";
             }
             else
             {
-                lblReportProgress.Style = this.FindResource( "labelStyleAlertSuccess" ) as Style;
-                lblReportProgress.Content = string.Format( @"Success:{1}Your statements have been created.{1}( {0} statements created )", _statementCount, Environment.NewLine );
+                lblRenderStatementsProgress.Style = this.FindResource( "labelStyleAlertSuccess" ) as Style;
+                lblRenderStatementsProgress.Content = string.Format( @"Success:{1}Your statements have been created.{1}( {0} statements created )", _statementCount, Environment.NewLine );
             }
         }
 
@@ -139,10 +138,9 @@ namespace Rock.Apps.StatementGenerator
         /// <param name="e">The <see cref="DoWorkEventArgs"/> instance containing the event data.</param>
         protected void bw_DoWork( object sender, DoWorkEventArgs e )
         {
-            _contributionReport = new ContributionReport( ReportOptions.Current );
+            _contributionReport = new ContributionReport( ReportOptions.Current, this );
             _contributionReport.Resume = this.Resume;
             _contributionReport.ResumeRunDate = this.ResumeRunDate;
-            _contributionReport.OnProgress += ContributionReport_OnProgress;
             try
             {
                 _wasCancelled = false;
@@ -159,21 +157,28 @@ namespace Rock.Apps.StatementGenerator
 
             e.Result = _statementCount > 0;
         }
-
-        /// <summary>
-        /// Handles the OnProgress event of the ContributionReport control.
-        /// </summary>
-        /// <param name="sender">The source of the event.</param>
-        /// <param name="e">The <see cref="ProgressEventArgs"/> instance containing the event data.</param>
-        private void ContributionReport_OnProgress( object sender, ProgressEventArgs e )
-        {
-            ShowProgress( e.Position, e.Max, e.ProgressMessage );
-        }
-
         /// <summary>
         /// The _start progress date time
         /// </summary>
         private DateTime _lastUpdate = DateTime.MinValue;
+
+        /// <summary>
+        /// Shows the save merge document progress.
+        /// </summary>
+        /// <param name="position">The position.</param>
+        /// <param name="max">The maximum.</param>
+        /// <param name="progressMessage">The progress message.</param>
+        internal void ShowSaveMergeDocProgress( int position, int max, string progressMessage )
+        {
+            Dispatcher.Invoke( () =>
+            {
+                lblSaveMergeDocProgress.Content = progressMessage;
+                pgSaveMergeDocProgress.Value = position;
+                pgSaveMergeDocProgress.Maximum = max;
+                lblSaveMergeDocProgress.Visibility = Visibility.Visible;
+                pgSaveMergeDocProgress.Visibility = Visibility.Visible;
+            } );
+        }
 
         /// <summary>
         /// Shows the progress.
@@ -181,11 +186,12 @@ namespace Rock.Apps.StatementGenerator
         /// <param name="position">The position.</param>
         /// <param name="max">The maximum.</param>
         /// <param name="progressMessage">The progress message.</param>
-        private void ShowProgress( int position, int max, string progressMessage )
+        /// <param name="limitUpdates">if set to <c>true</c> [limit updates].</param>
+        internal void ShowProgress( int position, int max, string progressMessage, bool limitUpdates )
         {
             var timeSinceLastUpdate = DateTime.Now - _lastUpdate;
 
-            if ( timeSinceLastUpdate.Seconds < 1.0 && position != max )
+            if ( timeSinceLastUpdate.Seconds < 1.0 && limitUpdates )
             {
                 return;
             }
@@ -196,30 +202,30 @@ namespace Rock.Apps.StatementGenerator
             {
                 if ( max > 0 )
                 {
-                    if ( lblReportProgress.Content.ToString() != progressMessage )
+                    if ( lblRenderStatementsProgress.Content.ToString() != progressMessage )
                     {
-                        lblReportProgress.Content = progressMessage;
+                        lblRenderStatementsProgress.Content = progressMessage;
                     }
 
-                    if ( pgReportProgress.Maximum != max )
+                    if ( pgRenderStatementsProgress.Maximum != max )
                     {
-                        pgReportProgress.Maximum = max;
+                        pgRenderStatementsProgress.Maximum = max;
                     }
 
-                    if ( pgReportProgress.Value != position )
+                    if ( pgRenderStatementsProgress.Value != position )
                     {
-                        pgReportProgress.Value = position;
+                        pgRenderStatementsProgress.Value = position;
                     }
 
-                    if ( pgReportProgress.Visibility != Visibility.Visible )
+                    if ( pgRenderStatementsProgress.Visibility != Visibility.Visible )
                     {
-                        pgReportProgress.Visibility = Visibility.Visible;
+                        pgRenderStatementsProgress.Visibility = Visibility.Visible;
                     }
                 }
                 else
                 {
-                    lblReportProgress.Content = progressMessage;
-                    pgReportProgress.Visibility = Visibility.Collapsed;
+                    lblRenderStatementsProgress.Content = progressMessage;
+                    pgRenderStatementsProgress.Visibility = Visibility.Collapsed;
                 }
 
                 // put the current statements/second in stats box (easter egg)
@@ -247,11 +253,11 @@ namespace Rock.Apps.StatementGenerator
         }
 
         /// <summary>
-        /// Handles the MouseDoubleClick event of the lblReportProgress control.
+        /// Handles the MouseDoubleClick event of the lblRenderStatementsProgress control.
         /// </summary>
         /// <param name="sender">The source of the event.</param>
         /// <param name="e">The <see cref="System.Windows.Input.MouseButtonEventArgs"/> instance containing the event data.</param>
-        private void lblReportProgress_MouseDoubleClick( object sender, System.Windows.Input.MouseButtonEventArgs e )
+        private void lblRenderStatementsProgress_MouseDoubleClick( object sender, System.Windows.Input.MouseButtonEventArgs e )
         {
             if ( lblStats.Visibility != Visibility.Visible )
             {

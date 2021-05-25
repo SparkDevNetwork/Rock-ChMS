@@ -42,6 +42,14 @@ namespace Rock.Apps.StatementGenerator
         public DateTime RunDate { get; set; }
 
         /// <summary>
+        /// Gets or sets a value indicating whether [reports saved successfully].
+        /// </summary>
+        /// <value>
+        ///   <c>true</c> if [reports saved successfully]; otherwise, <c>false</c>.
+        /// </value>
+        public bool ReportsCompleted { get; set; }
+
+        /// <summary>
         /// Gets or sets the configured options.
         /// </summary>
         /// <value>

@@ -28,13 +28,24 @@
                 HorizontalAlignment="Center"
                 VerticalAlignment="Center">
                 <rockWpfControls:AlertLabel
-                    x:Name="lblReportProgress"
+                    x:Name="lblRenderStatementsProgress"
                     AlertType="Info"
-                    Content="Progress"
-                    MouseDoubleClick="lblReportProgress_MouseDoubleClick"
+                    Content="Render Statement Progress"
+                    MouseDoubleClick="lblRenderStatementsProgress_MouseDoubleClick"
                     Visibility="Visible" />
                 <ProgressBar
-                    x:Name="pgReportProgress"
+                    x:Name="pgRenderStatementsProgress"
+                    Height="8"
+                    Maximum="100"
+                    Visibility="Visible"
+                    Value="0" />
+                <rockWpfControls:AlertLabel
+                    x:Name="lblSaveMergeDocProgress"
+                    AlertType="Info"
+                    Content="Save Merge Docs Progress"
+                    Visibility="Visible" />
+                <ProgressBar
+                    x:Name="pgSaveMergeDocProgress"
                     Height="8"
                     Maximum="100"
                     Visibility="Visible"

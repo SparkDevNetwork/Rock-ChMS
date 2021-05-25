@@ -25,6 +25,7 @@ using System.Threading;
 using System.Threading.Tasks;
 
 using IronPdf;
+using IronPdf.Threading;
 
 using Newtonsoft.Json;
 
@@ -43,9 +44,10 @@ namespace Rock.Apps.StatementGenerator
         /// <summary>
         /// Initializes a new instance of the <see cref="ContributionReport"/> class.
         /// </summary>
-        public ContributionReport( Rock.Client.FinancialStatementGeneratorOptions options )
+        public ContributionReport( Rock.Client.FinancialStatementGeneratorOptions options, ProgressPage progressPage )
         {
             this.Options = options;
+            this.ProgressPage = progressPage;
         }
 
         /// <summary>
@@ -55,6 +57,8 @@ namespace Rock.Apps.StatementGenerator
         /// The options.
         /// </value>
         public Rock.Client.FinancialStatementGeneratorOptions Options { get; set; }
+
+        private ProgressPage ProgressPage;
 
         /// <summary>
         /// Gets or sets the record count.
@@ -176,17 +180,20 @@ namespace Rock.Apps.StatementGenerator
 
             List<FinancialStatementGeneratorRecipient> recipientList;
 
-            _currentDayTemporaryDirectory = GetStatementGeneratorTemporaryDirectory( rockConfig, DateTime.Today );
-
             if ( Resume && ResumeRunDate.HasValue )
             {
-                // Get Recipients from Rock REST Endpoint from incomplete session
+
+                _currentDayTemporaryDirectory = GetStatementGeneratorTemporaryDirectory( rockConfig, ResumeRunDate.Value );
                 UpdateProgress( "Resuming Incomplete Recipients...", 0, 0 );
+
+                // Get Recipients from save recipient list from the incomplete session
                 recipientList = GetSavedRecipientList( ResumeRunDate.Value );
-                SaveGeneratorConfig( ResumeRunDate.Value, true );
+                SaveGeneratorConfig( _currentDayTemporaryDirectory, true, false );
             }
             else
             {
+                _currentDayTemporaryDirectory = GetStatementGeneratorTemporaryDirectory( rockConfig, DateTime.Today );
+                // Get Recipients from save recipient list from the incomplete session
                 try
                 {
                     if ( rockConfig.TemporaryDirectory.IsNotNullOrWhiteSpace() )
@@ -207,10 +214,13 @@ namespace Rock.Apps.StatementGenerator
                     Debug.WriteLine( $"Error deleting temp directories: {ex.Message}" );
                 }
 
+                // re-create directory
+                Directory.CreateDirectory( _currentDayTemporaryDirectory );
+
                 // Get Recipients from Rock REST Endpoint
                 UpdateProgress( "Getting Statement Recipients...", 0, 0 );
                 recipientList = GetRecipients( restClient );
-                SaveGeneratorConfig( DateTime.Today, false );
+                SaveGeneratorConfig( _currentDayTemporaryDirectory, false, false );
             }
 
             this.RecordCount = recipientList.Count;
@@ -225,6 +235,10 @@ namespace Rock.Apps.StatementGenerator
             _getStatementHtmlTimingsMS = new ConcurrentBag<double>();
 
             IronPdf.Installation.TempFolderPath = Path.Combine( _currentDayTemporaryDirectory, "IronPdf" );
+
+            // get the Renderer warmed up
+            IronPdf.Installation.InitializeTempFolderPathAndCreateConverter();
+            HtmlToPdf.StaticRenderHtmlAsPdf( "Warmup" );
 
             Directory.CreateDirectory( IronPdf.Installation.TempFolderPath );
             Directory.CreateDirectory( Path.Combine( _currentDayTemporaryDirectory, "Statements" ) );
@@ -258,7 +272,7 @@ namespace Rock.Apps.StatementGenerator
 
                 var recipientProgressPosition = Interlocked.Read( ref _recordsCompleted );
 
-                UpdateProgress( "Generating Individual Documents...", recipientProgressPosition + progressOffset, recipientProgressMax );
+                UpdateProgress( "Generating Individual Documents...", recipientProgressPosition + progressOffset, recipientProgressMax, true );
 
                 StartGenerateStatementForRecipient( recipient, restClient, enablePageCountPredetermination );
                 SaveRecipientListStatus( recipientList, _currentDayTemporaryDirectory );
@@ -319,6 +333,8 @@ namespace Rock.Apps.StatementGenerator
 
                 WriteStatementPDFs( financialStatementReportConfiguration, recipientList );
             }
+
+            SaveGeneratorConfig( _currentDayTemporaryDirectory, false, true );
 
             UpdateProgress( "Cleaning up temporary files.", 0, 0 );
 
@@ -606,13 +622,11 @@ Overall PDF/sec    Avg: {overallPDFPerSecond }/sec
         /// </summary>
         /// <param name="runDate">The run date.</param>
         /// <param name="incrementRunAttempts">if set to <c>true</c> [increment run attempts].</param>
-        private void SaveGeneratorConfig( DateTime runDate, bool incrementRunAttempts )
+        private void SaveGeneratorConfig( string currentDayTemporaryDirectory, bool incrementRunAttempts, bool reportsCompleted )
         {
-            var rockConfig = RockConfig.Load();
-
             GeneratorConfig generatorConfig = null;
 
-            var fileName = Path.Combine( GetStatementGeneratorTemporaryDirectory( rockConfig, runDate ), "GeneratorConfig.Json" );
+            var fileName = Path.Combine( currentDayTemporaryDirectory, "GeneratorConfig.Json" );
             if ( File.Exists( fileName ) )
             {
                 var resultsJson = File.ReadAllText( fileName );
@@ -628,6 +642,8 @@ Overall PDF/sec    Avg: {overallPDFPerSecond }/sec
             {
                 generatorConfig.RunAttempts++;
             }
+
+            generatorConfig.ReportsCompleted = reportsCompleted;
 
             generatorConfig.ConfiguredOptions = this.Options;
 
@@ -780,7 +796,6 @@ Overall PDF/sec    Avg: {overallPDFPerSecond }/sec
         /// </summary>
         /// <param name="financialStatementReportConfiguration">The financial statement report configuration.</param>
         /// <param name="financialStatementGeneratorRecipientResults">The statement generator recipient PDF results.</param>
-        /// <returns></returns>
         private void WriteStatementPDFs( FinancialStatementReportConfiguration financialStatementReportConfiguration, IEnumerable<FinancialStatementGeneratorRecipient> financialStatementGeneratorRecipientResults )
         {
             if ( !financialStatementGeneratorRecipientResults.Any() )
@@ -808,9 +823,222 @@ Overall PDF/sec    Avg: {overallPDFPerSecond }/sec
             IOrderedEnumerable<FinancialStatementGeneratorRecipient> sortedRecipientList = SortByPrimaryAndSecondaryOrder( financialStatementReportConfiguration, recipientList );
             recipientList = sortedRecipientList.ToList();
 
-            var useChapters = financialStatementReportConfiguration.MaxStatementsPerChapter.HasValue;
-            var splitOnPrimary = financialStatementReportConfiguration.SplitFilesOnPrimarySortValue;
+            // make sure the directory exists
+            Directory.CreateDirectory( financialStatementReportConfiguration.DestinationFolder );
 
+            /* Splitting Logic
+             * 
+             * Max/Chapter | Split On Primary  | PreventSplitting | Result (some cases end up with same output)
+             * null        | false             | false            | Single PDF - no splitting or max chapters
+             * null        | false             | true             | Single PDF - no splitting or max chapters (prevent splitting doesn't matter since we aren't splitting by anything)
+             *
+             * 1000        | false             | false            | 1000 per PDF, last doc might have less than 1000 - Simple
+             * 
+             * null        | true              | false            | One per Sort (for example, each zip code has its own doc) - simple case (PreventSplitting doesn't matter since we are already splitting)
+             * null        | true              | true             | One per Sort (for example, each zip code has its own doc) - simple case (PreventSplitting doesn't matter since we are already splitting)
+             * 1000        | true              | true             | One per Sort (for example, each zip code has its own doc) - max is ignored since we are have to prevent splitting
+             *             
+             * 1000        | true              | false            | 1000 or less per PDF. Examples per PDF
+             *                                                             999 85083 = one doc
+             *                                                             900 85083 + 100 85444 = two docs (we are splitting on primary)
+             *                                                            1001 85083 = 2 docs. 85083 has two docs" 85083-chapter1 (1000 statements). 85083-chapter2 (1 statement)
+             * 
+             * 1000        | false             | true             | Up to 1000 (don't go over if next has too many). For example:
+             *                                                             999 85083 = one doc, 
+             *                                                             900 85123 + 100 85444 = one doc (they fit)
+             *                                                             900 85123 + 101 85444 = 2 docs (2nd doc could hold additional zip codes)
+             *                                                            1001 85083 = that doc has more than max since splitting is not allowed
+             */
+
+            int? maxStatementsPerChapter = financialStatementReportConfiguration.MaxStatementsPerChapter;
+            bool splitOnPrimary = financialStatementReportConfiguration.SplitFilesOnPrimarySortValue;
+            bool preventSplitting = financialStatementReportConfiguration.PreventSplittingPrimarySortValuesAcrossChapters;
+
+            if ( maxStatementsPerChapter == null && !splitOnPrimary )
+            {
+                // Single PDF case
+                // No splitting or chaptering, just one giant doc
+                var singleFileName = Path.Combine( financialStatementReportConfiguration.DestinationFolder, "statements.pdf" );
+                ProgressPage.ShowSaveMergeDocProgress( 0, 1, "Saving Merged Document" );
+                SaveToMergedDocument( singleFileName, recipientList );
+                ProgressPage.ShowSaveMergeDocProgress( 1, 1, "Saving Merged Document" );
+                return;
+            }
+
+            if ( maxStatementsPerChapter.HasValue && !preventSplitting && !splitOnPrimary )
+            {
+                // 1000 per PDF case (last doc might have less than 1000) - Simple
+                // simply break into maxStatementsPerChapter, where the last doc may have less than maxStatementsPerChapter
+                SaveAsChapterDocs( financialStatementReportConfiguration, recipientList, maxStatementsPerChapter.Value );
+                return;
+            }
+
+
+            if ( splitOnPrimary )
+            {
+                if ( preventSplitting || maxStatementsPerChapter == null )
+                {
+                    // One per Sort case ( Split on primary and also prevent splitting (or there isn't a max per chapter) )
+                    // This ends up as simple one chapter per Sort (for example, Each Zip Code has it's own file)
+                    SaveAsSimpleSplitOnPrimarySort( financialStatementReportConfiguration, recipientList );
+                    return;
+                }
+                else
+                {
+                    // 1000 or Less per PDF case (splitting is allowed, but strictly no more than max )
+                    //   - If there are more than 1000 for a split, it can be put into more than one doc.
+                    //   - However, don't have more than one sort key per doc.
+                    //   - Therefore, each doc would never have more then the max, but could have fewer than the max
+                    SaveAsSplitOnPrimarySortWithChapters( financialStatementReportConfiguration, recipientList, maxStatementsPerChapter.Value );
+                }
+            }
+
+            // final case
+            //   - If there are more than 1000 for a split, keep it together.
+            //   - Otherwise, limit to an absolute max (a doc may have more than one sort key)
+            //   - Therefore, each doc could have more than the max or less than the max
+            SaveAsChapterDocsPreventSplitting( financialStatementReportConfiguration, recipientList, maxStatementsPerChapter.Value );
+        }
+
+        /// <summary>
+        /// Saves as split on primary sort with chapters.
+        /// </summary>
+        /// <param name="financialStatementReportConfiguration">The financial statement report configuration.</param>
+        /// <param name="recipientList">The recipient list.</param>
+        /// <param name="maxStatementsPerChapter">The maximum statements per chapter.</param>
+        private void SaveAsSplitOnPrimarySortWithChapters( FinancialStatementReportConfiguration financialStatementReportConfiguration, List<FinancialStatementGeneratorRecipient> recipientList, int maxStatementsPerChapter )
+        {
+            var recipientsByPrimarySortKey = GetRecipientsByPrimarySortKey( financialStatementReportConfiguration, recipientList );
+
+            foreach ( var primarySort in recipientsByPrimarySortKey )
+            {
+                List<FinancialStatementGeneratorRecipient> recipientsForSort = primarySort.Value;
+                SaveAsChapterDocs( financialStatementReportConfiguration, recipientsForSort, maxStatementsPerChapter, primarySort.Key );
+            }
+        }
+
+        /// <summary>
+        /// Saves as chapter docs prevent splitting.
+        /// </summary>
+        /// <param name="financialStatementReportConfiguration">The financial statement report configuration.</param>
+        /// <param name="recipientList">The recipient list.</param>
+        /// <param name="maxStatementsPerChapter">The maximum statements per chapter.</param>
+        private void SaveAsChapterDocsPreventSplitting( FinancialStatementReportConfiguration financialStatementReportConfiguration, List<FinancialStatementGeneratorRecipient> recipientList, int maxStatementsPerChapter )
+        {
+            /*
+             * Up to maxStatementsPerChapter (don't go over if next has too many). For example:
+             *  
+             *  999 85083 = one doc,                                                          
+             *  900 85123 + 100 85444 = one doc (they fit)                                                         
+             *  900 85123 + 101 85444 = 2 docs (2nd doc could hold additional zip codes)                                                         
+             * 1001 85083 = that doc has more than max since splitting is not allowed                                                         
+             */
+
+            List<FinancialStatementGeneratorRecipient> recipientsForChapter = new List<FinancialStatementGeneratorRecipient>();
+
+            var recipientsByPrimarySortKey = GetRecipientsByPrimarySortKey( financialStatementReportConfiguration, recipientList );
+            var sortKeys = recipientsByPrimarySortKey.Keys.ToArray();
+            var recipientSortIndex = 0;
+            var recipientSortMaxIndex = recipientsByPrimarySortKey.Count() - 1;
+            var startSortKey = recipientsByPrimarySortKey.Keys.FirstOrDefault();
+            var currentChapterNumber = 1;
+
+            while ( recipientSortIndex <= recipientSortMaxIndex )
+            {
+                ProgressPage.ShowSaveMergeDocProgress( recipientSortIndex, recipientSortMaxIndex, "Saving Chapter Docs" );
+                var currentSortKey = sortKeys[recipientSortIndex];
+                int? nextSortCount = null;
+                int nextSortIndex = recipientSortIndex + 1;
+                if ( nextSortIndex <= recipientSortMaxIndex )
+                {
+                    nextSortCount = recipientsByPrimarySortKey[sortKeys[nextSortIndex]].Count;
+                }
+
+                recipientsForChapter.AddRange( recipientsByPrimarySortKey[currentSortKey] );
+
+                // save and start new doc if
+                //   -- we are already over,
+                //   -- we will be over if we try to add the next set
+                //   -- this is the last sort key (nextSortCount is null)
+                if ( !nextSortCount.HasValue || ( recipientsForChapter.Count() + nextSortCount ) > maxStatementsPerChapter )
+                {
+                    var chapterFileName = $"{financialStatementReportConfiguration.FilenamePrefix}{startSortKey}_{currentSortKey}_chapter{currentChapterNumber}.pdf".MakeValidFileName();
+                    SaveToMergedDocument( chapterFileName, recipientsForChapter );
+                    recipientsForChapter = new List<FinancialStatementGeneratorRecipient>();
+                }
+
+                recipientSortIndex++;
+            }
+        }
+
+        /// <summary>
+        /// Saves as chapter docs.
+        /// </summary>
+        /// <param name="financialStatementReportConfiguration">The financial statement report configuration.</param>
+        /// <param name="recipientList">The recipient list.</param>
+        /// <param name="maxStatementsPerChapter">The maximum statements per chapter.</param>
+        private void SaveAsChapterDocs( FinancialStatementReportConfiguration financialStatementReportConfiguration, List<FinancialStatementGeneratorRecipient> recipientList, int maxStatementsPerChapter, string chapterSplitName = null )
+        {
+            var skipCount = 0;
+            IEnumerable<FinancialStatementGeneratorRecipient> chapterStatements;
+            int chapterNumber = 1;
+            int chapterCountEstimate = recipientList.Count() / maxStatementsPerChapter;
+
+            // sort, just in case it isn't sorted already
+            var sortedRecipients = SortByPrimaryAndSecondaryOrder( financialStatementReportConfiguration, recipientList );
+
+            do
+            {
+                chapterStatements = sortedRecipients.Skip( skipCount ).Take( maxStatementsPerChapter );
+                if ( !chapterStatements.Any() )
+                {
+                    break;
+                }
+
+                var chapterFileName = $"{financialStatementReportConfiguration.FilenamePrefix}{chapterSplitName}{chapterNumber}.pdf".MakeValidFileName();
+                ProgressPage.ShowSaveMergeDocProgress( chapterNumber, chapterCountEstimate, "Saving Chapter Docs" );
+
+                SaveToMergedDocument( Path.Combine( financialStatementReportConfiguration.DestinationFolder, chapterFileName ), chapterStatements.ToList() );
+
+                chapterNumber++;
+                skipCount += maxStatementsPerChapter;
+            } while ( chapterStatements.Any() );
+        }
+
+        private void SaveAsSimpleSplitOnPrimarySort( FinancialStatementReportConfiguration financialStatementReportConfiguration, List<FinancialStatementGeneratorRecipient> recipientList )
+        {
+            var recipientsByPrimarySortKey = GetRecipientsByPrimarySortKey( financialStatementReportConfiguration, recipientList );
+
+            Stopwatch stopwatchSplitOnPrimary = Stopwatch.StartNew();
+            // 30 secs - Parallel.ForEach( recipientsByPrimarySortKey, ( primarySort ) =>
+            // 68 secs, not parallel
+            var progressMax = recipientsByPrimarySortKey.Count;
+            var progressPosition = 0;
+
+            foreach ( var primarySort in recipientsByPrimarySortKey )
+            {
+                string primarySortFileName = $"{financialStatementReportConfiguration.FilenamePrefix}{primarySort.Key}.pdf".MakeValidFileName();
+                string mergeDocFilePath = Path.Combine( financialStatementReportConfiguration.DestinationFolder, primarySortFileName );
+                try
+                {
+                    var sortedRecipients = SortByPrimaryAndSecondaryOrder( financialStatementReportConfiguration, primarySort.Value );
+                    SaveToMergedDocument( mergeDocFilePath, sortedRecipients.ToList() );
+                }
+                catch ( Exception ex )
+                {
+                    Debug.WriteLine( $"{ex }:primarySortFileName:{primarySortFileName}, mergeDocFilePath;{mergeDocFilePath}" );
+                    throw;
+                }
+
+                progressPosition++;
+
+                ProgressPage.ShowSaveMergeDocProgress( progressPosition, progressMax, "Saving Docs" );
+            }
+
+        }
+
+        private static Dictionary<string, List<FinancialStatementGeneratorRecipient>> GetRecipientsByPrimarySortKey( FinancialStatementReportConfiguration financialStatementReportConfiguration, List<FinancialStatementGeneratorRecipient> recipientList )
+        {
             Dictionary<string, List<FinancialStatementGeneratorRecipient>> recipientsByPrimarySortKey;
             if ( financialStatementReportConfiguration.PrimarySortOrder == FinancialStatementOrderBy.PageCount )
             {
@@ -832,96 +1060,7 @@ Overall PDF/sec    Avg: {overallPDFPerSecond }/sec
                     .ToDictionary( k => k.Key, v => v.ToList() );
             }
 
-            // make sure the directory exists
-            Directory.CreateDirectory( financialStatementReportConfiguration.DestinationFolder );
-
-            if ( splitOnPrimary )
-            {
-                foreach ( var primarySort in recipientsByPrimarySortKey )
-                {
-                    var primarySortFileName = $"{financialStatementReportConfiguration.FilenamePrefix}{primarySort.Key}.pdf".MakeValidFileName();
-                    var sortedRecipients = SortByPrimaryAndSecondaryOrder( financialStatementReportConfiguration, primarySort.Value );
-                    SaveToMergedDocument( Path.Combine( financialStatementReportConfiguration.DestinationFolder, primarySortFileName ), sortedRecipients.ToList() );
-                }
-            }
-            else if ( useChapters )
-            {
-                SaveToChapters( financialStatementReportConfiguration, recipientsByPrimarySortKey );
-            }
-            else
-            {
-                var singleFileName = Path.Combine( financialStatementReportConfiguration.DestinationFolder, "statements.pdf" );
-                SaveToMergedDocument( singleFileName, recipientList );
-
-                return;
-            }
-        }
-
-        /// <summary>
-        /// Saves to chapters.
-        /// </summary>
-        /// <param name="financialStatementReportConfiguration">The financial statement report configuration.</param>
-        /// <param name="recipientsByPrimarySortKey">The recipients by primary sort key.</param>
-        private void SaveToChapters( FinancialStatementReportConfiguration financialStatementReportConfiguration, Dictionary<string, List<FinancialStatementGeneratorRecipient>> recipientsByPrimarySortKey )
-        {
-            var maxStatementsPerChapter = financialStatementReportConfiguration.MaxStatementsPerChapter.Value;
-            List<FinancialStatementGeneratorRecipient> recipientsForChapter = new List<FinancialStatementGeneratorRecipient>();
-            int chapterIndex = 1;
-            string chapterStartPrimarySortKey = recipientsByPrimarySortKey.Keys.FirstOrDefault();
-            string currentPrimarySortKey = chapterStartPrimarySortKey;
-
-            foreach ( var primarySort in recipientsByPrimarySortKey )
-            {
-                currentPrimarySortKey = primarySort.Key;
-                if ( financialStatementReportConfiguration.PreventSplittingPrimarySortValuesAcrossChapters )
-                {
-                    recipientsForChapter.AddRange( primarySort.Value );
-
-                    if ( recipientsForChapter.Count >= maxStatementsPerChapter )
-                    {
-                        SaveChapterDoc( financialStatementReportConfiguration, chapterIndex, chapterStartPrimarySortKey, currentPrimarySortKey, recipientsForChapter );
-                        chapterStartPrimarySortKey = primarySort.Key;
-                        recipientsForChapter = new List<FinancialStatementGeneratorRecipient>();
-                        chapterIndex++;
-                    }
-                }
-                else
-                {
-                    foreach ( var recipient in primarySort.Value )
-                    {
-                        recipientsForChapter.Add( recipient );
-
-                        if ( recipientsForChapter.Count >= maxStatementsPerChapter )
-                        {
-                            SaveChapterDoc( financialStatementReportConfiguration, chapterIndex, chapterStartPrimarySortKey, currentPrimarySortKey, recipientsForChapter );
-                            chapterStartPrimarySortKey = primarySort.Key;
-                            recipientsForChapter = new List<FinancialStatementGeneratorRecipient>();
-                            chapterIndex++;
-                        }
-                    }
-                }
-            }
-
-            if ( recipientsForChapter.Any() )
-            {
-                SaveChapterDoc( financialStatementReportConfiguration, chapterIndex, chapterStartPrimarySortKey, currentPrimarySortKey, recipientsForChapter );
-            }
-        }
-
-        /// <summary>
-        /// Saves the chapter document.
-        /// </summary>
-        /// <param name="financialStatementReportConfiguration">The financial statement report configuration.</param>
-        /// <param name="chapterIndex">Index of the chapter.</param>
-        /// <param name="chapterStartPrimarySortKey">The chapter start primary sort key.</param>
-        /// <param name="chapterEndPrimarySortKey">The chapter end primary sort key.</param>
-        /// <param name="statementsForChapter">The statements for chapter.</param>
-        private void SaveChapterDoc( FinancialStatementReportConfiguration financialStatementReportConfiguration, int chapterIndex, string chapterStartPrimarySortKey, string chapterEndPrimarySortKey, List<FinancialStatementGeneratorRecipient> statementsForChapter )
-        {
-            var primarySortRange = $"{chapterStartPrimarySortKey}-{chapterEndPrimarySortKey}";
-            var chapterFileName = $"{financialStatementReportConfiguration.FilenamePrefix}{primarySortRange}-{chapterIndex}.pdf".MakeValidFileName();
-            var sortedRecipients = SortByPrimaryAndSecondaryOrder( financialStatementReportConfiguration, statementsForChapter );
-            SaveToMergedDocument( Path.Combine( financialStatementReportConfiguration.DestinationFolder, chapterFileName ), sortedRecipients.ToList() );
+            return recipientsByPrimarySortKey;
         }
 
         /// <summary>
@@ -942,12 +1081,11 @@ Overall PDF/sec    Avg: {overallPDFPerSecond }/sec
 
             var singleFinalDoc = IronPdf.PdfDocument.Merge( allPdfsEnumerable );
 
-            Debug.WriteLine( $"{stopwatchMerging.Elapsed.TotalMilliseconds} stopwatchMerging.Elapsed.TotalMilliseconds MERGE" );
             stopwatchMerging.Restart();
 
             singleFinalDoc.SaveAs( mergedFileName );
 
-            Debug.WriteLine( $"{stopwatchMerging.Elapsed.TotalMilliseconds} stopwatchMerging.Elapsed.TotalMilliseconds SAVE" );
+            Debug.WriteLine( $"[{stopwatchMerging.Elapsed.TotalMilliseconds} ms] merge to {mergedFileName}" );
         }
 
         /// <summary>
@@ -1013,45 +1151,11 @@ Overall PDF/sec    Avg: {overallPDFPerSecond }/sec
         /// <param name="progressMessage">The message.</param>
         /// <param name="position">The position.</param>
         /// <param name="max">The maximum.</param>
-        private void UpdateProgress( string progressMessage, long position, int max )
+        private void UpdateProgress( string progressMessage, long position, int max, bool limitUpdates = false )
         {
-            OnProgress?.Invoke( this, new ProgressEventArgs { ProgressMessage = progressMessage, Position = ( int ) position, Max = max } );
+            ProgressPage.ShowProgress( ( int ) position, max, progressMessage, limitUpdates );
         }
 
-        /// <summary>
-        /// Occurs when [configuration progress].
-        /// </summary>
-        public event EventHandler<ProgressEventArgs> OnProgress;
-    }
-
-    /// <summary>
-    ///
-    /// </summary>
-    public class ProgressEventArgs : EventArgs
-    {
-        /// <summary>
-        /// Gets or sets the position.
-        /// </summary>
-        /// <value>
-        /// The position.
-        /// </value>
-        public int Position { get; set; }
-
-        /// <summary>
-        /// Gets or sets the maximum.
-        /// </summary>
-        /// <value>
-        /// The maximum.
-        /// </value>
-        public int Max { get; set; }
-
-        /// <summary>
-        /// Gets or sets the progress message.
-        /// </summary>
-        /// <value>
-        /// The progress message.
-        /// </value>
-        public string ProgressMessage { get; set; }
     }
 
     /// <summary>
