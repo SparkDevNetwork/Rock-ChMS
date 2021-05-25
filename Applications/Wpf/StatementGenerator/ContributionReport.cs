@@ -858,7 +858,7 @@ Overall PDF/sec    Avg: {overallPDFPerSecond }/sec
             {
                 // Single PDF case
                 // No splitting or chaptering, just one giant doc
-                var singleFileName = Path.Combine( financialStatementReportConfiguration.DestinationFolder, "statements.pdf" );
+                var singleFileName = Path.Combine( financialStatementReportConfiguration.DestinationFolder, $"{financialStatementReportConfiguration.FilenamePrefix}statements.pdf" );
                 ProgressPage.ShowSaveMergeDocProgress( 0, 1, "Saving Merged Document" );
                 SaveToMergedDocument( singleFileName, recipientList );
                 ProgressPage.ShowSaveMergeDocProgress( 1, 1, "Saving Merged Document" );
@@ -890,6 +890,7 @@ Overall PDF/sec    Avg: {overallPDFPerSecond }/sec
                     //   - However, don't have more than one sort key per doc.
                     //   - Therefore, each doc would never have more then the max, but could have fewer than the max
                     SaveAsSplitOnPrimarySortWithChapters( financialStatementReportConfiguration, recipientList, maxStatementsPerChapter.Value );
+                    return;
                 }
             }
 
@@ -963,7 +964,7 @@ Overall PDF/sec    Avg: {overallPDFPerSecond }/sec
                 if ( !nextSortCount.HasValue || ( recipientsForChapter.Count() + nextSortCount ) > maxStatementsPerChapter )
                 {
                     var chapterFileName = $"{financialStatementReportConfiguration.FilenamePrefix}{startSortKey}_{currentSortKey}_chapter{currentChapterNumber}.pdf".MakeValidFileName();
-                    SaveToMergedDocument( chapterFileName, recipientsForChapter );
+                    SaveToMergedDocument( Path.Combine( financialStatementReportConfiguration.DestinationFolder, chapterFileName ), recipientsForChapter );
                     recipientsForChapter = new List<FinancialStatementGeneratorRecipient>();
                 }
 
