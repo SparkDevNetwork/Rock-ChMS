@@ -154,9 +154,12 @@ namespace Rock.Apps.StatementGenerator
         public int RunReport()
         {
             var browserFetcher = new BrowserFetcher( Product.Chrome );
+            browserFetcher.DownloadProgressChanged += BrowserFetcher_DownloadProgressChanged;
             browserFetcher.DownloadAsync().Wait();
 
             browser = Puppeteer.LaunchAsync( new LaunchOptions { Headless = true } ).Result;
+
+            UpdateProgress( "Starting...", 0, 0 );
 
             try
             {
@@ -186,7 +189,7 @@ namespace Rock.Apps.StatementGenerator
             }
 
             // limit the number of concurrent tasks
-            ThreadPool.SetMaxThreads( Environment.ProcessorCount, Environment.ProcessorCount);
+            //ThreadPool.SetMaxThreads( Environment.ProcessorCount, Environment.ProcessorCount);
 
             System.Threading.Tasks.TaskScheduler.UnobservedTaskException += TaskScheduler_UnobservedTaskException;
             StartDateTime = DateTime.Now;
@@ -392,6 +395,16 @@ namespace Rock.Apps.StatementGenerator
         }
 
         /// <summary>
+        /// Handles the DownloadProgressChanged event of the BrowserFetcher control.
+        /// </summary>
+        /// <param name="sender">The source of the event.</param>
+        /// <param name="e">The <see cref="System.Net.DownloadProgressChangedEventArgs"/> instance containing the event data.</param>
+        private void BrowserFetcher_DownloadProgressChanged( object sender, System.Net.DownloadProgressChangedEventArgs e )
+        {
+            UpdateProgress( "Downloading Rendering Engine", e.ProgressPercentage, 100, true );
+        }
+
+        /// <summary>
         /// Gets the financial statement template.
         /// </summary>
         /// <param name="rockConfig">The rock configuration.</param>
@@ -438,6 +451,15 @@ namespace Rock.Apps.StatementGenerator
             {
                 // don't generate a statement if no statement HTML
                 return;
+            }
+
+            var incompleteTasks = _renderPdfTasks.Where( a => !a.IsCompleted ).ToArray();
+            while ( incompleteTasks.Count() > ( Environment.ProcessorCount * 2 ) )
+            {
+                Debug.WriteLine( $"incompleteTasks.Count():{incompleteTasks.Count()}" );
+                Thread.Sleep( 10 );
+                Task.WaitAny( incompleteTasks, 1000 );
+                incompleteTasks = _renderPdfTasks.Where( a => !a.IsCompleted ).ToArray();
             }
 
             var renderPDFFromHtmlTask = new Task( () =>
