@@ -24,22 +24,27 @@ using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 
-using IronPdf;
-using IronPdf.Threading;
-
 using Newtonsoft.Json;
+
+using PdfSharp.Pdf;
+using PdfSharp.Pdf.IO;
+
+using PuppeteerSharp;
+using PuppeteerSharp.Media;
 
 using RestSharp;
 
 using Rock.Client;
 using Rock.Client.Enums;
 
+using Page = PuppeteerSharp.Page;
+
 namespace Rock.Apps.StatementGenerator
 {
     /// <summary>
     ///
     /// </summary>
-    public class ContributionReport
+    public class ContributionReport : IDisposable
     {
         /// <summary>
         /// Initializes a new instance of the <see cref="ContributionReport"/> class.
@@ -58,7 +63,7 @@ namespace Rock.Apps.StatementGenerator
         /// </value>
         public Rock.Client.FinancialStatementGeneratorOptions Options { get; set; }
 
-        private ProgressPage ProgressPage;
+        private ProgressPage ProgressPage { get; set; }
 
         /// <summary>
         /// Gets or sets the record count.
@@ -97,8 +102,6 @@ namespace Rock.Apps.StatementGenerator
 
         private static long _recordsCompleted = 0;
 
-        private static Task _lastRenderPDFFromHtmlTask = null;
-
         private static ConcurrentBag<Task> _saveAndUploadTasks;
 
         private static ConcurrentBag<Task> _renderPdfTasks;
@@ -107,7 +110,6 @@ namespace Rock.Apps.StatementGenerator
 
         private static ConcurrentBag<double> _generatePdfTimingsMS = null;
         private static ConcurrentBag<double> _saveAndUploadPdfTimingsMS = null;
-        private static ConcurrentBag<double> _waitForLastTaskTimingsMS = null;
         private static ConcurrentBag<double> _getStatementHtmlTimingsMS = null;
 
         /// <summary>
@@ -139,7 +141,11 @@ namespace Rock.Apps.StatementGenerator
         private static Stopwatch _stopwatchAll;
         private static Stopwatch _stopwatchRenderPDFsOverall;
 
-        private string _currentDayTemporaryDirectory { get; set; }
+        private static string _currentDayTemporaryDirectory { get; set; }
+
+        private static Browser browser;
+
+        private static ConcurrentStack<Page> availablePagesCache;
 
         /// <summary>
         /// Runs the report returning the number of statements that were generated
@@ -147,10 +153,43 @@ namespace Rock.Apps.StatementGenerator
         /// <returns></returns>
         public int RunReport()
         {
+            var browserFetcher = new BrowserFetcher( Product.Chrome );
+            browserFetcher.DownloadAsync().Wait();
+
+            browser = Puppeteer.LaunchAsync( new LaunchOptions { Headless = true } ).Result;
+
+            try
+            {
+                var browserProcessModule = browser.Process.MainModule;
+                var allProcesses = Process.GetProcesses();
+                foreach ( var process in allProcesses.Where( a => a.ProcessName == browser.Process.ProcessName ) )
+                {
+                    if ( process.Id != browser.Process.Id && ( process.MainModule.FileName == browserProcessModule.FileName ) )
+                    {
+                        process.Kill();
+                    }
+                }
+            }
+            catch ( Exception ex )
+            {
+                Debug.WriteLine( ex );
+            }
+
+            availablePagesCache = new ConcurrentStack<Page>();
+            for ( int i = 0; i < Environment.ProcessorCount; i++ )
+            {
+                var page = browser.NewPageAsync().Result;
+                page.Viewport.Width = 1280;
+                page.Viewport.Height = 1024;
+                page.EmulateMediaTypeAsync( PuppeteerSharp.Media.MediaType.Screen ).Wait();
+                availablePagesCache.Push( page );
+            }
+
+            // limit the number of concurrent tasks
+            ThreadPool.SetMaxThreads( Environment.ProcessorCount, Environment.ProcessorCount);
+
             System.Threading.Tasks.TaskScheduler.UnobservedTaskException += TaskScheduler_UnobservedTaskException;
             StartDateTime = DateTime.Now;
-            var licenseKey = File.ReadAllText( "license.key" );
-            IronPdf.License.LicenseKey = licenseKey;
             _stopwatchAll = new Stopwatch();
             _stopwatchAll.Start();
 
@@ -182,7 +221,6 @@ namespace Rock.Apps.StatementGenerator
 
             if ( Resume && ResumeRunDate.HasValue )
             {
-
                 _currentDayTemporaryDirectory = GetStatementGeneratorTemporaryDirectory( rockConfig, ResumeRunDate.Value );
                 UpdateProgress( "Resuming Incomplete Recipients...", 0, 0 );
 
@@ -193,6 +231,7 @@ namespace Rock.Apps.StatementGenerator
             else
             {
                 _currentDayTemporaryDirectory = GetStatementGeneratorTemporaryDirectory( rockConfig, DateTime.Today );
+
                 // Get Recipients from save recipient list from the incomplete session
                 try
                 {
@@ -231,19 +270,9 @@ namespace Rock.Apps.StatementGenerator
 
             _generatePdfTimingsMS = new ConcurrentBag<double>();
             _saveAndUploadPdfTimingsMS = new ConcurrentBag<double>();
-            _waitForLastTaskTimingsMS = new ConcurrentBag<double>();
             _getStatementHtmlTimingsMS = new ConcurrentBag<double>();
 
-            IronPdf.Installation.TempFolderPath = Path.Combine( _currentDayTemporaryDirectory, "IronPdf" );
-
-            // get the Renderer warmed up
-            IronPdf.Installation.InitializeTempFolderPathAndCreateConverter();
-            HtmlToPdf.StaticRenderHtmlAsPdf( "Warmup" );
-
-            Directory.CreateDirectory( IronPdf.Installation.TempFolderPath );
             Directory.CreateDirectory( Path.Combine( _currentDayTemporaryDirectory, "Statements" ) );
-
-            _lastRenderPDFFromHtmlTask = null;
 
             var recipientProgressMax = recipientList.Count;
 
@@ -278,8 +307,6 @@ namespace Rock.Apps.StatementGenerator
                 SaveRecipientListStatus( recipientList, _currentDayTemporaryDirectory );
             }
 
-            _lastRenderPDFFromHtmlTask?.Wait();
-
             // all the render tasks should be done, but just in case
             UpdateProgress( $"Finishing up tasks", 0, 0 );
 
@@ -288,12 +315,15 @@ namespace Rock.Apps.StatementGenerator
             while ( remainingRenderTasks.Any() )
             {
                 var finishedTask = Task.WhenAny( remainingRenderTasks.ToArray() );
+                Thread.Sleep( 10 );
                 remainingRenderTasks = remainingRenderTasks.ToArray().Where( a => a.Status != TaskStatus.RanToCompletion ).ToList();
                 var recipientProgressPosition = Interlocked.Read( ref _recordsCompleted );
                 UpdateProgress( $"Finishing up {remainingRenderTasks.Count() } Individual Statements...", recipientProgressPosition, recipientProgressMax );
             }
 
             Task.WaitAll( _renderPdfTasks.ToArray() );
+
+            browser?.CloseAsync().Wait();
 
             // some of the 'Save and Upload' tasks could be running, so wait for those
             var remainingDocumentUploadTasks = _saveAndUploadTasks.ToArray().Where( a => a.Status != TaskStatus.RanToCompletion ).ToList();
@@ -410,19 +440,10 @@ namespace Rock.Apps.StatementGenerator
                 return;
             }
 
-            var taskToWaitFor = _lastRenderPDFFromHtmlTask;
-            Stopwatch waitForLastTask = Stopwatch.StartNew();
-
-            // IronPdf.HtmlToPdf is not thread-safe, so we'll wait to do the next Render until the last one completes,
-            // but we will have other threads that are safe to run (Uploading and saving PDFs, etc) in the meantime.
-            taskToWaitFor?.Wait();
-            waitForLastTask.Stop();
-            _waitForLastTaskTimingsMS.Add( waitForLastTask.Elapsed.TotalMilliseconds );
-
             var renderPDFFromHtmlTask = new Task( () =>
             {
                 Stopwatch generatePdfStopWatch = Stopwatch.StartNew();
-                PdfDocument pdfDocument = RenderPDFDocument( financialStatementGeneratorRecipientResult );
+                var pdfDocument = RenderPDFDocument( financialStatementGeneratorRecipientResult );
                 recipient.RenderedPageCount = pdfDocument.PageCount;
                 generatePdfStopWatch.Stop();
                 if ( enablePageCountPredetermination )
@@ -446,7 +467,7 @@ namespace Rock.Apps.StatementGenerator
 
                     var pdfTempFilePath = recipient.GetPdfDocumentFilePath( _currentDayTemporaryDirectory );
 
-                    pdfDocument.SaveAs( pdfTempFilePath );
+                    pdfDocument.Save( pdfTempFilePath );
 
                     if ( _saveStatementsForIndividualsToDocument )
                     {
@@ -454,7 +475,7 @@ namespace Rock.Apps.StatementGenerator
                         {
                             FinancialStatementGeneratorRecipient = recipient,
                             FinancialStatementIndividualSaveOptions = _individualSaveOptions,
-                            PDFData = pdfDocument.BinaryData
+                            PDFData = File.ReadAllBytes( pdfTempFilePath )
                         };
 
                         RestRequest uploadDocumentRequest = new RestRequest( "api/FinancialGivingStatement/UploadGivingStatementDocument" );
@@ -482,7 +503,6 @@ namespace Rock.Apps.StatementGenerator
                     _generatePdfTimingsMS.Add( generatePdfStopWatchElapsedMS );
 
                     var averageGetStatementHtmlTimingsMS = _getStatementHtmlTimingsMS.Any() ? Math.Round( _getStatementHtmlTimingsMS.Average(), 0 ) : 0;
-                    var averageWaitForLastTaskTimingsMS = _waitForLastTaskTimingsMS.Any() ? Math.Round( _waitForLastTaskTimingsMS.Average(), 0 ) : 0;
                     var averageGeneratePDFTimingMS = Math.Round( _generatePdfTimingsMS.Average(), 0 );
                     var averageSaveAndUploadPDFTimingMS = _saveAndUploadPdfTimingsMS.Any() ?
                         Math.Round( _saveAndUploadPdfTimingsMS.Average(), 0 )
@@ -494,7 +514,6 @@ namespace Rock.Apps.StatementGenerator
                     Debug.WriteLine( $@"
 RenderPDF          Avg: {averageGeneratePDFTimingMS} ms
 GetStatementHtml   Avg: {averageGetStatementHtmlTimingsMS} ms
-WaitForLastTask    Avg: {averageWaitForLastTaskTimingsMS} ms
 Save/Upload  PDF   Avg: {averageSaveAndUploadPDFTimingMS} ms
 Total PDFs Elapsed    : {Math.Round( _stopwatchRenderPDFsOverall.Elapsed.TotalSeconds, 2 )} seconds 
 Records Completed     : {recordsCompleted}
@@ -504,7 +523,6 @@ Overall PDF/sec    Avg: {overallPDFPerSecond }/sec
                 }
             } );
 
-            _lastRenderPDFFromHtmlTask = renderPDFFromHtmlTask;
             _renderPdfTasks.Add( renderPDFFromHtmlTask );
             renderPDFFromHtmlTask.Start();
         }
@@ -522,8 +540,34 @@ Overall PDF/sec    Avg: {overallPDFPerSecond }/sec
         private static PdfDocument RenderPDFDocument( FinancialStatementGeneratorRecipientResult financialStatementGeneratorRecipientResult )
         {
             var html = financialStatementGeneratorRecipientResult.Html;
-            var pdfOptions = GetPdfPrintOptions( _reportSettings.PDFSettings, financialStatementGeneratorRecipientResult );
-            return HtmlToPdf.StaticRenderHtmlAsPdf( html, pdfOptions );
+
+            Page page;
+            availablePagesCache.TryPop( out page );
+            if ( page == null )
+            {
+                page = browser.NewPageAsync().Result;
+                page.Viewport.Width = 1280;
+                page.Viewport.Height = 1024;
+                page.EmulateMediaTypeAsync( PuppeteerSharp.Media.MediaType.Screen ).Wait();
+                Debug.WriteLine( "new page" );
+            }
+
+            page.SetContentAsync( html ).Wait();
+
+            var pdfStream = page.PdfStreamAsync( new PdfOptions
+            {
+                MarginOptions = new PuppeteerSharp.Media.MarginOptions { Bottom = "10mm", Left = "10mm", Right = "10mm", Top = "10mm" },
+                PrintBackground = true,
+                Format = PaperFormat.Letter,
+                DisplayHeaderFooter = true,
+                HeaderTemplate = null,
+                FooterTemplate = financialStatementGeneratorRecipientResult.FooterHtmlFragment,
+            } ).Result;
+
+            availablePagesCache.Push( page );
+
+            var pdfDoc = PdfReader.Open( pdfStream, PdfDocumentOpenMode.Import );
+            return pdfDoc;
         }
 
         // From https://stackoverflow.com/a/41262413/1755417
@@ -597,21 +641,21 @@ Overall PDF/sec    Avg: {overallPDFPerSecond }/sec
                 return;
             }
 
-            if ( savedRecipientList.Any( a => !a.IsComplete ) == false )
-            {
-                // if the whole thing is completed, there everything is all done
-                return;
-            }
-
             // if there are some that are not complete, make sure the temp files haven't been cleaned up
             foreach ( var savedRecipient in savedRecipientList.Where( a => a.IsComplete ) )
             {
-                if ( savedRecipient.GetPdfDocument( rockStatementGeneratorTemporaryDirectory ) == null )
+                if ( savedRecipient.PdfFileExists( rockStatementGeneratorTemporaryDirectory ) == false )
                 {
                     // if it was marked complete, but the temp file is gone, we'll have to re-do this recipient
                     savedRecipient.IsComplete = false;
                     continue;
                 }
+            }
+
+            if ( savedRecipientList.Any( a => !a.IsComplete ) == false )
+            {
+                // if the whole thing is completed, then everything is all done
+                return;
             }
 
             SaveRecipientListStatus( savedRecipientList.ToList(), rockStatementGeneratorTemporaryDirectory );
@@ -750,48 +794,6 @@ Overall PDF/sec    Avg: {overallPDFPerSecond }/sec
         }
 
         /// <summary>
-        /// Gets the PDF print options.
-        /// </summary>
-        /// <param name="pdfObjectSettings">The PDF object settings.</param>
-        /// <param name="statementGeneratorRecipientResult">The statement generator recipient result.</param>
-        /// <returns></returns>
-        private static PdfPrintOptions GetPdfPrintOptions( FinancialStatementTemplatePDFSettings financialStatementTemplatePDFSettings, FinancialStatementGeneratorRecipientResult statementGeneratorRecipientResult )
-        {
-            PdfPrintOptions pdfPrintOptions = new IronPdf.PdfPrintOptions
-            {
-                MarginLeft = financialStatementTemplatePDFSettings.MarginLeftMillimeters ?? 10,
-                MarginTop = financialStatementTemplatePDFSettings.MarginTopMillimeters ?? 10,
-                MarginRight = financialStatementTemplatePDFSettings.MarginRightMillimeters ?? 10,
-                MarginBottom = financialStatementTemplatePDFSettings.MarginBottomMillimeters ?? 10
-            };
-
-            switch ( financialStatementTemplatePDFSettings.PaperSize )
-            {
-                case FinancialStatementTemplatePDFSettingsPaperSize.A4:
-                    pdfPrintOptions.PaperSize = PdfPrintOptions.PdfPaperSize.A4;
-                    break;
-                case FinancialStatementTemplatePDFSettingsPaperSize.Legal:
-                    pdfPrintOptions.PaperSize = PdfPrintOptions.PdfPaperSize.Legal;
-                    break;
-                case FinancialStatementTemplatePDFSettingsPaperSize.Letter:
-                default:
-                    pdfPrintOptions.PaperSize = PdfPrintOptions.PdfPaperSize.Letter;
-                    break;
-            }
-
-            // see https://ironpdf.com/examples/html-headers-and-footers/
-            if ( statementGeneratorRecipientResult.FooterHtmlFragment.IsNotNullOrWhiteSpace() )
-            {
-                pdfPrintOptions.Footer = new HtmlHeaderFooter()
-                {
-                    HtmlFragment = statementGeneratorRecipientResult.FooterHtmlFragment
-                };
-            }
-
-            return pdfPrintOptions;
-        }
-
-        /// <summary>
         /// Writes the group of statements to document.
         /// </summary>
         /// <param name="financialStatementReportConfiguration">The financial statement report configuration.</param>
@@ -872,7 +874,6 @@ Overall PDF/sec    Avg: {overallPDFPerSecond }/sec
                 SaveAsChapterDocs( financialStatementReportConfiguration, recipientList, maxStatementsPerChapter.Value );
                 return;
             }
-
 
             if ( splitOnPrimary )
             {
@@ -1010,9 +1011,6 @@ Overall PDF/sec    Avg: {overallPDFPerSecond }/sec
         {
             var recipientsByPrimarySortKey = GetRecipientsByPrimarySortKey( financialStatementReportConfiguration, recipientList );
 
-            Stopwatch stopwatchSplitOnPrimary = Stopwatch.StartNew();
-            // 30 secs - Parallel.ForEach( recipientsByPrimarySortKey, ( primarySort ) =>
-            // 68 secs, not parallel
             var progressMax = recipientsByPrimarySortKey.Count;
             var progressPosition = 0;
 
@@ -1027,7 +1025,7 @@ Overall PDF/sec    Avg: {overallPDFPerSecond }/sec
                 }
                 catch ( Exception ex )
                 {
-                    Debug.WriteLine( $"{ex }:primarySortFileName:{primarySortFileName}, mergeDocFilePath;{mergeDocFilePath}" );
+                    Debug.WriteLine( $"{ex }\n\n:primarySortFileName:{primarySortFileName}, mergeDocFilePath;{mergeDocFilePath}" );
                     throw;
                 }
 
@@ -1035,7 +1033,6 @@ Overall PDF/sec    Avg: {overallPDFPerSecond }/sec
 
                 ProgressPage.ShowSaveMergeDocProgress( progressPosition, progressMax, "Saving Docs" );
             }
-
         }
 
         private static Dictionary<string, List<FinancialStatementGeneratorRecipient>> GetRecipientsByPrimarySortKey( FinancialStatementReportConfiguration financialStatementReportConfiguration, List<FinancialStatementGeneratorRecipient> recipientList )
@@ -1080,11 +1077,18 @@ Overall PDF/sec    Avg: {overallPDFPerSecond }/sec
                 return a.GetPdfDocument( _currentDayTemporaryDirectory );
             } );
 
-            var singleFinalDoc = IronPdf.PdfDocument.Merge( allPdfsEnumerable );
+            var singleFinalDoc = new PdfDocument();
+            foreach ( var doc in allPdfsEnumerable )
+            {
+                foreach ( var page in doc.Pages )
+                {
+                    singleFinalDoc.Pages.Add( page );
+                }
+            }
 
             stopwatchMerging.Restart();
 
-            singleFinalDoc.SaveAs( mergedFileName );
+            singleFinalDoc.Save( mergedFileName );
 
             Debug.WriteLine( $"[{stopwatchMerging.Elapsed.TotalMilliseconds} ms] merge to {mergedFileName}" );
         }
@@ -1157,6 +1161,13 @@ Overall PDF/sec    Avg: {overallPDFPerSecond }/sec
             ProgressPage.ShowProgress( ( int ) position, max, progressMessage, limitUpdates );
         }
 
+        /// <summary>
+        /// Performs application-defined tasks associated with freeing, releasing, or resetting unmanaged resources.
+        /// </summary>
+        public void Dispose()
+        {
+            browser?.CloseAsync().Wait();
+        }
     }
 
     /// <summary>
@@ -1175,10 +1186,27 @@ Overall PDF/sec    Avg: {overallPDFPerSecond }/sec
             var filePath = recipient.GetPdfDocumentFilePath( reportRockStatementGeneratorStatementsTemporaryDirectory );
             if ( File.Exists( filePath ) )
             {
-                return PdfDocument.FromFile( filePath );
+                return PdfReader.Open( filePath, PdfDocumentOpenMode.Import );
             }
 
             return null;
+        }
+
+        /// <summary>
+        /// PDFs the file exists.
+        /// </summary>
+        /// <param name="recipient">The recipient.</param>
+        /// <param name="reportRockStatementGeneratorStatementsTemporaryDirectory">The report rock statement generator statements temporary directory.</param>
+        /// <returns></returns>
+        internal static bool PdfFileExists( this FinancialStatementGeneratorRecipient recipient, string reportRockStatementGeneratorStatementsTemporaryDirectory )
+        {
+            var filePath = recipient.GetPdfDocumentFilePath( reportRockStatementGeneratorStatementsTemporaryDirectory );
+            if ( File.Exists( filePath ) && PdfReader.TestPdfFile( filePath ) != 0 )
+            {
+                return true;
+            }
+
+            return false;
         }
 
         /// <summary>
