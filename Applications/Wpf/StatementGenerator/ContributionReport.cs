@@ -75,6 +75,7 @@ namespace Rock.Apps.StatementGenerator
 
         private bool _cancelRunning = false;
         private bool _cancelled = false;
+        private readonly int _maxRenderThreads = Environment.ProcessorCount + 4;
 
         /// <summary>
         /// Cancels this instance.
@@ -157,7 +158,7 @@ namespace Rock.Apps.StatementGenerator
             browserFetcher.DownloadProgressChanged += BrowserFetcher_DownloadProgressChanged;
             browserFetcher.DownloadAsync().Wait();
 
-            browser = Puppeteer.LaunchAsync( new LaunchOptions { Headless = true } ).Result;
+            browser = Puppeteer.LaunchAsync( new LaunchOptions { Headless = true, DefaultViewport = new ViewPortOptions { Width = 1280, Height = 1024, DeviceScaleFactor = 1 } } ).Result;
 
             UpdateProgress( "Starting...", 0, 0 );
 
@@ -179,19 +180,15 @@ namespace Rock.Apps.StatementGenerator
             }
 
             availablePagesCache = new ConcurrentStack<Page>();
-            for ( int i = 0; i < Environment.ProcessorCount; i++ )
+            for ( int i = 0; i < _maxRenderThreads; i++ )
             {
                 var page = browser.NewPageAsync().Result;
-                page.Viewport.Width = 1280;
-                page.Viewport.Height = 1024;
                 page.EmulateMediaTypeAsync( PuppeteerSharp.Media.MediaType.Screen ).Wait();
                 availablePagesCache.Push( page );
             }
 
-            // limit the number of concurrent tasks
-            //ThreadPool.SetMaxThreads( Environment.ProcessorCount, Environment.ProcessorCount);
-
             System.Threading.Tasks.TaskScheduler.UnobservedTaskException += TaskScheduler_UnobservedTaskException;
+
             StartDateTime = DateTime.Now;
             _stopwatchAll = new Stopwatch();
             _stopwatchAll.Start();
@@ -314,12 +311,12 @@ namespace Rock.Apps.StatementGenerator
             UpdateProgress( $"Finishing up tasks", 0, 0 );
 
             // some of the 'Save and Upload' tasks could be running, so wait for those
-            var remainingRenderTasks = _renderPdfTasks.ToArray().Where( a => a.Status != TaskStatus.RanToCompletion ).ToList();
+            var remainingRenderTasks = _renderPdfTasks.ToArray().Where( a => !a.IsCompleted ).ToList();
             while ( remainingRenderTasks.Any() )
             {
                 var finishedTask = Task.WhenAny( remainingRenderTasks.ToArray() );
                 Thread.Sleep( 10 );
-                remainingRenderTasks = remainingRenderTasks.ToArray().Where( a => a.Status != TaskStatus.RanToCompletion ).ToList();
+                remainingRenderTasks = remainingRenderTasks.ToArray().Where( a => !a.IsCompleted ).ToList();
                 var recipientProgressPosition = Interlocked.Read( ref _recordsCompleted );
                 UpdateProgress( $"Finishing up {remainingRenderTasks.Count() } Individual Statements...", recipientProgressPosition, recipientProgressMax );
             }
@@ -329,11 +326,12 @@ namespace Rock.Apps.StatementGenerator
             browser?.CloseAsync().Wait();
 
             // some of the 'Save and Upload' tasks could be running, so wait for those
-            var remainingDocumentUploadTasks = _saveAndUploadTasks.ToArray().Where( a => a.Status != TaskStatus.RanToCompletion ).ToList();
+            var remainingDocumentUploadTasks = _saveAndUploadTasks.ToArray().Where( a => !a.IsCompleted ).ToList();
             while ( remainingDocumentUploadTasks.Any() )
             {
                 var finishedTask = Task.WhenAny( remainingDocumentUploadTasks.ToArray() );
-                remainingDocumentUploadTasks = remainingDocumentUploadTasks.ToArray().Where( a => a.Status != TaskStatus.RanToCompletion ).ToList();
+                Thread.Sleep( 10 );
+                remainingDocumentUploadTasks = remainingDocumentUploadTasks.ToArray().Where( a => !a.IsCompleted ).ToList();
                 UpdateProgress( $"Finishing up {remainingDocumentUploadTasks.Count() } document uploads...", 0, 0 );
             }
 
@@ -376,7 +374,14 @@ namespace Rock.Apps.StatementGenerator
             {
                 if ( File.Exists( pdfTempFilePath ) )
                 {
-                    File.Delete( pdfTempFilePath );
+                    try
+                    {
+                        File.Delete( pdfTempFilePath );
+                    }
+                    catch
+                    {
+                        // OK if it can't be deleted
+                    }
                 }
             }
 
@@ -442,6 +447,12 @@ namespace Rock.Apps.StatementGenerator
         /// <param name="restClient">The rest client.</param>
         private void StartGenerateStatementForRecipient( FinancialStatementGeneratorRecipient recipient, RestClient restClient, bool enablePageCountPredetermination )
         {
+            const int assumedRenderedPageCount = 1;
+
+            // Make an assumption that the RenderedPageCount is one.
+            // The actual rendered page count will be updated after the Render is complete.
+            
+            recipient.RenderedPageCount = assumedRenderedPageCount;
             FinancialStatementGeneratorRecipientResult financialStatementGeneratorRecipientResult = GetFinancialStatementGeneratorRecipientResult( restClient, recipient );
 
             recipient.OptedOut = financialStatementGeneratorRecipientResult.OptedOut;
@@ -454,10 +465,10 @@ namespace Rock.Apps.StatementGenerator
             }
 
             var incompleteTasks = _renderPdfTasks.Where( a => !a.IsCompleted ).ToArray();
-            while ( incompleteTasks.Count() > ( Environment.ProcessorCount * 2 ) )
+            while ( incompleteTasks.Count() > _maxRenderThreads )
             {
                 Debug.WriteLine( $"incompleteTasks.Count():{incompleteTasks.Count()}" );
-                Thread.Sleep( 10 );
+                Thread.Sleep( 100 );
                 Task.WaitAny( incompleteTasks, 1000 );
                 incompleteTasks = _renderPdfTasks.Where( a => !a.IsCompleted ).ToArray();
             }
@@ -468,7 +479,9 @@ namespace Rock.Apps.StatementGenerator
                 var pdfDocument = RenderPDFDocument( financialStatementGeneratorRecipientResult );
                 recipient.RenderedPageCount = pdfDocument.PageCount;
                 generatePdfStopWatch.Stop();
-                if ( enablePageCountPredetermination )
+
+                // we don't need to do the 2nd pass if the 1st pass's rendered page count matches what we assumed it would be.l 
+                if ( enablePageCountPredetermination && assumedRenderedPageCount != recipient.RenderedPageCount )
                 {
                     financialStatementGeneratorRecipientResult = GetFinancialStatementGeneratorRecipientResult( restClient, recipient );
                     generatePdfStopWatch.Start();
@@ -488,7 +501,6 @@ namespace Rock.Apps.StatementGenerator
                     Stopwatch savePdfStopWatch = Stopwatch.StartNew();
 
                     var pdfTempFilePath = recipient.GetPdfDocumentFilePath( _currentDayTemporaryDirectory );
-
                     pdfDocument.Save( pdfTempFilePath );
 
                     if ( _saveStatementsForIndividualsToDocument )
@@ -551,6 +563,7 @@ Overall PDF/sec    Avg: {overallPDFPerSecond }/sec
 
         private void TaskScheduler_UnobservedTaskException( object sender, UnobservedTaskExceptionEventArgs e )
         {
+            e.SetObserved();
             Debug.WriteLine( e.Exception );
         }
 
@@ -568,27 +581,55 @@ Overall PDF/sec    Avg: {overallPDFPerSecond }/sec
             if ( page == null )
             {
                 page = browser.NewPageAsync().Result;
-                page.Viewport.Width = 1280;
-                page.Viewport.Height = 1024;
                 page.EmulateMediaTypeAsync( PuppeteerSharp.Media.MediaType.Screen ).Wait();
                 Debug.WriteLine( "new page" );
             }
 
             page.SetContentAsync( html ).Wait();
 
-            var pdfStream = page.PdfStreamAsync( new PdfOptions
+            MarginOptions marginOptions = new MarginOptions
             {
-                MarginOptions = new PuppeteerSharp.Media.MarginOptions { Bottom = "10mm", Left = "10mm", Right = "10mm", Top = "10mm" },
-                PrintBackground = true,
-                Format = PaperFormat.Letter,
-                DisplayHeaderFooter = true,
-                HeaderTemplate = null,
-                FooterTemplate = financialStatementGeneratorRecipientResult.FooterHtmlFragment,
-            } ).Result;
+                Bottom = $"{_reportSettings.PDFSettings.MarginBottomMillimeters ?? 15}mm",
+                Left = $"{_reportSettings.PDFSettings.MarginLeftMillimeters ?? 10}mm",
+                Top = $"{_reportSettings.PDFSettings.MarginTopMillimeters ?? 10}mm",
+                Right = $"{_reportSettings.PDFSettings.MarginRightMillimeters ?? 10}mm",
+            };
+
+            var pdfOptions = new PdfOptions();
+            pdfOptions.MarginOptions = marginOptions;
+            pdfOptions.PrintBackground = true;
+            pdfOptions.DisplayHeaderFooter = true;
+            pdfOptions.FooterTemplate = financialStatementGeneratorRecipientResult.FooterHtmlFragment;
+
+            // set HeaderTemplate to something so that it doesn't end up using the default
+            pdfOptions.HeaderTemplate = "<!-- -->";
+
+            switch ( _reportSettings.PDFSettings.PaperSize )
+            {
+                case FinancialStatementTemplatePDFSettingsPaperSize.A4:
+                    pdfOptions.Format = PaperFormat.A4;
+                    break;
+                case FinancialStatementTemplatePDFSettingsPaperSize.Legal:
+                    pdfOptions.Format = PaperFormat.Legal;
+                    break;
+                case FinancialStatementTemplatePDFSettingsPaperSize.Letter:
+                default:
+                    pdfOptions.Format = PaperFormat.Letter;
+                    break;
+            }
+
+
+            var pdfStream = page.PdfStreamAsync( pdfOptions ).Result;
 
             availablePagesCache.Push( page );
 
-            var pdfDoc = PdfReader.Open( pdfStream, PdfDocumentOpenMode.Import );
+            var pdfDoc = PdfReader.Open( pdfStream, PdfDocumentOpenMode.Modify );
+            /*pdfDoc.Options.ColorMode = PdfColorMode.Cmyk;
+            pdfDoc.Options.CompressContentStreams = true;
+            pdfDoc.Options.FlateEncodeMode = PdfFlateEncodeMode.BestCompression;
+            pdfDoc.Options.NoCompression = false;
+            */
+            pdfDoc.Info.Creator = "Rock Statement Generator";
             return pdfDoc;
         }
 

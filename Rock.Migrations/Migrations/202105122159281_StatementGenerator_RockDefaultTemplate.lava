@@ -24,6 +24,7 @@
             height: auto;
             width: 100%;
             min-width: 100%;
+            font-size:10px;
             margin: 0 0 0 0;
             padding: {{ bodyPadding }};
             vertical-align: top;
@@ -64,10 +65,10 @@
     <div style='padding-top:50px'>
 
     <!-- set fixed height to help align recipient address with envelope window -->
-    <div class="row" style='height:230px'>
+    <div class="row" style='height:175px'>
         <div class="col-md-6 pull-left">
             <div>
-                <img src="{{ publicApplicationRoot }}GetImage.ashx?Id={{ FinancialStatementTemplate.LogoBinaryFileId }}" width="240px" height="80px" />
+                <img src="{{ publicApplicationRoot }}GetImage.ashx?Id={{ FinancialStatementTemplate.LogoBinaryFileId }}" width="170px" height="56px" />
             </div>
             
             <div>
@@ -76,19 +77,19 @@
             </div>
         </div>
         <div class="col-md-6 text-right">
-            <h4>Contribution Summary for {{ Salutation }}</h4>
+            <h5>Contribution Summary for {{ Salutation }}</h5>
             <p>{{ StatementStartDate | Date:'M/d/yyyy' }} - {{ StatementEndDate | Date:'M/d/yyyy' }}<p>
         </div>
     </div>
-    
-    <h4>
+
+    <h5>
         {{ Salutation }} <br />
         {{ StreetAddress1 }} <br />
         {% if StreetAddress2 != '' %}
             {{ StreetAddress2 }} <br />
         {% endif %}
         {{ City }}, {{ State }} {{ PostalCode }}
-    </h4>
+    </h5>
 </div>
 
 <hr style="opacity: .5;" />

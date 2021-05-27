@@ -63,38 +63,47 @@ namespace Rock.Apps.StatementGenerator
         /// <param name="e">The <see cref="RoutedEventArgs"/> instance containing the event data.</param>
         private void startPage_Loaded( object sender, RoutedEventArgs e )
         {
-            var lastRunGeneratorConfig = ContributionReport.GetSavedGeneratorConfigFromLastRun();
-            if ( lastRunGeneratorConfig != null )
-            {
-                var lastRunDate = lastRunGeneratorConfig.RunDate;
-                ContributionReport.EnsureIncompletedSavedRecipientListCompletedStatus( lastRunDate );
-
-                var savedRecipientList = ContributionReport.GetSavedRecipientList( lastRunDate );
-                if ( savedRecipientList != null )
-                {
-                    var lastIncomplete = savedRecipientList.FirstOrDefault( a => a.IsComplete == false );
-                    if ( lastIncomplete != null )
-                    {
-                        pnlPromptToResume.Visibility = Visibility.Visible;
-                        btnStart.Visibility = Visibility.Hidden;
-                        lblPromptToResume.Text = $"It appears that a previous generation session is active. The last attempted recipient was for (PersonId: {lastIncomplete.PersonId} | GivingGroupId: {lastIncomplete.GroupId}). Do you wish to continue with this session?";
-                        txtIntro.Visibility = Visibility.Collapsed;
-                        return;
-                    }
-                    else if (!lastRunGeneratorConfig.ReportsCompleted )
-                    {
-                        pnlPromptToResume.Visibility = Visibility.Visible;
-                        btnStart.Visibility = Visibility.Hidden;
-                        lblPromptToResume.Text = $"It appears that a previous generation session has not completed. Do you wish to continue with this session?";
-                        txtIntro.Visibility = Visibility.Collapsed;
-                        return;
-                    }
-                }
-            }
-
             btnStart.Visibility = Visibility.Visible;
             pnlPromptToResume.Visibility = Visibility.Collapsed;
             txtIntro.Visibility = Visibility.Visible;
+
+            var lastRunGeneratorConfig = ContributionReport.GetSavedGeneratorConfigFromLastRun();
+            if ( lastRunGeneratorConfig != null )
+            {
+                if ( lastRunGeneratorConfig.ReportsCompleted )
+                {
+                    // last run completed successfully.
+                    return;
+                }
+
+                var lastRunDate = lastRunGeneratorConfig.RunDate;
+
+                ContributionReport.EnsureIncompletedSavedRecipientListCompletedStatus( lastRunDate );
+
+                var savedRecipientList = ContributionReport.GetSavedRecipientList( lastRunDate );
+                if ( savedRecipientList == null )
+                {
+                    return;
+                }
+
+                var lastIncomplete = savedRecipientList.FirstOrDefault( a => a.IsComplete == false );
+                if ( lastIncomplete != null )
+                {
+                    pnlPromptToResume.Visibility = Visibility.Visible;
+                    btnStart.Visibility = Visibility.Hidden;
+                    lblPromptToResume.Text = $"It appears that a previous generation session is active. The last attempted recipient was for (PersonId: {lastIncomplete.PersonId} | GivingGroupId: {lastIncomplete.GroupId}). Do you wish to continue with this session?";
+                    txtIntro.Visibility = Visibility.Collapsed;
+                    return;
+                }
+                else if ( !lastRunGeneratorConfig.ReportsCompleted )
+                {
+                    pnlPromptToResume.Visibility = Visibility.Visible;
+                    btnStart.Visibility = Visibility.Hidden;
+                    lblPromptToResume.Text = $"It appears that a previous generation session has not completed. Do you wish to continue with this session?";
+                    txtIntro.Visibility = Visibility.Collapsed;
+                    return;
+                }
+            }
         }
 
         /// <summary>

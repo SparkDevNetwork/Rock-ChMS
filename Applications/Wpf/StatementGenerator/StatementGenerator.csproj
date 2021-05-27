@@ -292,10 +292,6 @@
   </ItemGroup>
   <ItemGroup>
     <None Include="App.config" />
-    <None Include="license.key">
-      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-    </None>
-    <Content Include="license.readme.txt" />
     <None Include="packages.config" />
   </ItemGroup>
   <ItemGroup>

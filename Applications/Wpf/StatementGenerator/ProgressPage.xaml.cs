@@ -75,8 +75,8 @@ namespace Rock.Apps.StatementGenerator
             lblRenderStatementsProgress.Content = "Progress - Creating Statements";
             pgRenderStatementsProgress.Visibility = Visibility.Hidden;
 
-            lblSaveMergeDocProgress.Visibility = Visibility.Hidden;
-            pgSaveMergeDocProgress.Visibility = Visibility.Hidden;
+            lblSaveMergeDocProgress.Visibility = Visibility.Collapsed;
+            pgSaveMergeDocProgress.Visibility = Visibility.Collapsed;
 
             WpfHelper.FadeIn( pgRenderStatementsProgress, 2000 );
             WpfHelper.FadeIn( lblRenderStatementsProgress, 2000 );
@@ -108,6 +108,8 @@ namespace Rock.Apps.StatementGenerator
         {
             btnPrev.Visibility = Visibility.Visible;
             pgRenderStatementsProgress.Visibility = Visibility.Collapsed;
+            lblSaveMergeDocProgress.Visibility = Visibility.Collapsed;
+            pgSaveMergeDocProgress.Visibility = Visibility.Collapsed;
 
             if ( e.Error != null )
             {
