@@ -67,28 +67,34 @@ namespace Rock
         }
 
         /// <summary>
-        /// Converts object to JSON string with an option to ignore errors
+        /// Converts object to JSON string and saves directly to a file
         /// </summary>
         /// <param name="obj">Object.</param>
         /// <param name="format">The format.</param>
-        /// <param name="ignoreErrors">if set to <c>true</c> [ignore errors].</param>
-        /// <returns></returns>
-        public static void ToJsonFile( this object obj, Formatting format, string fileName)
+        /// <param name="fileName">Name of the file.</param>
+        /// <param name="excludeDefaultValues">if set to <c>true</c> [exclude default values].</param>
+        public static void ToJsonFile( this object obj, Formatting format, string fileName, bool excludeDefaultValues )
         {
-            var settings = new JsonSerializerSettings
+            string json;
+            if ( excludeDefaultValues )
             {
-                ReferenceLoopHandling = ReferenceLoopHandling.Ignore,
-                Formatting = format,
-                NullValueHandling = NullValueHandling.Ignore,
-                DefaultValueHandling = DefaultValueHandling.Ignore,
-            };
+                // this can cut the size in half, but it won't show properties that have default value (bool false, string null, etc)
+                var settings = new JsonSerializerSettings
+                {
+                    NullValueHandling = NullValueHandling.Ignore,
+                    DefaultValueHandling = DefaultValueHandling.Ignore,
+                    ReferenceLoopHandling = ReferenceLoopHandling.Ignore,
+                    Formatting = format
+                };
 
-            // serialize JSON directly to a file
-            using ( StreamWriter file = File.CreateText( fileName ) )
-            {
-                JsonSerializer serializer = JsonSerializer.CreateDefault( settings );
-                serializer.Serialize( file, obj );
+                json = JsonConvert.SerializeObject( obj, settings );
             }
+            else
+            {
+                json = obj.ToJson( format );
+            }
+
+            File.WriteAllText( fileName, json );
         }
 
         /// <summary>

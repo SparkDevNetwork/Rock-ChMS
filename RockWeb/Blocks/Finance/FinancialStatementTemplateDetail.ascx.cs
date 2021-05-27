@@ -205,22 +205,7 @@ namespace RockWeb.Blocks.Finance
                 financialStatementTemplate.LogoBinaryFileId = imgTemplateLogo.BinaryFileId;
             }
 
-            rockContext.WrapTransaction( () =>
-            {
-                rockContext.SaveChanges();
-
-                if ( existingLogoId.HasValue )
-                {
-                    BinaryFileService binaryFileService = new BinaryFileService( rockContext );
-                    var binaryFile = binaryFileService.Get( existingLogoId.Value );
-                    if ( binaryFile != null )
-                    {
-                        // marked the old images as IsTemporary so they will get cleaned up later
-                        binaryFile.IsTemporary = true;
-                        rockContext.SaveChanges();
-                    }
-                }
-            } );
+            rockContext.SaveChanges();
 
             var queryParams = new Dictionary<string, string>();
             queryParams.Add( PageParameterKey.StatementTemplateId, financialStatementTemplate.Id.ToStringSafe() );

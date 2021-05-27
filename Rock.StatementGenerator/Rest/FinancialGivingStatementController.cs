@@ -150,7 +150,7 @@ namespace Rock.StatementGenerator.Rest
                 }
             }
 
-            var documentService = new DocumentService( rockContext );
+            
             var today = RockDateTime.Today;
             var tomorrow = today.AddDays( 1 );
 
@@ -160,19 +160,25 @@ namespace Rock.StatementGenerator.Rest
 
                 if ( saveOptions.OverwriteDocumentsOfThisTypeCreatedOnSameDate == true )
                 {
-                    // See if there is an existing one.
-                    // Note include BinaryFile in the Get since we'll have to mark it temporary if it exists.
-                    var existingDocument = documentService.Queryable().Where(
-                        a => a.DocumentTypeId == documentTypeId.Value
-                        && a.EntityId == documentPersonId
-                        && a.CreatedDateTime.HasValue
-                        && a.CreatedDateTime >= today && a.CreatedDateTime < tomorrow )
-                        .Include(a => a.BinaryFile).FirstOrDefault();
-
-                    // NOTE: Delete vs update since we normally don't change the contents of documents/binary files once they've been created
-                    if ( existingDocument != null )
+                    using ( var deleteDocContext = new RockContext() )
                     {
-                        documentService.Delete( existingDocument );
+                        var deleteDocumentService = new DocumentService( deleteDocContext );
+
+                        // See if there is an existing one.
+                        // Note include BinaryFile in the Get since we'll have to mark it temporary if it exists.
+                        var existingDocument = deleteDocumentService.Queryable().Where(
+                            a => a.DocumentTypeId == documentTypeId.Value
+                            && a.EntityId == documentPersonId
+                            && a.CreatedDateTime.HasValue
+                            && a.CreatedDateTime >= today && a.CreatedDateTime < tomorrow )
+                            .Include( a => a.BinaryFile ).FirstOrDefault();
+
+                        // NOTE: Delete vs update since we normally don't change the contents of documents/binary files once they've been created
+                        if ( existingDocument != null )
+                        {
+                            deleteDocumentService.Delete( existingDocument );
+                            deleteDocContext.SaveChanges();
+                        }
                     }
                 }
 
@@ -200,6 +206,8 @@ namespace Rock.StatementGenerator.Rest
                 };
                 
                 document.SetBinaryFile( binaryFile.Id, rockContext );
+
+                var documentService = new DocumentService( rockContext );
 
                 documentService.Add( document );
             }

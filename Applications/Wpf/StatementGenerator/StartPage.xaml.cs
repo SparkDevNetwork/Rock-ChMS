@@ -91,7 +91,12 @@ namespace Rock.Apps.StatementGenerator
                 {
                     pnlPromptToResume.Visibility = Visibility.Visible;
                     btnStart.Visibility = Visibility.Hidden;
-                    lblPromptToResume.Text = $"It appears that a previous generation session is active. The last attempted recipient was for (PersonId: {lastIncomplete.PersonId} | GivingGroupId: {lastIncomplete.GroupId}). Do you wish to continue with this session?";
+                    var fullName = $"{lastIncomplete.NickName} {lastIncomplete.LastName}";
+                    if ( fullName.Trim().IsNullOrWhiteSpace() )
+                    {
+                        fullName = $"GroupId: {lastIncomplete.GroupId}";
+                    }
+                    lblPromptToResume.Text = $"It appears that a previous generation session is active. The last attempted recipient was {fullName}. Do you wish to continue with this session?";
                     txtIntro.Visibility = Visibility.Collapsed;
                     return;
                 }

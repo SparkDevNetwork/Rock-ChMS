@@ -140,22 +140,24 @@ namespace Rock.Apps.StatementGenerator
         /// <param name="e">The <see cref="DoWorkEventArgs"/> instance containing the event data.</param>
         protected void bw_DoWork( object sender, DoWorkEventArgs e )
         {
-            _contributionReport = new ContributionReport( ReportOptions.Current, this );
-            _contributionReport.Resume = this.Resume;
-            _contributionReport.ResumeRunDate = this.ResumeRunDate;
-            try
+            using ( _contributionReport = new ContributionReport( ReportOptions.Current, this ) )
             {
-                _wasCancelled = false;
-                _isRunning = true;
-                _statementCount = _contributionReport.RunReport();
-            }
-            finally
-            {
-                _isRunning = false;
-                _wasCancelled = _contributionReport.IsCancelled;
-            }
+                _contributionReport.Resume = this.Resume;
+                _contributionReport.ResumeRunDate = this.ResumeRunDate;
+                try
+                {
+                    _wasCancelled = false;
+                    _isRunning = true;
+                    _statementCount = _contributionReport.RunReport();
+                }
+                finally
+                {
+                    _isRunning = false;
+                    _wasCancelled = _contributionReport.IsCancelled;
+                }
 
-            _contributionReport = null;
+                _contributionReport = null;
+            }
 
             e.Result = _statementCount > 0;
         }
@@ -193,7 +195,7 @@ namespace Rock.Apps.StatementGenerator
         {
             var timeSinceLastUpdate = DateTime.Now - _lastUpdate;
 
-            if ( timeSinceLastUpdate.Seconds < 1.0 && limitUpdates )
+            if ( timeSinceLastUpdate.TotalSeconds < 1.0 && limitUpdates )
             {
                 return;
             }
@@ -231,10 +233,10 @@ namespace Rock.Apps.StatementGenerator
                 }
 
                 // put the current statements/second in stats box (easter egg)
-                var duration = DateTime.Now - ContributionReport.StartDateTime;
+                var duration = DateTime.Now - _contributionReport.StartDateTime;
                 if ( duration.TotalSeconds > 1 )
                 {
-                    double rate = ContributionReport.RecordsCompletedCount / duration.TotalSeconds;
+                    double rate = _contributionReport.RecordsCompletedCount / duration.TotalSeconds;
                     string statsText = $"{position}/{max} @ {rate:F2} per second";
                     if ( ( string ) lblStats.Content != statsText )
                     {

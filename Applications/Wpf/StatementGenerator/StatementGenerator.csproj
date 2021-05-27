@@ -170,6 +170,7 @@
     <Compile Include="..\..\..\Rock.Version\AssemblySharedInfo.cs">
       <Link>Properties\AssemblySharedInfo.cs</Link>
     </Compile>
+    <Compile Include="FinancialStatementGeneratorRecipientExtensions.cs" />
     <Compile Include="GeneratorConfig.cs" />
     <Compile Include="LoginPage.xaml.cs">
       <DependentUpon>LoginPage.xaml</DependentUpon>
