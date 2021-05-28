@@ -540,10 +540,13 @@
     <Compile Include="Attribute\WorkflowAttributeAttribute.cs" />
     <Compile Include="Attribute\WorkflowTextOrAttributeAttribute.cs" />
     <Compile Include="Attribute\WorkflowTypeFieldAttribute.cs" />
+    <Compile Include="Blocks\Types\Mobile\Groups\AddToGroup.cs" />
     <Compile Include="Blocks\Types\Mobile\Prayer\AnswerToPrayer.cs" />
     <Compile Include="Blocks\Types\Mobile\Prayer\MyPrayerRequests.cs" />
     <Compile Include="Blocks\Types\Mobile\Security\OnboardPerson.cs" />
+    <Compile Include="Bus\Message\GivingUnitWasClassifiedMessage.cs" />
     <Compile Include="Bus\Message\TransactionWasAlertedMessage.cs" />
+    <Compile Include="Bus\Queue\GivingEventQueue.cs" />
     <Compile Include="Bus\Queue\TransactionAlertQueue.cs" />
     <Compile Include="CheckIn\RosterAttendeeAttendance.cs" />
     <Compile Include="Communication\VideoEmbed\VideoEmbedContainer.cs" />
@@ -646,6 +649,7 @@
     <Compile Include="Jobs\PostV122_UpdateInteractionIndex.cs" />
     <Compile Include="Jobs\PostV110DataMigrationsUpdateRelatedDataViewId.cs" />
     <Compile Include="Jobs\PostV124DataMigrationsUpdateGroupSalutations.cs" />
+    <Compile Include="Jobs\PostV124DataMigrationUnencryptPaymentDetailFields.cs" />
     <Compile Include="Jobs\PostV12DataMigrationsAddStatusIndexToCommunicationRecipient.cs" />
     <Compile Include="Jobs\PostV12DataMigrationsAddIndexToCommunication.cs" />
     <Compile Include="Jobs\PostV12DataMigrationsAddInteractionIndexes.cs" />
