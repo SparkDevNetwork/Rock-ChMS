@@ -67,7 +67,10 @@ namespace Rock.Apps.StatementGenerator
         private void Page_Loaded( object sender, RoutedEventArgs e )
         {
             var window = Window.GetWindow( this );
-            window.KeyDown += Window_KeyDown;
+            if ( window != null )
+            {
+                window.KeyDown += Window_KeyDown;
+            }
 
             NavigationService.Navigating += NavigationService_Navigating;
             btnPrev.Visibility = Visibility.Hidden;
@@ -92,10 +95,16 @@ namespace Rock.Apps.StatementGenerator
             bool isDeleteDown = Keyboard.IsKeyDown( Key.Delete ) || Keyboard.IsKeyDown( Key.Back );
             if ( isLeftAltDown && isDeleteDown )
             {
-                _contributionReport?.Cancel();
+                if ( _contributionReport != null )
+                {
+                    _contributionReport.Cancel();
+                }
 
                 var window = Window.GetWindow( this );
-                window.KeyDown -= Window_KeyDown;
+                if ( window != null )
+                {
+                    window.KeyDown -= Window_KeyDown;
+                }
             }
         }
 

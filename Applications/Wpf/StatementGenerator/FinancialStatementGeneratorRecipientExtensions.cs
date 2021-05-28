@@ -15,6 +15,7 @@
 // </copyright>
 //
 using System.IO;
+using System.Text.RegularExpressions;
 
 using PdfSharp.Pdf;
 using PdfSharp.Pdf.IO;
@@ -82,6 +83,24 @@ namespace Rock.Apps.StatementGenerator
         {
             string pdfTempFileName = $"{GetRecipientKey( recipient )}.pdf";
             return Path.Combine( currentDayTemporaryDirectory, "Statements", pdfTempFileName );
+        }
+
+        /// <summary>
+        /// Return just the first part of the zip code
+        /// </summary>
+        /// <param name="recipient">The recipient.</param>
+        /// <returns></returns>
+        internal static string GetFiveDigitPostalCode( this FinancialStatementGeneratorRecipient recipient )
+        {
+            // return just the first part of the zip code
+            // 85013-4567 => 85013
+            // 85013-1234 => 85013
+            // 85083 => 85083
+            // 60540654-1234 => 60540654 (unexpected length, so just grab the first number)
+            // null => "00000"
+
+            var firstFive = Regex.Match( recipient?.PostalCode ?? "00000", @"\d+" ).Value;
+            return firstFive;
         }
     }
 }

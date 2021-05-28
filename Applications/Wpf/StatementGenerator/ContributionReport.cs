@@ -1139,7 +1139,7 @@ Overall PDF/sec    Avg: {overallPDFPerSecond }/sec
             {
                 // group by postal code
                 recipientsByPrimarySortKey = recipientList
-                    .GroupBy( k => k.PostalCode ?? "00000" )
+                    .GroupBy( k => k.GetFiveDigitPostalCode() )
                     .ToDictionary( k => k.Key, v => v.ToList() );
             }
 
