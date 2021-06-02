@@ -61,14 +61,6 @@ namespace Rock.Financial
         public int? DataViewId { get; set; }
 
         /// <summary>
-        /// Gets or sets a value indicating whether [include individuals with no address].
-        /// </summary>
-        /// <value>
-        /// <c>true</c> if [include individuals with no address]; otherwise, <c>false</c>.
-        /// </value>
-        public bool IncludeIndividualsWithNoAddress { get; set; }
-
-        /// <summary>
         /// Gets or sets a value indicating whether [exclude in active individuals].
         /// </summary>
         /// <value>

@@ -98,7 +98,7 @@ namespace Rock.Financial
     /// <summary>
     /// 
     /// </summary>
-    [DebuggerDisplay( "GroupId:{GroupId}, PersonId:{PersonId}, LocationGuid:{LocationGuid}" )]
+    [DebuggerDisplay( "GroupId:{GroupId}, PersonId:{PersonId}" )]
     [RockClientInclude( "Recipient Information for the Statement Generator" )]
     public class FinancialStatementGeneratorRecipient
     {
@@ -127,6 +127,15 @@ namespace Rock.Financial
         /// The location identifier.
         /// </value>
         public int? LocationId { get; set; }
+
+        /// <summary>
+        /// Gets or sets a value indicating whether this instance has valid mailing address.
+        /// Either <see cref="LocationId"/> is null, or the address is missing <seealso cref="Rock.Model.Location.PostalCode"/> or <seealso cref="Rock.Model.Location.Street1"/> 
+        /// </summary>
+        /// <value>
+        ///   <c>true</c> if this instance has valid mailing address; otherwise, <c>false</c>.
+        /// </value>
+        public bool HasValidMailingAddress { get; set; }
 
         /// <summary>
         /// Gets or sets the postal code.
@@ -185,6 +194,8 @@ namespace Rock.Financial
         /// The opted out.
         /// </value>
         public bool? OptedOut { get; set; }
+
+        
 
         /// <summary>
         /// Gets or sets the contribution total.

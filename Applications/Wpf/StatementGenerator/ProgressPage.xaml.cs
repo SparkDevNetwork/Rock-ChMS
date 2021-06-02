@@ -157,7 +157,9 @@ namespace Rock.Apps.StatementGenerator
                 {
                     _wasCancelled = false;
                     _isRunning = true;
-                    _statementCount = _contributionReport.RunReport();
+                    var resultsSummary = _contributionReport.RunReport();
+                    _statementCount = resultsSummary.NumberOfGivingUnits;
+                    ShowResultsSummary( resultsSummary );
                 }
                 catch ( Exception ex )
                 {
@@ -175,6 +177,13 @@ namespace Rock.Apps.StatementGenerator
 
             e.Result = _statementCount > 0;
         }
+
+        private void ShowResultsSummary( ResultsSummary resultsSummary )
+        {
+            ResultsSummaryPage resultsSummaryPage = new ResultsSummaryPage( resultsSummary );
+            NavigationService.Navigate( resultsSummaryPage );
+        }
+
         /// <summary>
         /// The _start progress date time
         /// </summary>

@@ -73,7 +73,7 @@ namespace Rock.StatementGenerator.Rest
         [Authenticate, Secured]
         [HttpPost]
         [System.Web.Http.Route( "api/FinancialGivingStatement/UploadGivingStatementDocument" )]
-        public void UploadGivingStatementDocument( [FromBody] FinancialStatementGeneratorUploadGivingStatementData uploadGivingStatementData )
+        public FinancialStatementGeneratorUploadGivingStatementResult UploadGivingStatementDocument( [FromBody] FinancialStatementGeneratorUploadGivingStatementData uploadGivingStatementData )
         {
             var rockContext = new RockContext();
 
@@ -213,6 +213,11 @@ namespace Rock.StatementGenerator.Rest
             }
 
             rockContext.SaveChanges();
+
+            return new FinancialStatementGeneratorUploadGivingStatementResult
+            {
+                NumberOfIndividuals = documentPersonIds.Count
+            };
         }
 
         /// <summary>

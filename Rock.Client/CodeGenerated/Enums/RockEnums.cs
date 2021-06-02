@@ -435,6 +435,11 @@ namespace Rock.Client.Enums
         Merge = 0x9,
         AddedToGroup = 0xa,
         RemovedFromGroup = 0xb,
+        ConnReqAdd = 0xc,
+        ConnReqConnected = 0xd,
+        ConnReqStatusModify = 0xe,
+        ConnReqStateModify = 0xf,
+        ConnReqDelete = 0x10,
     }
 
     /// <summary>
