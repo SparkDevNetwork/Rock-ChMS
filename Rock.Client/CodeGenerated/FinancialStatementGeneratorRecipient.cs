@@ -41,6 +41,9 @@ namespace Rock.Client
         public int GroupId { get; set; }
 
         /// <summary />
+        public bool HasValidMailingAddress { get; set; }
+
+        /// <summary />
         public bool IsComplete { get; set; }
 
         /// <summary />
@@ -76,6 +79,7 @@ namespace Rock.Client
             this.ContributionTotal = source.ContributionTotal;
             this.Country = source.Country;
             this.GroupId = source.GroupId;
+            this.HasValidMailingAddress = source.HasValidMailingAddress;
             this.IsComplete = source.IsComplete;
             this.IsInternationalAddress = source.IsInternationalAddress;
             this.LastName = source.LastName;

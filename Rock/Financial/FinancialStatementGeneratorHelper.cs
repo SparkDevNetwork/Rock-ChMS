@@ -148,7 +148,6 @@ namespace Rock.Financial
                                                PostalCode = l.Location.PostalCode,
                                                Country = l.Location.Country
                                            };
-                
 
                 var givingIdsQry = unionJoinLocationQry.Select( a => new { a.PersonId, a.GroupId, a.LocationId, a.PostalCode, a.Country, a.Street1 } );
 
@@ -794,7 +793,7 @@ namespace Rock.Financial
             // pledge information
             var pledgeQry = new FinancialPledgeService( rockContext ).Queryable();
 
-            // only include pledges that started *before* the enddate of the statement ( we don't want pledges that start AFTER the statement end date )
+            // only include pledges that started *before* the end date of the statement ( we don't want pledges that start AFTER the statement end date )
             if ( financialStatementGeneratorOptions.EndDate.HasValue )
             {
                 pledgeQry = pledgeQry.Where( p => p.StartDate < financialStatementGeneratorOptions.EndDate.Value );

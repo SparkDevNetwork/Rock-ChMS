@@ -49,10 +49,12 @@ namespace Rock.Apps.StatementGenerator
             e.Cancel = _isRunning;
         }
 
+        private ResultsSummary _resultsSummary;
+
         /// <summary>
         /// The statement count
         /// </summary>
-        private int _statementCount;
+        //private int _statementCount;
 
         private static bool _wasCancelled = false;
         private static bool _isRunning = false;
@@ -126,19 +128,23 @@ namespace Rock.Apps.StatementGenerator
                 throw e.Error;
             }
 
-            if ( _statementCount == 0 )
+            var statementCount = this._resultsSummary?.StatementCount;
+
+            if ( statementCount == 0 )
             {
                 lblRenderStatementsProgress.Content = @"Warning: No records matched your criteria. No statements have been created.";
             }
             else if ( _wasCancelled )
             {
                 lblRenderStatementsProgress.Style = this.FindResource( "labelStyleAlertWarning" ) as Style;
-                lblRenderStatementsProgress.Content = $@"Canceled: {_statementCount} statements created.";
+                lblRenderStatementsProgress.Content = $@"Canceled: {statementCount} statements created.";
             }
             else
             {
                 lblRenderStatementsProgress.Style = this.FindResource( "labelStyleAlertSuccess" ) as Style;
-                lblRenderStatementsProgress.Content = string.Format( @"Success:{1}Your statements have been created.{1}( {0} statements created )", _statementCount, Environment.NewLine );
+                lblRenderStatementsProgress.Content = string.Format( @"Success:{1}Your statements have been created.{1}( {0} statements created )", statementCount, Environment.NewLine );
+
+                ShowResultsSummary( _resultsSummary );
             }
         }
 
@@ -157,9 +163,7 @@ namespace Rock.Apps.StatementGenerator
                 {
                     _wasCancelled = false;
                     _isRunning = true;
-                    var resultsSummary = _contributionReport.RunReport();
-                    _statementCount = resultsSummary.NumberOfGivingUnits;
-                    ShowResultsSummary( resultsSummary );
+                    _resultsSummary = _contributionReport.RunReport();
                 }
                 catch ( Exception ex )
                 {
@@ -175,9 +179,13 @@ namespace Rock.Apps.StatementGenerator
                 _contributionReport = null;
             }
 
-            e.Result = _statementCount > 0;
+            e.Result = _resultsSummary?.NumberOfGivingUnits > 0;
         }
 
+        /// <summary>
+        /// Shows the results summary.
+        /// </summary>
+        /// <param name="resultsSummary">The results summary.</param>
         private void ShowResultsSummary( ResultsSummary resultsSummary )
         {
             ResultsSummaryPage resultsSummaryPage = new ResultsSummaryPage( resultsSummary );

@@ -17,6 +17,8 @@
 using System;
 using System.Collections.Generic;
 using System.Data.Entity;
+using System.Data.Entity.Infrastructure;
+using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Net.Http;
@@ -134,29 +136,51 @@ namespace Rock.StatementGenerator.Rest
             List<int> documentPersonIds;
             if ( saveOptions.DocumentSaveFor == FinancialStatementGeneratorOptions.FinancialStatementIndividualSaveOptions.FinancialStatementIndividualSaveOptionsSaveFor.AllActiveAdults )
             {
+                // TODO: what if multiple people in the family give individually?
                 documentPersonIds = givingFamilyMembersQuery.Where( a => a.Person.AgeClassification == AgeClassification.Adult ).Select( a => a.PersonId ).ToList();
             }
             else if ( saveOptions.DocumentSaveFor == FinancialStatementGeneratorOptions.FinancialStatementIndividualSaveOptions.FinancialStatementIndividualSaveOptionsSaveFor.AllActiveFamilyMembers )
             {
+                // TODO: what if multiple people in the family give individually?
                 documentPersonIds = givingFamilyMembersQuery.Select( a => a.PersonId ).ToList();
+            }
+            else if (saveOptions.DocumentSaveFor == FinancialStatementGeneratorOptions.FinancialStatementIndividualSaveOptions.FinancialStatementIndividualSaveOptionsSaveFor.PrimaryGiver)
+            {
+                if ( financialStatementGeneratorRecipient.PersonId.HasValue )
+                {
+                    // If we are saving for PrimaryGiver, but uploading a statement for a individual giver (not a giving group)
+                    // only upload the document to the individual person
+                    documentPersonIds = new List<int>();
+                    documentPersonIds.Add( financialStatementGeneratorRecipient.PersonId.Value );
+                }
+                else
+                {
+                    // if this is a GivingGroup statement, set document for PrimaryGiver (aka Head of Household) 
+                    var headOfHouseHoldPersonId = givingFamilyMembersQuery.GetHeadOfHousehold( s => ( int? ) s.PersonId );
+                    documentPersonIds = new List<int>();
+                    if ( headOfHouseHoldPersonId.HasValue )
+                    {
+                        documentPersonIds.Add( headOfHouseHoldPersonId.Value );
+                    }
+                }
             }
             else
             {
-                var headOfHouseHoldPersonId = givingFamilyMembersQuery.GetHeadOfHousehold( s => ( int? ) s.PersonId );
-                documentPersonIds = new List<int>();
-                if ( headOfHouseHoldPersonId.HasValue )
+                // shouldn't happen
+                return new FinancialStatementGeneratorUploadGivingStatementResult
                 {
-                    documentPersonIds.Add( headOfHouseHoldPersonId.Value );
-                }
+                    NumberOfIndividuals = 0
+                };
             }
-
             
             var today = RockDateTime.Today;
             var tomorrow = today.AddDays( 1 );
 
+            Debug.WriteLine( $"groupId:{groupId}" );
             foreach ( var documentPersonId in documentPersonIds )
             {
                 // Create the document, linking the entity and binary file.
+                Debug.WriteLine($"documentPersonId:{documentPersonId}, groupId:{groupId}");
 
                 if ( saveOptions.OverwriteDocumentsOfThisTypeCreatedOnSameDate == true )
                 {
@@ -177,7 +201,15 @@ namespace Rock.StatementGenerator.Rest
                         if ( existingDocument != null )
                         {
                             deleteDocumentService.Delete( existingDocument );
-                            deleteDocContext.SaveChanges();
+                            try
+                            {
+                                deleteDocContext.SaveChanges();
+                            }
+                            catch (DbUpdateException ex)
+                            {
+                                // TODO, we could get an "optimistic concurrency exception"...
+                                throw;
+                            }
                         }
                     }
                 }

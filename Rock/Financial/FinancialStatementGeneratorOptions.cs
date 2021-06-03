@@ -306,11 +306,21 @@ namespace Rock.Financial
 
             /// <summary>
             /// Gets or sets a value indicating whether [exclude opted out individuals].
+            /// If this is a statement for a GivingGroup, exclude if *any* members of the giving group have opted out.
             /// </summary>
             /// <value>
             ///   <c>true</c> if [exclude opted out individuals]; otherwise, <c>false</c>.
             /// </value>
             public bool ExcludeOptedOutIndividuals { get; set; } = true;
+
+            /// <summary>
+            /// Gets or sets a value indicating whether [exclude recipients that have an incomplete address].
+            /// Either the recipient has no mailing address, or the address is missing <seealso cref="Rock.Model.Location.PostalCode"/> or <seealso cref="Rock.Model.Location.Street1"/> 
+            /// </summary>
+            /// <value>
+            ///   <c>true</c> if [exclude recipients that have an incomplete address]; otherwise, <c>false</c>.
+            /// </value>
+            public bool ExcludeRecipientsThatHaveAnIncompleteAddress { get; set; } = true;
 
             /// <summary>
             /// Gets or sets the created date time.

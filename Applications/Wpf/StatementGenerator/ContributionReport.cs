@@ -340,15 +340,10 @@ namespace Rock.Apps.StatementGenerator
             var reportCount = this.Options.ReportConfigurationList.Count();
             var reportNumber = 0;
 
-            ResultsSummary resultsSummary = new ResultsSummary
-            {
-                NumberOfGivingUnits = recipientList.Count,
-            };
+            ResultsSummary.NumberOfGivingUnits = recipientList.Count;
 
             foreach ( var financialStatementReportConfiguration in this.Options.ReportConfigurationList )
             {
-                
-
                 reportNumber++;
                 if ( reportCount == 1 )
                 {
@@ -359,7 +354,8 @@ namespace Rock.Apps.StatementGenerator
                     UpdateProgress( $"Generating Report {reportNumber}", reportNumber, reportCount );
                 }
 
-                WriteStatementPDFs( financialStatementReportConfiguration, recipientList );
+                var summary = WriteStatementPDFs( financialStatementReportConfiguration, recipientList );
+                ResultsSummary.PaperStatementsSummaryList.Add( summary );
             }
 
             SaveGeneratorConfig( _currentDayTemporaryDirectory, incrementRunAttempts: false, reportsCompleted: true );
@@ -985,15 +981,13 @@ Overall PDF/sec    Avg: {overallPDFPerSecond }/sec
         private ReportPaperStatementsSummary WriteStatementPDFs( FinancialStatementReportConfiguration financialStatementReportConfiguration, IEnumerable<FinancialStatementGeneratorRecipient> financialStatementGeneratorRecipientResults )
         {
 
-            ReportPaperStatementsSummary reportPaperStatementsSummary = new ReportPaperStatementsSummary();
-            reportPaperStatementsSummary.PrimarySortName = financialStatementReportConfiguration.PrimarySortOrder.ConvertToString( true );
+            var recipientList = financialStatementGeneratorRecipientResults.Where( a => a.IsComplete ).ToList();
+            ReportPaperStatementsSummary reportPaperStatementsSummary = new ReportPaperStatementsSummary( recipientList, financialStatementReportConfiguration );
 
             if ( !financialStatementGeneratorRecipientResults.Any() )
             {
                 return reportPaperStatementsSummary;
             }
-
-            var recipientList = financialStatementGeneratorRecipientResults.Where( a => a.IsComplete ).ToList();
 
             if ( financialStatementReportConfiguration.ExcludeOptedOutIndividuals )
             {
@@ -1002,24 +996,19 @@ Overall PDF/sec    Avg: {overallPDFPerSecond }/sec
 
             if ( financialStatementReportConfiguration.MinimumContributionAmount.HasValue )
             {
-                reportPaperStatementsSummary.StatementsExcludedMinAmountVisibility = System.Windows.Visibility.Visible;
                 recipientList = recipientList.Where( a => a.ContributionTotal >= financialStatementReportConfiguration.MinimumContributionAmount.Value ).ToList();
             }
 
             if ( financialStatementReportConfiguration.IncludeInternationalAddresses == false )
             {
-                reportPaperStatementsSummary.StatementsExcludedInternationalVisibility = System.Windows.Visibility.Visible;
+            
                 recipientList = recipientList.Where( a => a.IsInternationalAddress == false ).ToList();
             }
 
-            if (!this.Options.IncludeIndividualsWithNoAddress)
+            if ( financialStatementReportConfiguration.ExcludeRecipientsThatHaveAnIncompleteAddress )
             {
-
+                recipientList = recipientList.Where( a => a.HasValidMailingAddress == true ).ToList();
             }
-
-            
-            reportPaperStatementsSummary.NumberOfStatements = recipientList.Count();
-            reportPaperStatementsSummary.TotalAmount = recipientList.Sum( a => a.ContributionTotal ?? 0.00M );
 
             IOrderedEnumerable<FinancialStatementGeneratorRecipient> sortedRecipientList = SortByPrimaryAndSecondaryOrder( financialStatementReportConfiguration, recipientList );
             recipientList = sortedRecipientList.ToList();
