@@ -67,10 +67,10 @@
                 </StackPanel>
 
                 <StackPanel DockPanel.Dock="Top" Orientation="Horizontal">
-                    <Label Width="160" Style="{StaticResource labelStyle}">Total Amount:</Label>
+                    <Label Width="140" Style="{StaticResource labelStyle}">Total Amount:</Label>
                     <Label
                         x:Name="lblTotalGivingAmount"
-                        Width="100"
+                        Width="120"
                         HorizontalContentAlignment="Right"
                         Content="$12,344,223"
                         Style="{StaticResource labelStyle}" />
@@ -102,10 +102,10 @@
                     </StackPanel>
 
                     <StackPanel Orientation="Horizontal">
-                        <Label Width="160" Style="{StaticResource labelStyle}">Total Amount:</Label>
+                        <Label Width="140" Style="{StaticResource labelStyle}">Total Amount:</Label>
                         <Label
                             Name="lblPaperlessStatementsTotalAmount"
-                            Width="100"
+                            Width="120"
                             HorizontalContentAlignment="Right"
                             Style="{StaticResource labelStyle}">
                             $12,344,223
@@ -163,7 +163,7 @@
 
                                         <StackPanel Grid.Row="1" Grid.Column="0">
                                             <StackPanel Orientation="Horizontal">
-                                                <Label Width="160" Style="{StaticResource labelStyle}">Number of Statements</Label>
+                                                <Label Width="160" Style="{StaticResource labelStyle}">Number of Statements:</Label>
                                                 <Label
                                                     Width="100"
                                                     HorizontalContentAlignment="Right"
@@ -172,9 +172,9 @@
                                             </StackPanel>
 
                                             <StackPanel Orientation="Horizontal">
-                                                <Label Width="160" Style="{StaticResource labelStyle}">Total Amount Test:</Label>
+                                                <Label Width="140" Style="{StaticResource labelStyle}">Total Amount:</Label>
                                                 <Label
-                                                    Width="100"
+                                                    Width="120"
                                                     HorizontalContentAlignment="Right"
                                                     Content="{Binding TotalAmount}"
                                                     ContentStringFormat="C"
@@ -189,7 +189,7 @@
                                                     Content="{Binding StatementsExcludedMinAmountLabel}"
                                                     Style="{StaticResource labelStyle}" />
                                                 <Label
-                                                    Width="100"
+                                                    Width="150"
                                                     HorizontalContentAlignment="Left"
                                                     Content="{Binding StatementsExcludedMinAmountSummary}"
                                                     Style="{StaticResource labelStyle}" />
@@ -198,7 +198,7 @@
                                             <StackPanel Orientation="Horizontal" Visibility="{Binding StatementsExcludedInternationalVisibility}">
                                                 <Label Width="275" Style="{StaticResource labelStyle}">Statements Excluded (International):</Label>
                                                 <Label
-                                                    Width="100"
+                                                    Width="150"
                                                     HorizontalContentAlignment="Left"
                                                     Content="{Binding StatementsExcludedInternationalSummary}"
                                                     Style="{StaticResource labelStyle}" />
@@ -207,7 +207,7 @@
                                             <StackPanel Orientation="Horizontal" Visibility="{Binding StatementsExcludedIncompleteAddressVisibility}">
                                                 <Label Width="275" Style="{StaticResource labelStyle}">Statements Excluded (Incomplete Address):</Label>
                                                 <Label
-                                                    Width="100"
+                                                    Width="150"
                                                     HorizontalContentAlignment="Left"
                                                     Content="{Binding StatementsExcludedIncompleteAddressSummary}"
                                                     Style="{StaticResource labelStyle}" />
@@ -216,7 +216,7 @@
                                             <StackPanel Orientation="Horizontal" Visibility="{Binding StatementsExcludedOptedOutVisibility}">
                                                 <Label Width="275" Style="{StaticResource labelStyle}">Statements Excluded (Opted Out):</Label>
                                                 <Label
-                                                    Width="100"
+                                                    Width="150"
                                                     HorizontalContentAlignment="Left"
                                                     Content="{Binding StatementExcludedOptedOutSummary}"
                                                     Style="{StaticResource labelStyle}" />

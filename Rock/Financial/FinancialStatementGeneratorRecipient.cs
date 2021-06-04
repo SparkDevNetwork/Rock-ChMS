@@ -39,7 +39,7 @@ namespace Rock.Financial
         /// Initializes a new instance of the <see cref="FinancialStatementGeneratorRecipientResult"/> class.
         /// </summary>
         /// <param name="recipient">The recipient.</param>
-        public FinancialStatementGeneratorRecipientResult( FinancialStatementGeneratorRecipient recipient)
+        public FinancialStatementGeneratorRecipientResult( FinancialStatementGeneratorRecipient recipient )
         {
             Recipient = recipient;
         }
@@ -195,7 +195,21 @@ namespace Rock.Financial
         /// </value>
         public bool? OptedOut { get; set; }
 
-        
+        /// <summary>
+        /// Gets or sets a value indicating whether [paperless statement uploaded].
+        /// </summary>
+        /// <value>
+        ///   <c>true</c> if [paperless statement uploaded]; otherwise, <c>false</c>.
+        /// </value>
+        public bool? PaperlessStatementUploaded { get; set; }
+
+        /// <summary>
+        /// Gets or sets the paperless statements individual count.
+        /// </summary>
+        /// <value>
+        /// The paperless statements individual count.
+        /// </value>
+        public int? PaperlessStatementsIndividualCount { get; set; }
 
         /// <summary>
         /// Gets or sets the contribution total.

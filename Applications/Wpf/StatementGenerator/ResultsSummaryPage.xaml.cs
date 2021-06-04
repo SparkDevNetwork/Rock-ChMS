@@ -29,7 +29,7 @@ namespace Rock.Apps.StatementGenerator
         {
             InitializeComponent();
 
-            resultsSummary = resultsSummary ?? new ResultsSummary();
+            resultsSummary = resultsSummary ?? new ResultsSummary(new System.Collections.Generic.List<Client.FinancialStatementGeneratorRecipient>());
 
             lblNumberOfGivingUnits.Content = resultsSummary.NumberOfGivingUnits;
             lblTotalGivingAmount.Content = resultsSummary.TotalAmount.ToString("C");

@@ -17,8 +17,6 @@
 using System;
 using System.Collections.Generic;
 using System.Data.Entity;
-using System.Data.Entity.Infrastructure;
-using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Net.Http;
@@ -130,32 +128,36 @@ namespace Rock.StatementGenerator.Rest
 
             var documentName = saveOptions.DocumentName;
 
-            var groupId = financialStatementGeneratorRecipient.GroupId;
-            var givingFamilyMembersQuery = new GroupMemberService( rockContext ).GetByGroupId( groupId, false );
-
             List<int> documentPersonIds;
-            if ( saveOptions.DocumentSaveFor == FinancialStatementGeneratorOptions.FinancialStatementIndividualSaveOptions.FinancialStatementIndividualSaveOptionsSaveFor.AllActiveAdults )
+            if ( financialStatementGeneratorRecipient.PersonId.HasValue )
             {
-                // TODO: what if multiple people in the family give individually?
-                documentPersonIds = givingFamilyMembersQuery.Where( a => a.Person.AgeClassification == AgeClassification.Adult ).Select( a => a.PersonId ).ToList();
+                // If we are saving for a person that gives an individual, just give document to that person (ignore the FinancialStatementIndividualSaveOptionsSaveFor option)
+                // only upload the document to the individual person
+                documentPersonIds = new List<int>();
+                documentPersonIds.Add( financialStatementGeneratorRecipient.PersonId.Value );
             }
-            else if ( saveOptions.DocumentSaveFor == FinancialStatementGeneratorOptions.FinancialStatementIndividualSaveOptions.FinancialStatementIndividualSaveOptionsSaveFor.AllActiveFamilyMembers )
+            else
             {
-                // TODO: what if multiple people in the family give individually?
-                documentPersonIds = givingFamilyMembersQuery.Select( a => a.PersonId ).ToList();
-            }
-            else if (saveOptions.DocumentSaveFor == FinancialStatementGeneratorOptions.FinancialStatementIndividualSaveOptions.FinancialStatementIndividualSaveOptionsSaveFor.PrimaryGiver)
-            {
-                if ( financialStatementGeneratorRecipient.PersonId.HasValue )
+                var groupId = financialStatementGeneratorRecipient.GroupId;
+                var givingFamilyMembersQuery = new GroupMemberService( rockContext ).GetByGroupId( groupId, false );
+
+                // limit to family members within the same giving group
+                givingFamilyMembersQuery = givingFamilyMembersQuery.Where( a => a.Person.GivingGroupId.HasValue && a.Person.GivingGroupId == groupId );
+
+                if ( saveOptions.DocumentSaveFor == FinancialStatementGeneratorOptions.FinancialStatementIndividualSaveOptions.FinancialStatementIndividualSaveOptionsSaveFor.AllActiveAdultsInGivingGroup )
                 {
-                    // If we are saving for PrimaryGiver, but uploading a statement for a individual giver (not a giving group)
-                    // only upload the document to the individual person
-                    documentPersonIds = new List<int>();
-                    documentPersonIds.Add( financialStatementGeneratorRecipient.PersonId.Value );
+                    documentPersonIds = givingFamilyMembersQuery
+                        .Where( a => a.Person.AgeClassification == AgeClassification.Adult ).Select( a => a.PersonId ).ToList();
                 }
-                else
+                else if ( saveOptions.DocumentSaveFor == FinancialStatementGeneratorOptions.FinancialStatementIndividualSaveOptions.FinancialStatementIndividualSaveOptionsSaveFor.AllActiveFamilyMembersInGivingGroup )
                 {
-                    // if this is a GivingGroup statement, set document for PrimaryGiver (aka Head of Household) 
+                    documentPersonIds = givingFamilyMembersQuery
+                        .Select( a => a.PersonId ).ToList();
+                }
+                else if ( saveOptions.DocumentSaveFor == FinancialStatementGeneratorOptions.FinancialStatementIndividualSaveOptions.FinancialStatementIndividualSaveOptionsSaveFor.PrimaryGiver )
+                {
+                    // Set document for PrimaryGiver (aka Head of Household).
+                    // Note that HeadOfHouseHold would calculated based on family members within the same giving group
                     var headOfHouseHoldPersonId = givingFamilyMembersQuery.GetHeadOfHousehold( s => ( int? ) s.PersonId );
                     documentPersonIds = new List<int>();
                     if ( headOfHouseHoldPersonId.HasValue )
@@ -163,25 +165,19 @@ namespace Rock.StatementGenerator.Rest
                         documentPersonIds.Add( headOfHouseHoldPersonId.Value );
                     }
                 }
-            }
-            else
-            {
-                // shouldn't happen
-                return new FinancialStatementGeneratorUploadGivingStatementResult
+                else
                 {
-                    NumberOfIndividuals = 0
-                };
+                    // shouldn't happen
+                    documentPersonIds = new List<int>();
+                }
             }
-            
+
             var today = RockDateTime.Today;
             var tomorrow = today.AddDays( 1 );
 
-            Debug.WriteLine( $"groupId:{groupId}" );
             foreach ( var documentPersonId in documentPersonIds )
             {
                 // Create the document, linking the entity and binary file.
-                Debug.WriteLine($"documentPersonId:{documentPersonId}, groupId:{groupId}");
-
                 if ( saveOptions.OverwriteDocumentsOfThisTypeCreatedOnSameDate == true )
                 {
                     using ( var deleteDocContext = new RockContext() )
@@ -201,15 +197,7 @@ namespace Rock.StatementGenerator.Rest
                         if ( existingDocument != null )
                         {
                             deleteDocumentService.Delete( existingDocument );
-                            try
-                            {
-                                deleteDocContext.SaveChanges();
-                            }
-                            catch (DbUpdateException ex)
-                            {
-                                // TODO, we could get an "optimistic concurrency exception"...
-                                throw;
-                            }
+                            deleteDocContext.SaveChanges();
                         }
                     }
                 }
@@ -236,7 +224,7 @@ namespace Rock.StatementGenerator.Rest
                     Name = saveOptions.DocumentName,
                     Description = saveOptions.DocumentDescription
                 };
-                
+
                 document.SetBinaryFile( binaryFile.Id, rockContext );
 
                 var documentService = new DocumentService( rockContext );

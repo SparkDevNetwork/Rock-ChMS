@@ -27,6 +27,22 @@ namespace Rock.Apps.StatementGenerator
     public class ResultsSummary
     {
         /// <summary>
+        /// Initializes a new instance of the <see cref="ResultsSummary"/> class.
+        /// </summary>
+        /// <param name="recipientList">The recipient list.</param>
+        public ResultsSummary( List<FinancialStatementGeneratorRecipient> recipientList )
+        {
+            NumberOfGivingUnits = recipientList.Where( x => x.IsComplete ).Count();
+            TotalAmount = recipientList.Where( x => x.IsComplete ).Sum( x => x.ContributionTotal ?? 0.00M );
+            if ( recipientList.Any( a => a.PaperlessStatementUploaded.HasValue ) )
+            {
+                PaperlessStatementsCount = recipientList.Where( a => a.PaperlessStatementUploaded == true ).Count();
+                PaperlessStatementsIndividualCount = recipientList.Where( a => a.PaperlessStatementUploaded == true ).Sum( s => s.PaperlessStatementsIndividualCount ?? 0 );
+                PaperlessStatementTotalAmount = recipientList.Where( a => a.PaperlessStatementUploaded == true ).Sum( s => s.ContributionTotal ?? 0.00M );
+            }
+        }
+
+        /// <summary>
         /// Gets the statement count.
         /// </summary>
         /// <value>
@@ -40,7 +56,7 @@ namespace Rock.Apps.StatementGenerator
         /// <value>
         /// The number of giving units.
         /// </value>
-        public int NumberOfGivingUnits { get; set; }
+        public int NumberOfGivingUnits { get; private set; }
 
         /// <summary>
         /// Gets or sets the total amount.
@@ -48,7 +64,7 @@ namespace Rock.Apps.StatementGenerator
         /// <value>
         /// The total amount.
         /// </value>
-        public decimal TotalAmount { get; set; }
+        public decimal TotalAmount { get; private set; }
 
         /// <summary>
         /// Gets or sets the paperless statements count.
@@ -56,7 +72,7 @@ namespace Rock.Apps.StatementGenerator
         /// <value>
         /// The paperless statements count.
         /// </value>
-        public int? PaperlessStatementsCount { get; set; }
+        public int? PaperlessStatementsCount { get; private set; }
 
         /// <summary>
         /// Gets or sets the paperless statement total amount.
@@ -64,7 +80,7 @@ namespace Rock.Apps.StatementGenerator
         /// <value>
         /// The paperless statement total amount.
         /// </value>
-        public decimal? PaperlessStatementTotalAmount { get; set; }
+        public decimal? PaperlessStatementTotalAmount { get; private set; }
 
         /// <summary>
         /// Gets or sets the paperless statements individual count.
@@ -72,7 +88,7 @@ namespace Rock.Apps.StatementGenerator
         /// <value>
         /// The paperless statements individual count.
         /// </value>
-        public int? PaperlessStatementsIndividualCount { get; set; }
+        public int? PaperlessStatementsIndividualCount { get; private set; }
 
         /// <summary>
         /// Gets or sets the paper statements summary list.
@@ -80,7 +96,7 @@ namespace Rock.Apps.StatementGenerator
         /// <value>
         /// The paper statements summary list.
         /// </value>
-        public List<ReportPaperStatementsSummary> PaperStatementsSummaryList { get; set; } = new List<ReportPaperStatementsSummary>();
+        public List<ReportPaperStatementsSummary> PaperStatementsSummaryList { get; private set; } = new List<ReportPaperStatementsSummary>();
     }
 
     /// <summary>
@@ -185,7 +201,7 @@ namespace Rock.Apps.StatementGenerator
         /// <value>
         /// The statements excluded minimum amount label.
         /// </value>
-        public string StatementsExcludedMinAmountLabel => $"Statements Excluded (< {StatementsExcludedMinAmount}):";
+        public string StatementsExcludedMinAmountLabel => $"Statements Excluded (< {StatementsExcludedMinAmount?.ToString( "C" )}):";
 
         /// <summary>
         /// Gets the statements excluded minimum amount summary.

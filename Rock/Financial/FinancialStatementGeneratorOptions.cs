@@ -189,19 +189,24 @@ namespace Rock.Financial
             public enum FinancialStatementIndividualSaveOptionsSaveFor
             {
                 /// <summary>
-                /// All active adults
+                /// All active adults ( within the same giving group )
+                /// Note that want to limit to Giving Group because some members
+                /// of the Family may giving individually and have a different statement
                 /// </summary>
-                AllActiveAdults,
+                AllActiveAdultsInGivingGroup,
 
                 /// <summary>
-                /// The primary giver
+                /// The primary giver if Giving Group,
+                /// or the Individual if person gives individually
                 /// </summary>
                 PrimaryGiver,
 
                 /// <summary>
-                /// All active family members
+                /// All active family members ( within the same giving group ).
+                /// Note that want to limit to Giving Group because some members
+                /// of the Family may giving individually and have a different statement
                 /// </summary>
-                AllActiveFamilyMembers
+                AllActiveFamilyMembersInGivingGroup
             }
         }
 

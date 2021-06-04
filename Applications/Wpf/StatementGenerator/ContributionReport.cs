@@ -65,14 +65,6 @@ namespace Rock.Apps.StatementGenerator
 
         private ProgressPage ProgressPage { get; set; }
 
-        /// <summary>
-        /// Gets or sets the record count.
-        /// </summary>
-        /// <value>
-        /// The record count.
-        /// </value>
-        private ResultsSummary ResultsSummary { get; set; } = new ResultsSummary();
-
         private bool _cancelRunning = false;
         private bool _cancelled = false;
         private readonly int _maxRenderThreads = Environment.ProcessorCount + 4;
@@ -184,17 +176,11 @@ namespace Rock.Apps.StatementGenerator
             _saveStatementsForIndividualsToDocument = _individualSaveOptions.SaveStatementsForIndividuals;
             if ( _saveStatementsForIndividualsToDocument )
             {
-                ResultsSummary.PaperlessStatementsCount = 0;
-                ResultsSummary.PaperlessStatementsIndividualCount = 0;
-                ResultsSummary.PaperlessStatementTotalAmount = 0.00M;
                 _uploadPdfDocumentRestClient = new RestClient( rockConfig.RockBaseUrl );
                 _uploadPdfDocumentRestClient.LoginToRock( rockConfig.Username, rockConfig.Password );
             }
             else
             {
-                ResultsSummary.PaperlessStatementsCount = null;
-                ResultsSummary.PaperlessStatementsIndividualCount = null;
-                ResultsSummary.PaperlessStatementTotalAmount = null;
                 _uploadPdfDocumentRestClient = null;
             }
 
@@ -247,7 +233,6 @@ namespace Rock.Apps.StatementGenerator
                 SaveGeneratorConfig( _currentDayTemporaryDirectory, incrementRunAttempts: false, reportsCompleted: false );
             }
 
-            this.ResultsSummary.NumberOfGivingUnits = recipientList.Count;
             _recordsCompleted = 0;
 
             _renderPdfTasks = new ConcurrentBag<Task>();
@@ -329,33 +314,31 @@ namespace Rock.Apps.StatementGenerator
             if ( _cancelRunning )
             {
                 this._cancelled = true;
-                return this.ResultsSummary;
+                return new ResultsSummary( recipientList );
             }
 
             SaveRecipientListStatus( recipientList, _currentDayTemporaryDirectory, false );
 
-            this.ResultsSummary.NumberOfGivingUnits = recipientList.Where( x => x.IsComplete ).Count();
-            this.ResultsSummary.TotalAmount = recipientList.Where( x => x.IsComplete ).Sum( x => x.ContributionTotal ?? 0.00M );
-
             var reportCount = this.Options.ReportConfigurationList.Count();
             var reportNumber = 0;
 
-            ResultsSummary.NumberOfGivingUnits = recipientList.Count;
+            var resultsSummary = new ResultsSummary( recipientList );
 
             foreach ( var financialStatementReportConfiguration in this.Options.ReportConfigurationList )
             {
                 reportNumber++;
+
                 if ( reportCount == 1 )
                 {
                     UpdateProgress( "Generating Report...", 0, 0 );
                 }
                 else
                 {
-                    UpdateProgress( $"Generating Report {reportNumber}", reportNumber, reportCount );
+                    UpdateProgress( $"Generating Report {reportNumber}", reportNumber-1, reportCount );
                 }
 
                 var summary = WriteStatementPDFs( financialStatementReportConfiguration, recipientList );
-                ResultsSummary.PaperStatementsSummaryList.Add( summary );
+                resultsSummary.PaperStatementsSummaryList.Add( summary );
             }
 
             SaveGeneratorConfig( _currentDayTemporaryDirectory, incrementRunAttempts: false, reportsCompleted: true );
@@ -383,13 +366,13 @@ namespace Rock.Apps.StatementGenerator
             _stopwatchAll.Stop();
             var elapsedSeconds = _stopwatchAll.ElapsedMilliseconds / 1000;
             Debug.WriteLine( $"{elapsedSeconds:n0} seconds" );
-            Debug.WriteLine( $"{ResultsSummary.StatementCount:n0} statements" );
-            if ( ResultsSummary.StatementCount > 0 )
+            Debug.WriteLine( $"{resultsSummary.StatementCount:n0} statements" );
+            if ( resultsSummary.StatementCount > 0 )
             {
-                Debug.WriteLine( $"{( _stopwatchAll.ElapsedMilliseconds / ResultsSummary.StatementCount ):n0}ms per statement" );
+                Debug.WriteLine( $"{( _stopwatchAll.ElapsedMilliseconds / resultsSummary.StatementCount ):n0}ms per statement" );
             }
 
-            return this.ResultsSummary;
+            return resultsSummary;
         }
 
         private string GetStatementGeneratorLocalApplicationDataFolder()
@@ -589,6 +572,9 @@ namespace Rock.Apps.StatementGenerator
 
                     if ( _saveStatementsForIndividualsToDocument )
                     {
+                        // if there is an exception, we'll want to know that the statement wasn't uploaded
+                        recipient.PaperlessStatementUploaded = false;
+
                         FinancialStatementGeneratorUploadGivingStatementData uploadGivingStatementData = new FinancialStatementGeneratorUploadGivingStatementData
                         {
                             FinancialStatementGeneratorRecipient = recipient,
@@ -605,9 +591,8 @@ namespace Rock.Apps.StatementGenerator
                             throw uploadDocumentResponse.ErrorException;
                         }
 
-                        ResultsSummary.PaperlessStatementsCount++;
-                        ResultsSummary.PaperlessStatementTotalAmount += financialStatementGeneratorRecipientResult.ContributionTotal;
-                        ResultsSummary.PaperlessStatementsIndividualCount += uploadDocumentResponse.Data.NumberOfIndividuals;
+                        recipient.PaperlessStatementUploaded = uploadDocumentResponse.Data != null;
+                        recipient.PaperlessStatementsIndividualCount = uploadDocumentResponse.Data?.NumberOfIndividuals;
                     }
 
                     recipient.IsComplete = true;

@@ -299,9 +299,9 @@ namespace Rock.Client.Enums
     /// </summary>
     public enum FinancialStatementIndividualSaveOptionsSaveFor
     {
-        AllActiveAdults = 0x0,
+        AllActiveAdultsInGivingGroup = 0x0,
         PrimaryGiver = 0x1,
-        AllActiveFamilyMembers = 0x2,
+        AllActiveFamilyMembersInGivingGroup = 0x2,
     }
 
     /// <summary>

@@ -212,6 +212,8 @@ namespace Rock.Apps.StatementGenerator
                 pgSaveMergeDocProgress.Maximum = max;
                 lblSaveMergeDocProgress.Visibility = Visibility.Visible;
                 pgSaveMergeDocProgress.Visibility = Visibility.Visible;
+
+                lblStats.Content = string.Empty;
             } );
         }
 
@@ -267,8 +269,16 @@ namespace Rock.Apps.StatementGenerator
                 var duration = DateTime.Now - _contributionReport.StartDateTime;
                 if ( duration.TotalSeconds > 1 )
                 {
-                    double rate = _contributionReport.RecordsCompletedCount / duration.TotalSeconds;
-                    string statsText = $"{position}/{max} @ {rate:F2} per second";
+                    double ratePerSecond = _contributionReport.RecordsCompletedCount / duration.TotalSeconds;
+                    string statsText;
+                    if ( max > 0 )
+                    {
+                        statsText = $"{position}/{max} @ {ratePerSecond:F2} per second";
+                    }
+                    else
+                    {
+                        statsText = "";
+                    }
                     if ( ( string ) lblStats.Content != statsText )
                     {
                         lblStats.Content = statsText;

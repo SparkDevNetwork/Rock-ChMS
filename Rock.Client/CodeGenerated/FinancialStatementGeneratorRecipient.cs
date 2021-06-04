@@ -62,6 +62,12 @@ namespace Rock.Client
         public bool? OptedOut { get; set; }
 
         /// <summary />
+        public int? PaperlessStatementsIndividualCount { get; set; }
+
+        /// <summary />
+        public bool? PaperlessStatementUploaded { get; set; }
+
+        /// <summary />
         public int? PersonId { get; set; }
 
         /// <summary />
@@ -86,6 +92,8 @@ namespace Rock.Client
             this.LocationId = source.LocationId;
             this.NickName = source.NickName;
             this.OptedOut = source.OptedOut;
+            this.PaperlessStatementsIndividualCount = source.PaperlessStatementsIndividualCount;
+            this.PaperlessStatementUploaded = source.PaperlessStatementUploaded;
             this.PersonId = source.PersonId;
             this.PostalCode = source.PostalCode;
             this.RenderedPageCount = source.RenderedPageCount;
