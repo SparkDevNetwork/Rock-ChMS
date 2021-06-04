@@ -16,6 +16,7 @@
 //
 using System.Collections.Generic;
 using System.Linq;
+using System.Windows;
 
 using Rock.Client;
 
@@ -122,7 +123,7 @@ namespace Rock.Apps.StatementGenerator
 
                 includedRecipients = includedRecipients.Where( a => a.ContributionTotal >= financialStatementReportConfiguration.MinimumContributionAmount.Value ).ToList();
                 StatementsExcludedMinAmount = financialStatementReportConfiguration.MinimumContributionAmount;
-                StatementsExcludedMinAmountVisibility = System.Windows.Visibility.Visible;
+                StatementsExcludedMinAmountVisibility = Visibility.Visible;
             }
 
             if ( financialStatementReportConfiguration.IncludeInternationalAddresses == false )
@@ -131,7 +132,7 @@ namespace Rock.Apps.StatementGenerator
                 StatementsExcludedInternationalSummary = $"{excludedRecipients.Count()} | {excludedRecipients.Sum( x => x.ContributionTotal ?? 0.00M ).ToString( "C" ) }";
 
                 includedRecipients = includedRecipients.Where( a => a.IsInternationalAddress == false ).ToList();
-                StatementsExcludedInternationalVisibility = System.Windows.Visibility.Visible;
+                StatementsExcludedInternationalVisibility = Visibility.Visible;
             }
 
             if ( financialStatementReportConfiguration.ExcludeRecipientsThatHaveAnIncompleteAddress )
@@ -140,14 +141,14 @@ namespace Rock.Apps.StatementGenerator
                 StatementsExcludedIncompleteAddressSummary = $"{excludedRecipients.Count()} | {excludedRecipients.Sum( x => x.ContributionTotal ?? 0.00M ).ToString( "C" ) }";
 
                 includedRecipients = includedRecipients.Where( a => a.HasValidMailingAddress == true ).ToList();
-                StatementsExcludedIncompleteAddressVisibility = System.Windows.Visibility.Visible;
+                StatementsExcludedIncompleteAddressVisibility = Visibility.Visible;
             }
 
             if ( financialStatementReportConfiguration.ExcludeOptedOutIndividuals )
             {
                 var excludedRecipients = includedRecipients.Where( a => a.OptedOut != false );
                 StatementExcludedOptedOutSummary = $"{excludedRecipients.Count()} | {excludedRecipients.Sum( x => x.ContributionTotal ?? 0.00M ).ToString( "C" ) }";
-                StatementsExcludedOptedOutVisibility = System.Windows.Visibility.Visible;
+                StatementsExcludedOptedOutVisibility = Visibility.Visible;
                 includedRecipients = includedRecipients.Where( a => a.OptedOut == false ).ToList();
             }
 
@@ -185,7 +186,7 @@ namespace Rock.Apps.StatementGenerator
         /// <value>
         /// The statements excluded minimum amount visibility.
         /// </value>
-        public System.Windows.Visibility StatementsExcludedMinAmountVisibility { get; private set; } = System.Windows.Visibility.Collapsed;
+        public Visibility StatementsExcludedMinAmountVisibility { get; private set; } = Visibility.Collapsed;
 
         /// <summary>
         /// Gets the statements excluded minimum amount.
@@ -217,7 +218,7 @@ namespace Rock.Apps.StatementGenerator
         /// <value>
         /// The statements excluded international visibility.
         /// </value>
-        public System.Windows.Visibility StatementsExcludedInternationalVisibility { get; private set; } = System.Windows.Visibility.Collapsed;
+        public Visibility StatementsExcludedInternationalVisibility { get; private set; } = Visibility.Collapsed;
 
         /// <summary>
         /// Gets the statements excluded international summary.
@@ -233,7 +234,7 @@ namespace Rock.Apps.StatementGenerator
         /// <value>
         /// The statements excluded incomplete address visibility.
         /// </value>
-        public System.Windows.Visibility StatementsExcludedIncompleteAddressVisibility { get; private set; } = System.Windows.Visibility.Collapsed;
+        public Visibility StatementsExcludedIncompleteAddressVisibility { get; private set; } = Visibility.Collapsed;
 
         /// <summary>
         /// Gets the statements excluded incomplete address summary.
@@ -249,7 +250,7 @@ namespace Rock.Apps.StatementGenerator
         /// <value>
         /// The statements excluded opted out visibility.
         /// </value>
-        public System.Windows.Visibility StatementsExcludedOptedOutVisibility { get; private set; } = System.Windows.Visibility.Collapsed;
+        public Visibility StatementsExcludedOptedOutVisibility { get; private set; } = Visibility.Collapsed;
 
         /// <summary>
         /// Gets the statement excluded opted out summary.
@@ -258,5 +259,13 @@ namespace Rock.Apps.StatementGenerator
         /// The statement excluded opted out summary.
         /// </value>
         public string StatementExcludedOptedOutSummary { get; private set; }
+
+        /// <summary>
+        /// Gets the bottom separator visibility.
+        /// </summary>
+        /// <value>
+        /// The bottom separator visibility.
+        /// </value>
+        public Visibility BottomSeparatorVisibility { get; set; } = Visibility.Visible;
     }
 }

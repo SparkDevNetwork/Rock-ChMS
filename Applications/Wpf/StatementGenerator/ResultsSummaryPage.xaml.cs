@@ -38,8 +38,15 @@ namespace Rock.Apps.StatementGenerator
             lblNumberOfPaperlessStatements.Content = resultsSummary.PaperlessStatementsCount;
             lblPaperlessStatementsTotalAmount.Content = resultsSummary.PaperlessStatementTotalAmount?.ToString( "C" );
             lblPaperlessStatementsNumberOfIndividuals.Content = resultsSummary.PaperlessStatementsIndividualCount;
-
-            pnlPaperStatementStatistics.Visibility = resultsSummary.PaperStatementsSummaryList.Any() ? Visibility.Visible : Visibility.Collapsed;
+            if ( resultsSummary.PaperStatementsSummaryList.Any() )
+            {
+                resultsSummary.PaperStatementsSummaryList.LastOrDefault().BottomSeparatorVisibility = Visibility.Collapsed;
+                pnlPaperStatementStatistics.Visibility = Visibility.Visible;
+            }
+            else
+            {
+                pnlPaperStatementStatistics.Visibility = Visibility.Collapsed;
+            }
 
             rptReportStatistics.ItemsSource = resultsSummary.PaperStatementsSummaryList;
         }
