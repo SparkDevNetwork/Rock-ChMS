@@ -61,13 +61,9 @@
     <Compile Include="..\Rock.Version\AssemblySharedInfo.cs">
       <Link>AssemblySharedInfo.cs</Link>
     </Compile>
-    <Compile Include="Migrations\202105280103566_StatementGenerator.cs" />
-    <Compile Include="Migrations\202105280103566_StatementGenerator.Designer.cs">
+    <Compile Include="Migrations\Version 12.0\Version 1.12.4\202105280103566_StatementGenerator.cs" />
+    <Compile Include="Migrations\Version 12.0\Version 1.12.4\202105280103566_StatementGenerator.Designer.cs">
       <DependentUpon>202105280103566_StatementGenerator.cs</DependentUpon>
-    </Compile>
-    <Compile Include="Migrations\202106042044568_StatementGeneratorDefaultTemplateUpdate.cs" />
-    <Compile Include="Migrations\202106042044568_StatementGeneratorDefaultTemplateUpdate.Designer.cs">
-      <DependentUpon>202106042044568_StatementGeneratorDefaultTemplateUpdate.cs</DependentUpon>
     </Compile>
     <Compile Include="Migrations\Version 12.0\Version 1.12.4\202105251737592_CodeGenerated_0525.cs" />
     <Compile Include="Migrations\Version 12.0\Version 1.12.4\202105251737592_CodeGenerated_0525.Designer.cs">
@@ -1739,11 +1735,8 @@
     <Compile Include="SqlServerTypes\Loader.cs" />
   </ItemGroup>
   <ItemGroup>
-    <EmbeddedResource Include="Migrations\202105280103566_StatementGenerator.resx">
+    <EmbeddedResource Include="Migrations\Version 12.0\Version 1.12.4\202105280103566_StatementGenerator.resx">
       <DependentUpon>202105280103566_StatementGenerator.cs</DependentUpon>
-    </EmbeddedResource>
-    <EmbeddedResource Include="Migrations\202106042044568_StatementGeneratorDefaultTemplateUpdate.resx">
-      <DependentUpon>202106042044568_StatementGeneratorDefaultTemplateUpdate.cs</DependentUpon>
     </EmbeddedResource>
     <EmbeddedResource Include="Migrations\Version 12.0\Version 1.12.4\202105251737592_CodeGenerated_0525.resx">
       <DependentUpon>202105251737592_CodeGenerated_0525.cs</DependentUpon>
@@ -3215,21 +3208,20 @@
       <DependentUpon>201907082136571_Rollup0708.cs</DependentUpon>
     </Content>
     <Content Include="SqlServerTypes\readme.htm" />
-    <None Include="Migrations\202105280103566_StatementGenerator_RockDefaultTemplate.lava">
+    <None Include="Migrations\Version 12.0\Version 1.12.4\202105280103566_StatementGenerator_RockDefaultTemplate.lava">
       <DependentUpon>202105280103566_StatementGenerator.cs</DependentUpon>
     </None>
-    <None Include="Migrations\202105280103566_StatementGenerator_RockDefaultTemplateFooter.json">
+    <None Include="Migrations\Version 12.0\Version 1.12.4\202105280103566_StatementGenerator_RockDefaultTemplateFooter.json">
       <DependentUpon>202105280103566_StatementGenerator.cs</DependentUpon>
     </None>
-    <None Include="Migrations\202105280103566_StatementGenerator_RockDefaultTemplateLogo.data">
-      <DependentUpon>202105280103566_StatementGenerator.cs</DependentUpon>
-    </None>
-    <None Include="Migrations\202105280103566_StatementGenerator_RockDefaultTemplateReportSettings.json">
-      <DependentUpon>202105280103566_StatementGenerator.cs</DependentUpon>
-    </None>
-    <None Include="Migrations\202106042044568_StatementGeneratorDefaultTemplateUpdate_RockDefaultTemplate.lava" />
     <None Include="Migrations\Version 10.0\Version 1.10.2\201912092001240_FamilyAnalyticsGivingId_spCrm_FamilyAnalyticsEraDataset.sql">
       <DependentUpon>201912092001240_FamilyAnalyticsGivingId.cs</DependentUpon>
+    </None>
+    <None Include="Migrations\Version 12.0\Version 1.12.4\202105280103566_StatementGenerator_RockDefaultTemplateLogo.data">
+      <DependentUpon>202105280103566_StatementGenerator.cs</DependentUpon>
+    </None>
+    <None Include="Migrations\Version 12.0\Version 1.12.4\202105280103566_StatementGenerator_RockDefaultTemplateReportSettings.json">
+      <DependentUpon>202105280103566_StatementGenerator.cs</DependentUpon>
     </None>
     <None Include="Migrations\Version 9.0\Version 1.9.0\201809142151587_ContentComponents_AdUnit.Lava">
       <DependentUpon>201809142151587_ContentComponents.cs</DependentUpon>
