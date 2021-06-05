@@ -824,13 +824,33 @@ namespace Rock.Lava
 
             if ( exceptionStrategy == ExceptionHandlingStrategySpecifier.RenderToOutput )
             {
-                var errorMessage = ex.Message.Length > 100 ? ex.Message.Substring( 0, 100 ) + "..." : ex.Message;
+                // [2021-06-04] DL
+                // Some Lava custom components have been designed to throw base Exceptions that contain important configuration instructions.
+                // However, there is currently no reliable method of identifying which exceptions in the stack offer an appropriate level of detail for display.
+                // To accomodate this design, we will display the message associated with the highest level Exception that is not a LavaException.
+                // In the future, this behavior could be more reliably implemented by defining a LavaConfigurationException that identifies
+                // an error message as being suitable for display in the render output.
+                var outputEx = ex;
 
-                message = $"Lava Error: {errorMessage}";
+                while ( outputEx is LavaException
+                        && outputEx.InnerException != null )
+                {
+                    outputEx = outputEx.InnerException;
+                }
+
+                if ( outputEx == null )
+                {
+                    message = $"Lava Error: { ex.Message }\n[Engine: { this.EngineName }]";
+                }
+                else
+                {
+                    message = outputEx.Message;
+                }
             }
             else if ( exceptionStrategy == ExceptionHandlingStrategySpecifier.Ignore )
             {
-                // We should probably log the message here rather than failing silently, but this preserves current behavior.
+                // Ignore the exception and return a null render result.
+                // The caller should subscribe to the ExceptionEncountered event in order to catch errors in the rendering process.
                 message = null;
             }
             else

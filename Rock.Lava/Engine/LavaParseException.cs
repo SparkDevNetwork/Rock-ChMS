@@ -45,7 +45,18 @@ namespace Rock.Lava
         {
             get
             {
-                return $"Lava Template Parse failed: { _message } [Engine={ _engineName }, Template=\"{ _template }\"]";
+                var msg = "Lava Template Parse failed" + ( string.IsNullOrWhiteSpace( _message ) ? "." : $": { _message }" );
+
+                if ( !string.IsNullOrWhiteSpace( _template ) )
+                {
+                    msg += $"\n[Template=\"{ _template }\"]";
+                }
+                if ( !string.IsNullOrWhiteSpace( _engineName ) )
+                {
+                    msg += $"\n[Engine={ _engineName }]";
+                }
+
+                return msg;
             }
         }
     }

@@ -777,6 +777,13 @@ namespace Rock
 
             var result = LavaService.RenderTemplate( content, LavaRenderParameters.WithContext( context ) );
 
+            if ( result.HasErrors
+                 && LavaService.ExceptionHandlingStrategy == ExceptionHandlingStrategySpecifier.RenderToOutput )
+            {
+                // If the result is an error, encode the error message to prevent any part of it from appearing as rendered content, and then add markup for line breaks.
+                result.Text = result.Text.EncodeHtml().ConvertCrLfToHtmlBr();
+            }
+
             return result;
         }
 
