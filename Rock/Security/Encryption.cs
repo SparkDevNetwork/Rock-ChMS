@@ -227,7 +227,6 @@ namespace Rock.Security
                 aesAlg = new RijndaelManaged();
                 
                 // generate the key from the shared secret and the salt
-                // generate a new key for every thread (vs. every call which is slow) 
                 Rfc2898DeriveBytes key = new Rfc2898DeriveBytes( dataEncryptionKey, _salt );
                 var keyBytes = key.GetBytes( aesAlg.KeySize / 8 );
                 aesAlg.Key = keyBytes;
@@ -345,7 +344,6 @@ namespace Rock.Security
                 aesAlg = new RijndaelManaged();
 
                 // generate the key from the shared secret and the salt
-                // generate a new key for every thread (vs. every call which is slow) 
                 Rfc2898DeriveBytes key = new Rfc2898DeriveBytes( dataEncryptionKey, _salt );
                 var keyBytes = key.GetBytes( aesAlg.KeySize / 8 );
 
