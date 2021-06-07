@@ -60,7 +60,15 @@ namespace Rock.Security
             {
                 if ( _oldDataEncryptionKeyBytesBacker.IsNull() )
                 {
-                    _oldDataEncryptionKeyBytesBacker = new Dictionary<string, byte[]>();
+                    /* 2021-06-07 ETD
+                     * Thred safety fix:
+                     * There is a possible edge case where a second call to this prop could occur while the first is still populating the dictionary, which means the second caller would only get an empty or partial list.
+                     * To prevent this the backer has to have all the data once it is no longer null. This prop uses a temp dictionary and populates it once complete the backer is set to the temp dictionary.
+                     * After being set the backer is no longer null and has a complete collection.
+                     * 
+                     * For our edge case scenario the second caller would simply end up duplicating the effort but it would get back the correct data.
+                     */
+                    var tempDictionary = new Dictionary<string, byte[]>();
 
                     int i = 0;
                     var appSettingKey = "OldDataEncryptionKey";
@@ -68,12 +76,14 @@ namespace Rock.Security
                     while ( !string.IsNullOrWhiteSpace( dataEncryptionKey ) )
                     {
                         Rfc2898DeriveBytes key = new Rfc2898DeriveBytes( dataEncryptionKey, _salt );
-                        _oldDataEncryptionKeyBytesBacker.Add( appSettingKey, key.GetBytes( 32 ) );
+                        tempDictionary.Add( appSettingKey, key.GetBytes( 32 ) );
 
                         i++;
                         appSettingKey = $"OldDataEncryptionKey{i}";
                         dataEncryptionKey = ConfigurationManager.AppSettings[appSettingKey];
                     }
+
+                    _oldDataEncryptionKeyBytesBacker = tempDictionary;
                 }
 
                 return _oldDataEncryptionKeyBytesBacker;
