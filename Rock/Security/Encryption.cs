@@ -194,6 +194,7 @@ namespace Rock.Security
         /// <param name="dataEncryptionKey">The data encryption key.</param>
         /// <returns></returns>
         /// <exception cref="System.ArgumentNullException">DataEncryptionKey must be specified in configuration file</exception>
+        [RockObsolete( "1.13" )]
         [Obsolete("Do not use this method. Use the override without the dataEncryption key. That method will get the key from the web.config and store the computed key which will make subsequent encrypts faster by 10-15ms. This method will compute the key each time and will be much slower.")]
         public static string EncryptString( string plainText, string dataEncryptionKey )
         {
