@@ -37,8 +37,15 @@ namespace Rock.CheckIn
         /// The type of the group.
         /// </value>
         [DataMember]
-        public GroupTypeCache GroupType => GroupTypeId.HasValue ? GroupTypeCache.Get( GroupTypeId.Value ) : null;
-        private int? GroupTypeId { get; set; }
+        public GroupTypeCache GroupType => GroupTypeCache.Get( GroupTypeId );
+
+        /// <summary>
+        /// Gets or sets the group type identifier.
+        /// </summary>
+        /// <value>
+        /// The group type identifier.
+        /// </value>
+        public int GroupTypeId { get; set; }
 
         /// <summary>
         /// All groups with active schedules

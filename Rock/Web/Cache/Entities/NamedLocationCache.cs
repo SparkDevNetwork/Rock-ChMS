@@ -87,40 +87,6 @@ namespace Rock.Web.Cache
         [DataMember]
         public int? PrinterDeviceId { get; internal set; }
 
-        /// <summary>
-        /// Gets the geo fence text.
-        /// </summary>
-        /// <value>
-        /// The geo fence text.
-        /// </value>
-        [DataMember]
-        public string GeoFenceText { get; internal set; }
-
-        /// <summary>
-        /// Gets the geo fence.
-        /// </summary>
-        /// <value>
-        /// The geo fence.
-        /// </value>
-        public DbGeography GeoFence => DbGeography.FromText( this.GeoFenceText );
-
-        /// <summary>
-        /// Gets the geo point text.
-        /// </summary>
-        /// <value>
-        /// The geo point text.
-        /// </value>
-        [DataMember]
-        public string GeoPointText { get; internal set; }
-
-        /// <summary>
-        /// Gets the geo point.
-        /// </summary>
-        /// <value>
-        /// The geo point.
-        /// </value>
-        public DbGeography GeoPoint => DbGeography.FromText( this.GeoPointText );
-
         /// <inheritdoc cref="Rock.Model.Location.ParentLocation" />
         public NamedLocationCache ParentLocation => this.ParentLocationId.HasValue ? NamedLocationCache.Get( ParentLocationId.Value ) : null;
 
@@ -246,8 +212,6 @@ namespace Rock.Web.Cache
             this.FirmRoomThreshold = location.FirmRoomThreshold;
             this.SoftRoomThreshold = location.SoftRoomThreshold;
             this.PrinterDeviceId = location.PrinterDeviceId;
-            this.GeoFenceText = location.GeoFence?.AsText();
-            this.GeoPointText = location.GeoPoint?.AsText();
         }
 
         /// <summary>
