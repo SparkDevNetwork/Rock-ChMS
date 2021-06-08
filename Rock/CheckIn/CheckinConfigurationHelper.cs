@@ -16,8 +16,11 @@
 //
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using System.Web;
+
+using Newtonsoft.Json;
 
 using Rock.Web.Cache;
 
@@ -45,6 +48,8 @@ namespace Rock.CheckIn
             }
         }
 
+        private static string _rockVersion = Rock.VersionInfo.VersionInfo.GetRockProductVersionFullName();
+
         /// <summary>
         /// Gets the local device configuration status.
         /// </summary>
@@ -54,6 +59,8 @@ namespace Rock.CheckIn
         /// <exception cref="ArgumentNullException">LocalDeviceConfiguration with a valid KioskId and Checkin Type  is required</exception>
         public static LocalDeviceConfigurationStatus GetLocalDeviceConfigurationStatus( LocalDeviceConfiguration localDeviceConfiguration, HttpRequest httpRequest )
         {
+            Stopwatch stopwatchAll = Stopwatch.StartNew();
+
             if ( localDeviceConfiguration?.CurrentKioskId == null || localDeviceConfiguration?.CurrentCheckinTypeId == null )
             {
 
@@ -62,16 +69,21 @@ namespace Rock.CheckIn
 
             var kiosk = KioskDevice.Get( localDeviceConfiguration.CurrentKioskId.Value, localDeviceConfiguration.CurrentGroupTypeIds );
 
+            Stopwatch stopwatchActiveDateTime = Stopwatch.StartNew();
             DateTime nextActiveDateTime = kiosk.FilteredGroupTypes( localDeviceConfiguration.CurrentGroupTypeIds ).Min( g => ( DateTime? ) g.NextActiveTime ) ?? DateTime.MaxValue;
             nextActiveDateTime = DateTime.SpecifyKind( nextActiveDateTime, DateTimeKind.Unspecified );
+            stopwatchActiveDateTime.Stop();
 
             bool isMobileAndExpired = CheckinConfigurationHelper.IsMobileAndExpiredDevice( httpRequest );
 
             CheckInState checkInState = new CheckInState( localDeviceConfiguration );
 
+            Stopwatch stopwatchGetCheckinStatus = Stopwatch.StartNew();
             CheckinConfigurationHelper.CheckinStatus checkinStatus = CheckinConfigurationHelper.GetCheckinStatus( checkInState );
+            stopwatchGetCheckinStatus.Stop();
 
-            var rockVersion = Rock.VersionInfo.VersionInfo.GetRockProductVersionFullName();
+            Stopwatch stopwatchGetVersion = Stopwatch.StartNew();
+            stopwatchGetVersion.Stop();
 
             CheckIn.CheckinType checkinType = new Rock.CheckIn.CheckinType( localDeviceConfiguration.CurrentCheckinTypeId.Value );
 
@@ -79,13 +91,14 @@ namespace Rock.CheckIn
             {
                 CheckinType = checkinType,
                 IsMobileAndExpired = isMobileAndExpired,
-                Kiosk = kiosk,
                 CheckinStatus = checkinStatus,
                 NextActiveDateTime = nextActiveDateTime,
-                RockVersion = rockVersion
+                RockVersion = _rockVersion
             };
 
+            Stopwatch stopwatchConfigurationData = Stopwatch.StartNew();
             var configurationString = configurationData.ToJson();
+            stopwatchConfigurationData.Stop();
 
             DateTime campusCurrentDateTime = RockDateTime.Now;
             if ( kiosk.CampusId.HasValue )
@@ -95,10 +108,23 @@ namespace Rock.CheckIn
 
             LocalDeviceConfigurationStatus localDeviceConfigurationStatus = new LocalDeviceConfigurationStatus();
 
-            localDeviceConfigurationStatus.ConfigurationHash = Rock.Security.Encryption.GetSHA1Hash( configurationString );
+            Stopwatch stopwatchComputeHash = Stopwatch.StartNew();
+            localDeviceConfigurationStatus.ConfigurationHash = configurationString.XxHash();
+            stopwatchComputeHash.Stop();
             localDeviceConfigurationStatus.ServerCurrentDateTime = RockDateTime.Now;
             localDeviceConfigurationStatus.CampusCurrentDateTime = campusCurrentDateTime;
             localDeviceConfigurationStatus.NextActiveDateTime = nextActiveDateTime;
+
+            DebugHelper.SQLLoggingStop();
+            
+            Debug.WriteLine( $@"
+[{stopwatchConfigurationData.Elapsed.TotalMilliseconds} ms] configurationString, length:{configurationString.Length / 1024}KB
+[{stopwatchActiveDateTime.Elapsed.TotalMilliseconds}ms] stopwatchActiveDateTime
+[{stopwatchGetCheckinStatus.Elapsed.TotalMilliseconds}ms] stopwatchGetCheckinStatus
+[{stopwatchComputeHash.Elapsed.TotalMilliseconds}ms] stopwatchComputeHash
+[{stopwatchGetVersion.Elapsed.TotalMilliseconds}ms] stopwatchGetVersion
+[{stopwatchAll.Elapsed.TotalMilliseconds}ms] Total
+" );
             return localDeviceConfigurationStatus;
         }
 
@@ -248,6 +274,6 @@ namespace Rock.CheckIn
         /// </summary>
         public static readonly string AttendanceSessionGuids = "Checkin.AttendanceSessionGuids";
 
-        
+
     }
 }

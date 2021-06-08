@@ -86,7 +86,9 @@ namespace Rock.CheckIn
         {
             get
             {
-                return KioskLocations.Min( s => (DateTime?)s.NextActiveDateTime );
+                var kioskSchedules = KioskLocations.SelectMany( a => a.KioskSchedules );
+                kioskSchedules = kioskSchedules.DistinctBy( a => a.Schedule.Id );
+                return kioskSchedules.Min( s => ( DateTime? ) s.NextActiveDateTime );
             }
         }
 
