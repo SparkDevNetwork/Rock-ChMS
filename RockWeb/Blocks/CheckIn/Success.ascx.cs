@@ -32,6 +32,7 @@ using Rock.CheckIn;
 using Rock.Data;
 using Rock.Model;
 using Rock.Utility;
+using Rock.Web.Cache;
 using Rock.Web.UI;
 
 namespace RockWeb.Blocks.CheckIn
@@ -125,7 +126,9 @@ namespace RockWeb.Blocks.CheckIn
             /// <value>
             /// The location.
             /// </value>
-            public Location Location { get; internal set; }
+            public int LocationId { get; internal set; }
+
+            public NamedLocationCache Location => NamedLocationCache.Get( LocationId );
 
             /// <summary>
             /// Gets the schedule.
@@ -191,7 +194,7 @@ namespace RockWeb.Blocks.CheckIn
                                                 CheckinResult checkinResult = new CheckinResult();
                                                 checkinResult.Person = person;
                                                 checkinResult.Group = group;
-                                                checkinResult.Location = location.Location;
+                                                checkinResult.LocationId = location.LocationId;
                                                 checkinResult.Schedule = schedule;
                                                 checkinResult.DetailMessage = detailMessage;
                                                 checkinResultList.Add( checkinResult );

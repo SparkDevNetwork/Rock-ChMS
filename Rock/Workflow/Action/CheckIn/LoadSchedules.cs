@@ -219,7 +219,7 @@ namespace Rock.Workflow.Action.CheckIn
                         if ( !location.Schedules.Any( s => s.Schedule.Id == kioskSchedule.Schedule.Id ) )
                         {
                             var checkInSchedule = new CheckInSchedule();
-                            checkInSchedule.Schedule = kioskSchedule.Schedule.Clone( false );
+                            checkInSchedule.ScheduleId = kioskSchedule.ScheduleId;
                             checkInSchedule.CampusId = kioskSchedule.CampusId;
                             checkInSchedule.StartTime = kioskSchedule.StartTime;
                             checkInSchedule.PreSelected = preSelectForOccurrence;
@@ -231,7 +231,7 @@ namespace Rock.Workflow.Action.CheckIn
                             !person.PossibleSchedules.Any( s => s.Schedule.Id == kioskSchedule.Schedule.Id ) )
                         {
                             var checkInSchedule = new CheckInSchedule();
-                            checkInSchedule.Schedule = kioskSchedule.Schedule.Clone( false );
+                            checkInSchedule.ScheduleId = kioskSchedule.ScheduleId;
                             checkInSchedule.CampusId = kioskSchedule.CampusId;
                             checkInSchedule.StartTime = kioskSchedule.StartTime;
                             checkInSchedule.PreSelected = preSelectForOccurrence;

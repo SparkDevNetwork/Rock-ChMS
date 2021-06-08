@@ -296,7 +296,7 @@ namespace Rock.CheckIn
                     var device = new KioskDevice( deviceModel );
                     foreach ( Location location in deviceModel.Locations )
                     {
-                        LoadKioskLocations( device, location, campusLocations, rockContext );
+                        LoadKioskLocations( device, location.Id, campusLocations, rockContext );
                     }
 
                     return device;
@@ -353,14 +353,14 @@ namespace Rock.CheckIn
         /// Loads the kiosk locations.
         /// </summary>
         /// <param name="kioskDevice">The kiosk device.</param>
-        /// <param name="location">The location.</param>
+        /// <param name="locationId">The location identifier.</param>
         /// <param name="campusLocations">The campus locations.</param>
         /// <param name="rockContext">The rock context.</param>
-        private static void LoadKioskLocations( KioskDevice kioskDevice, Location location, Dictionary<int, int> campusLocations, RockContext rockContext )
+        private static void LoadKioskLocations( KioskDevice kioskDevice, int locationId, Dictionary<int, int> campusLocations, RockContext rockContext )
         {
             // First check to see if this is a campus location
             int campusId = campusLocations
-                .Where( c => c.Value == location.Id )
+                .Where( c => c.Value == locationId )
                 .Select( c => c.Key )
                 .FirstOrDefault();
 
@@ -368,7 +368,7 @@ namespace Rock.CheckIn
             if ( campusId == 0 )
             {
                 foreach ( var parentLocationId in new LocationService( rockContext )
-                    .GetAllAncestorIds( location.Id ) )
+                    .GetAllAncestorIds( locationId ) )
                 {
                     campusId = campusLocations
                         .Where( c => c.Value == parentLocationId )
@@ -381,21 +381,21 @@ namespace Rock.CheckIn
                 }
             }
 
-            LoadKioskLocations( kioskDevice, location, ( campusId > 0 ? campusId : (int?)null ), rockContext );
+            LoadKioskLocations( kioskDevice, locationId, ( campusId > 0 ? campusId : (int?)null ), rockContext );
         }
 
         /// <summary>
         /// Loads the kiosk locations.
         /// </summary>
         /// <param name="kioskDevice">The kiosk device.</param>
-        /// <param name="location">The location.</param>
+        /// <param name="locationId">The location identifier.</param>
         /// <param name="campusId">The campus identifier.</param>
         /// <param name="rockContext">The rock context.</param>
-        private static void LoadKioskLocations( KioskDevice kioskDevice, Location location, int? campusId, RockContext rockContext )
+        private static void LoadKioskLocations( KioskDevice kioskDevice, int locationId, int? campusId, RockContext rockContext )
         {
             // Get the child locations and the selected location
-            var allLocations = new LocationService( rockContext ).GetAllDescendentIds( location.Id ).ToList();
-            allLocations.Add( location.Id );
+            var allLocations = new LocationService( rockContext ).GetAllDescendentIds( locationId ).ToList();
+            allLocations.Add( locationId );
 
             DateTime currentDateTime = RockDateTime.Now;
             if ( campusId.HasValue )

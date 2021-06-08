@@ -20,6 +20,7 @@ using System.Linq;
 using System.Runtime.Serialization;
 
 using Rock.Model;
+using Rock.Web.Cache;
 
 namespace Rock.CheckIn
 {
@@ -36,7 +37,15 @@ namespace Rock.CheckIn
         /// The location.
         /// </value>
         [DataMember]
-        public Location Location { get; set; }
+        public NamedLocationCache Location => NamedLocationCache.Get( LocationId );
+
+        /// <summary>
+        /// Gets or sets the location identifier.
+        /// </summary>
+        /// <value>
+        /// The location identifier.
+        /// </value>
+        public int LocationId { get; set; }
 
         /// <summary>
         /// Gets or sets the campus identifier that the location is associated with
@@ -152,7 +161,7 @@ namespace Rock.CheckIn
         public KioskLocation( Location location )
             : base()
         {
-            Location = location.Clone( false );
+            LocationId = location.Id;
             KioskSchedules = new List<KioskSchedule>();
         }
 

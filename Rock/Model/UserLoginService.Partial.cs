@@ -468,8 +468,18 @@ namespace Rock.Model
                 Regex returnurlRegEx = new Regex( @"returnurl=([^&]*)" );
                 cleanUrl = returnurlRegEx.Replace( cleanUrl, "returnurl=XXXXXXXXXXXXXXXXXXXXXXXXXXXX" );
 
+                string ipAddress = null;
+                try
+                {
+                    ipAddress = Rock.Web.UI.RockPage.GetClientIpAddress();
+                }
+                catch
+                {
+                    //
+                }
+
                 relatedDataBuilder.AppendFormat( " to <span class='field-value'>{0}</span>, from <span class='field-value'>{1}</span>",
-                    cleanUrl, Rock.Web.UI.RockPage.GetClientIpAddress() );
+                    cleanUrl, ipAddress );
             }
 
             var historyChangeList = new History.HistoryChangeList();
