@@ -85,9 +85,13 @@
     <Compile Include="Migrations\202106081839210_CodeGenerated_0608.Designer.cs">
       <DependentUpon>202106081839210_CodeGenerated_0608.cs</DependentUpon>
     </Compile>
-    <Compile Include="Migrations\202106092058310_FinancialScheduledTransactionStatus.cs" />
-    <Compile Include="Migrations\202106092058310_FinancialScheduledTransactionStatus.Designer.cs">
-      <DependentUpon>202106092058310_FinancialScheduledTransactionStatus.cs</DependentUpon>
+    <Compile Include="Migrations\202106091502220_AddStepProgramCompletion.cs" />
+    <Compile Include="Migrations\202106091502220_AddStepProgramCompletion.Designer.cs">
+      <DependentUpon>202106091502220_AddStepProgramCompletion.cs</DependentUpon>
+    </Compile>
+    <Compile Include="Migrations\202106091645247_ScheduledTransactionInactiveDateTime.cs" />
+    <Compile Include="Migrations\202106091645247_ScheduledTransactionInactiveDateTime.Designer.cs">
+      <DependentUpon>202106091645247_ScheduledTransactionInactiveDateTime.cs</DependentUpon>
     </Compile>
     <Compile Include="Migrations\Version 12.0\Version 1.12.4\202105280103566_StatementGenerator.cs" />
     <Compile Include="Migrations\Version 12.0\Version 1.12.4\202105280103566_StatementGenerator.Designer.cs">
@@ -551,8 +555,11 @@
     <EmbeddedResource Include="Migrations\202106072348124_EventCalendarIndexProperty.resx">
       <DependentUpon>202106072348124_EventCalendarIndexProperty.cs</DependentUpon>
     </EmbeddedResource>
-    <EmbeddedResource Include="Migrations\202106092058310_FinancialScheduledTransactionStatus.resx">
-      <DependentUpon>202106092058310_FinancialScheduledTransactionStatus.cs</DependentUpon>
+    <EmbeddedResource Include="Migrations\202106091502220_AddStepProgramCompletion.resx">
+      <DependentUpon>202106091502220_AddStepProgramCompletion.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Migrations\202106091645247_ScheduledTransactionInactiveDateTime.resx">
+      <DependentUpon>202106091645247_ScheduledTransactionInactiveDateTime.cs</DependentUpon>
     </EmbeddedResource>
     <EmbeddedResource Include="Migrations\Version 12.0\Version 1.12.4\202105280103566_StatementGenerator.resx">
       <DependentUpon>202105280103566_StatementGenerator.cs</DependentUpon>
