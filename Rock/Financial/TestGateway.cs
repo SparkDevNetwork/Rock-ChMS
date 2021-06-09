@@ -255,6 +255,7 @@ namespace Rock.Financial
                 scheduledTransaction.TransactionCode = "T" + RockDateTime.Now.ToString( "yyyyMMddHHmmssFFF" );
                 scheduledTransaction.GatewayScheduleId = "Subscription_" + RockDateTime.Now.ToString( "yyyyMMddHHmmssFFF" );
                 scheduledTransaction.LastStatusUpdateDateTime = RockDateTime.Now;
+                scheduledTransaction.Status = "Test";
                 return scheduledTransaction;
             }
 

@@ -806,6 +806,7 @@ Transaction id: {threeStepChangeStep3Response.TransactionId}.
 
                     transaction.NextPaymentDate = subscription.NextChargeDate;
                     transaction.LastStatusUpdateDateTime = RockDateTime.Now;
+                    transaction.Status = subscription.State;
 
                     return true;
                 }

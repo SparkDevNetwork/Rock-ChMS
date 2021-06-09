@@ -1337,7 +1337,22 @@ namespace Rock.MyWell
                     subscriptionParameters.Customer = new SubscriptionCustomer { Id = referencedPaymentInfo.GatewayPersonIdentifier };
                 }
 
-                var subscriptionResult = this.UpdateSubscription( gatewayUrl, apiKey, subscriptionId, subscriptionParameters );
+                SubscriptionResponse subscriptionResult;
+                var subscriptionStatusResult = this.GetSubscription( gatewayUrl, apiKey, subscriptionId );
+                if ( subscriptionStatusResult?.IsCancelled() == true )
+                {
+                    // if we get a cancelled status, MyWell doesn't support a way to undo cancel it, so, we'll have to re-create it
+                    subscriptionResult = this.CreateSubscription( gatewayUrl, apiKey, subscriptionParameters );
+                    if ( subscriptionResult?.IsSuccessStatus() == true )
+                    {
+                        this.DeleteSubscription( gatewayUrl, apiKey, subscriptionId );
+                    }
+                }
+                else
+                {
+                    subscriptionResult = this.UpdateSubscription( gatewayUrl, apiKey, subscriptionId, subscriptionParameters );
+                }
+
                 if ( !subscriptionResult.IsSuccessStatus() )
                 {
                     // Write decline/error as an exception.
@@ -1348,6 +1363,14 @@ namespace Rock.MyWell
                     errorMessage = subscriptionResult.Message;
 
                     return false;
+                }
+
+                subscriptionId = subscriptionResult?.Data?.Id;
+
+                if ( subscriptionId != scheduledTransaction.GatewayScheduleId )
+                {
+                    referencedPaymentInfo.TransactionCode = subscriptionId;
+                    scheduledTransaction.GatewayScheduleId = subscriptionId;
                 }
             }
             else
@@ -1380,6 +1403,7 @@ namespace Rock.MyWell
 
             scheduledTransaction.FinancialPaymentDetail = PopulatePaymentInfo( paymentInfo, customerInfo?.Data?.PaymentMethod, customerInfo?.Data?.BillingAddress );
             scheduledTransaction.TransactionCode = customerId;
+
             try
             {
                 GetScheduledPaymentStatus( scheduledTransaction, out errorMessage );
@@ -1466,6 +1490,7 @@ namespace Rock.MyWell
                 {
                     scheduledTransaction.NextPaymentDate = subscriptionInfo.NextBillDateUTC?.Date;
                     scheduledTransaction.FinancialPaymentDetail.GatewayPersonIdentifier = subscriptionInfo.Customer?.Id;
+                    scheduledTransaction.Status = subscriptionInfo.SubscriptionStatus;
                 }
 
                 scheduledTransaction.LastStatusUpdateDateTime = RockDateTime.Now;

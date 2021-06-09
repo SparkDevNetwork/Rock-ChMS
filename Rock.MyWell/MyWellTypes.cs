@@ -1714,10 +1714,41 @@ namespace Rock.MyWell
         [JsonProperty( "id" )]
         public string Id { get; set; }
 
-        public string payment_method_type { get; set; }
-        public string payment_method_id { get; set; }
-        public string billing_address_id { get; set; }
-        public string shipping_address_id { get; set; }
+        /// <summary>
+        /// Gets or sets the type of the payment method.
+        /// </summary>
+        /// <value>
+        /// The type of the payment method.
+        /// </value>
+        [JsonProperty( "payment_method_type" )]
+        public string PaymentMethodType { get; set; }
+
+        /// <summary>
+        /// Gets or sets the payment method identifier.
+        /// </summary>
+        /// <value>
+        /// The payment method identifier.
+        /// </value>
+        [JsonProperty( "payment_method_id" )]
+        public string PaymentMethodId { get; set; }
+
+        /// <summary>
+        /// Gets or sets the billing address identifier.
+        /// </summary>
+        /// <value>
+        /// The billing address identifier.
+        /// </value>
+        [JsonProperty( "billing_address_id" )]
+        public string BillingAddressId { get; set; }
+
+        /// <summary>
+        /// Gets or sets the shipping address identifier.
+        /// </summary>
+        /// <value>
+        /// The shipping address identifier.
+        /// </value>
+        [JsonProperty( "shipping_address_id" )]
+        public string ShippingAddressId { get; set; }
     }
 
     /// <summary>
@@ -1733,6 +1764,26 @@ namespace Rock.MyWell
         /// </value>
         [JsonProperty( "data" )]
         public SubscriptionData Data { get; set; }
+
+        /// <summary>
+        /// The canceled statuses, MyWell spells it 'cancelled', but just in case they change it to 'canceled'
+        /// </summary>
+        private static readonly string[] cancelledStatuses = { "cancelled", "canceled" };
+
+
+        /* 4/25/2021 Email from John Pinkerton says these are the possible values for status
+
+        active, completed, paused, cancelled, past_due
+         
+         */
+
+        /// <summary>
+        /// Determines whether this instance is canceled.
+        /// </summary>
+        /// <returns>
+        ///   <c>true</c> if this instance is canceled; otherwise, <c>false</c>.
+        /// </returns>
+        public bool IsCancelled() => cancelledStatuses.Contains( Data?.SubscriptionStatus, StringComparer.OrdinalIgnoreCase );
     }
 
     /// <summary>
@@ -1749,19 +1800,33 @@ namespace Rock.MyWell
         [JsonProperty( "id" )]
         public string Id { get; set; }
 
-        public string plan_id { get; set; }
-        public string plan_name { get; set; }
-        
-        public string status { get; set; }
-
         /// <summary>
-        /// Gets or sets the name.
+        /// Gets or sets the plan identifier.
         /// </summary>
         /// <value>
-        /// The name.
+        /// The plan identifier.
         /// </value>
-        //[JsonProperty( "name" )]
-        //public string Name { get; set; }
+        [JsonProperty( "plan_id" )]
+        public string PlanId { get; set; }
+
+        /// <summary>
+        /// Gets or sets the name of the plan.
+        /// </summary>
+        /// <value>
+        /// The name of the plan.
+        /// </value>
+        [JsonProperty( "plan_name" )]
+        public string PlanName { get; set; }
+
+        /// <summary>
+        /// Gets or sets the status.
+        /// possible values include 'active', 'cancelled'
+        /// </summary>
+        /// <value>
+        /// The status.
+        /// </value>
+        [JsonProperty( "status" )]
+        public string SubscriptionStatus { get; set; }
 
         /// <summary>
         /// Gets or sets the description.
@@ -1772,8 +1837,23 @@ namespace Rock.MyWell
         [JsonProperty( "description" )]
         public string Description { get; set; }
 
-        public string customer_name { get; set; }
-        public bool shared { get; set; }
+        /// <summary>
+        /// Gets or sets the name of the customer.
+        /// </summary>
+        /// <value>
+        /// The name of the customer.
+        /// </value>
+        [JsonProperty( "customer_name" )]
+        public string CustomerName { get; set; }
+
+        /// <summary>
+        /// Gets or sets a value indicating whether this <see cref="SubscriptionData"/> is shared.
+        /// </summary>
+        /// <value>
+        ///   <c>true</c> if shared; otherwise, <c>false</c>.
+        /// </value>
+        [JsonProperty( "shared" )]
+        public bool Shared { get; set; }
 
         /// <summary>
         /// Gets or sets the customer.
@@ -1806,10 +1886,41 @@ namespace Rock.MyWell
         [JsonProperty( "amount" )]
         public int AmountCents { get; set; }
 
-        public string currency { get; set; }
-        public string processor_id { get; set; }
-        public int total_adds { get; set; }
-        public int total_discounts { get; set; }
+        /// <summary>
+        /// Gets or sets the currency.
+        /// </summary>
+        /// <value>
+        /// The currency.
+        /// </value>
+        [JsonProperty( "currency" )]
+        public string Currency { get; set; }
+
+        /// <summary>
+        /// Gets or sets the processor identifier.
+        /// </summary>
+        /// <value>
+        /// The processor identifier.
+        /// </value>
+        [JsonProperty( "processor_id" )]
+        public string ProcessorId { get; set; }
+
+        /// <summary>
+        /// Gets or sets the total adds.
+        /// </summary>
+        /// <value>
+        /// The total adds.
+        /// </value>
+        [JsonProperty( "total_adds" )]
+        public int TotalAdds { get; set; }
+
+        /// <summary>
+        /// Gets or sets the total discounts.
+        /// </summary>
+        /// <value>
+        /// The total discounts.
+        /// </value>
+        [JsonProperty( "total_discounts" )]
+        public int TotalDiscounts { get; set; }
 
         /// <summary>
         /// "How often to run the billing cycle. Run every x months"
@@ -1857,8 +1968,23 @@ namespace Rock.MyWell
         [JsonConverter( typeof( MyWellGatewayUTCIsoDateConverter ) )]
         public DateTime? NextBillDateUTC { get; set; }
 
-        public object add_ons { get; set; }
-        public object discounts { get; set; }
+        /// <summary>
+        /// Gets or sets the add ons.
+        /// </summary>
+        /// <value>
+        /// The add ons.
+        /// </value>
+        [JsonProperty( "add_ons" )]
+        public object AddOns { get; set; }
+
+        /// <summary>
+        /// Gets or sets the discounts.
+        /// </summary>
+        /// <value>
+        /// The discounts.
+        /// </value>
+        [JsonProperty( "discounts" )]
+        public object Discounts { get; set; }
 
         /// <summary>
         /// Gets or sets the created date time.

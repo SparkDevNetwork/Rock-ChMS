@@ -139,6 +139,16 @@ namespace Rock.Model
         public DateTime? LastStatusUpdateDateTime { get; set; }
 
         /// <summary>
+        /// Gets the status of the scheduled transactions provided by the payment gateway (i.e. Active, Cancelled, etc)
+        /// </summary>
+        /// <value>
+        /// The status.
+        /// </value>
+        [DataMember]
+        [MaxLength( 50 )]
+        public string Status { get; set; }
+
+        /// <summary>
         /// Gets or sets a flag indicating if this scheduled transaction is active.
         /// </summary>
         /// <value>
