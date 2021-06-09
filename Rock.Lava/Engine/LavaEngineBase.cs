@@ -510,11 +510,7 @@ namespace Rock.Lava
 
                     if ( parseResult.HasErrors )
                     {
-                        if ( parseResult.Template == null
-                             || exceptionStrategy == ExceptionHandlingStrategySpecifier.Throw )
-                        {
-                            throw new LavaException( "Lava Template parse operation failed." );
-                        }
+                        throw parseResult.Error;
                     }
 
                     template = parseResult.Template;
@@ -529,14 +525,11 @@ namespace Rock.Lava
             }
             catch ( Exception ex )
             {
-                if ( !( ex is LavaException ) )
-                {
-                    ex = new LavaRenderException( this.EngineName, inputTemplate, ex );
-                }
+                var lre = GetLavaRenderException( ex, inputTemplate );
 
                 string message;
 
-                ProcessException( ex, exceptionStrategy, out message );
+                ProcessException( lre, exceptionStrategy, out message );
 
                 renderResult.Error = ex;
                 renderResult.Text = message;
@@ -636,24 +629,11 @@ namespace Rock.Lava
             }
             catch ( Exception ex )
             {
-                var lpe = ex as LavaParseException ?? new LavaParseException( this.EngineName, inputTemplate, ex );
+                var lpe = ex as LavaParseException ?? new LavaParseException( this.EngineName, inputTemplate, ex.Message );
 
                 result.Error = lpe;
 
-                string message;
-
-                var exceptionStrategy = this.ExceptionHandlingStrategy;
-
-                ProcessException( lpe, exceptionStrategy, out message );
-
-                if ( !string.IsNullOrWhiteSpace( message ) )
-                {
-                    // Create a new template containing the error message.
-                    if ( exceptionStrategy == ExceptionHandlingStrategySpecifier.RenderToOutput )
-                    {
-                        result.Template = OnParseTemplate( message );
-                    }
-                }
+                ProcessException( lpe, null, out _ );
             }
 
             return result;
@@ -872,9 +852,9 @@ namespace Rock.Lava
             }
         }
 
-        private LavaRenderException GetLavaRenderException( Exception ex )
+        private LavaRenderException GetLavaRenderException( Exception ex, string templateText = "{compiled}" )
         {
-            return ex as LavaRenderException ?? new LavaRenderException( this.EngineName, string.Empty, ex );
+            return ex as LavaRenderException ?? new LavaRenderException( this.EngineName, templateText, ex );
         }
 
         /// <summary>

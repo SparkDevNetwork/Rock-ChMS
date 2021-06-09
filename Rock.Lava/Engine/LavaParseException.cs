@@ -28,6 +28,7 @@ namespace Rock.Lava
         private string _message;
 
         public LavaParseException( string engineName, string template, string message )
+            : base()
         {
             _engineName = engineName;
             _template = template;
@@ -45,7 +46,14 @@ namespace Rock.Lava
         {
             get
             {
-                var msg = "Lava Template Parse failed" + ( string.IsNullOrWhiteSpace( _message ) ? "." : $": { _message }" );
+                string msg = _message;
+
+                if ( string.IsNullOrWhiteSpace( _message ) && this.InnerException != null )
+                {
+                    msg = this.InnerException.Message;
+                }
+
+                msg = "Lava Template Parse failed" + ( string.IsNullOrWhiteSpace( msg ) ? "." : $": { msg }" );
 
                 if ( !string.IsNullOrWhiteSpace( _template ) )
                 {

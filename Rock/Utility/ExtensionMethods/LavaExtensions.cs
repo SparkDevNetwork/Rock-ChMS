@@ -705,7 +705,7 @@ namespace Rock
                 else
                 {
                     ExceptionLogService.LogException( ex, System.Web.HttpContext.Current );
-                    return "Error resolving Lava merge fields: " + ex.Message;
+                    return "Error resolving Lava merge fields: " + ex.Message + "\n[Engine: DotLiquid]";
                 }
             }
         }

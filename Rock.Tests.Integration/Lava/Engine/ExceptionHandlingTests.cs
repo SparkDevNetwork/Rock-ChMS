@@ -14,6 +14,7 @@
 // limitations under the License.
 // </copyright>
 //
+using System.Collections.Generic;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using Rock.Lava;
 
@@ -72,6 +73,28 @@ namespace Rock.Tests.Integration.Lava
 
                 Assert.IsNotNull( result.Error, "Expected render exception not returned." );
                 Assert.IsNull( result.Text, "Unexpected render output returned." );
+            } );
+        }
+
+        /// <summary>
+        /// If a render error is encountered and the exception handling strategy is set to "ignore", the render output should be empty.
+        /// </summary>
+        [TestMethod]
+        public void ExceptionHandling_RenderMergeFieldsExtensionMethod_IsRenderedToOutput()
+        {
+            var input = @"{% invalidTagName %}";
+
+            TestHelper.ExecuteForActiveEngines( ( engine ) =>
+            {
+                engine.ExceptionHandlingStrategy = ExceptionHandlingStrategySpecifier.RenderToOutput;
+
+                LavaService.SetCurrentEngine( engine );
+
+                var outputText = input.ResolveMergeFields( new Dictionary<string, object>() );
+
+                TestHelper.DebugWriteRenderResult( engine.EngineType, input, outputText );
+
+                Assert.IsTrue( outputText.StartsWith( "Error resolving Lava merge fields: Unknown tag 'invalidTagName'\n" ) );
             } );
         }
     }
