@@ -30,8 +30,9 @@ using Rock.Web.UI.Controls;
 using Rock.Attribute;
 using System.Data.Entity;
 using System.Text;
-using DotLiquid;
 using System.Runtime.Serialization;
+using Rock.Utility;
+using Rock.Lava;
 
 namespace RockWeb.Blocks.Utility
 {
@@ -234,7 +235,8 @@ namespace RockWeb.Blocks.Utility
                 // Get latest content channel items, get two so we know if a previous one exists for paging
                 var contentChannelItems = new ContentChannelItemService( rockContext ).Queryable().AsNoTracking()
                                             .Where( i => i.ContentChannel.Guid == contentChannelGuid
-                                                            && i.Status == ContentChannelItemStatus.Approved )
+                                                            && i.Status == ContentChannelItemStatus.Approved
+                                                            && i.StartDateTime <= RockDateTime.Now )
                                             .OrderByDescending( i => i.StartDateTime )
                                             .Take( 2 )
                                             .Skip( _currentPage )
@@ -358,7 +360,7 @@ namespace RockWeb.Blocks.Utility
         /// </summary>
 		[Serializable]
         [DataContract]
-        protected class MetricResult : Drop
+        protected class MetricResult : RockDynamic
         {
             /// <summary>
             /// Gets or sets the identifier.
@@ -431,7 +433,7 @@ namespace RockWeb.Blocks.Utility
         /// </summary>
 		[Serializable]
         [DataContract]
-        protected class MetricValue : Drop
+        protected class MetricValue : RockDynamic
         {
             /// <summary>
             /// Gets or sets the date time.

@@ -26,13 +26,12 @@ using System.Web;
 using System.Web.UI;
 using System.Web.UI.HtmlControls;
 using System.Web.UI.WebControls;
-
 using DotLiquid;
-using DotLiquid.Tags;
 using Rock;
 using Rock.Attribute;
 using Rock.Data;
 using Rock.Field.Types;
+using Rock.Lava;
 using Rock.Model;
 using Rock.Security;
 using Rock.Web;
@@ -63,7 +62,7 @@ namespace RockWeb.Blocks.Groups
     [TextField( "ScheduleFilters", "", false, "", "CustomSetting" )]
     [BooleanField( "Display Campus Filter", "", false, "CustomSetting" )]
     [BooleanField( "Enable Campus Context", "", false, "CustomSetting" )]
-    [BooleanField( "Hide Overcapacity Groups", "When set to true, groups that are at capacity or whose default GroupTypeRole are at capacity are hidden.", true )]
+    [BooleanField( "Hide Overcapacity Groups", "When set to true, groups that are at capacity or whose default GroupTypeRole are at capacity are hidden.", true, "CustomSetting" )]
     [AttributeField( Rock.SystemGuid.EntityType.GROUP, "Attribute Filters", "", false, true, "", "CustomSetting" )]
 
     // Map Settings
@@ -82,7 +81,7 @@ namespace RockWeb.Blocks.Groups
 </div>
 
 <div class='margin-v-sm'>
-{% if Location.FormattedHtmlAddress && Location.FormattedHtmlAddress != '' %}
+{% if Location.FormattedHtmlAddress and Location.FormattedHtmlAddress != '' %}
 	{{ Location.FormattedHtmlAddress }}
 {% endif %}
 </div>
@@ -307,6 +306,8 @@ namespace RockWeb.Blocks.Groups
 
             SetAttributeValue( "DisplayCampusFilter", cbFilterCampus.Checked.ToString() );
             SetAttributeValue( "EnableCampusContext", cbCampusContext.Checked.ToString() );
+            SetAttributeValue( "HideOvercapacityGroups", cbHideOvercapacityGroups.Checked.ToString() );
+            
             SetAttributeValue( "AttributeFilters", cblAttributes.Items.Cast<ListItem>().Where( i => i.Selected ).Select( i => i.Value ).ToList().AsDelimited( "," ) );
 
             SetAttributeValue( "ShowMap", cbShowMap.Checked.ToString() );
@@ -472,6 +473,7 @@ namespace RockWeb.Blocks.Groups
 
             cbFilterCampus.Checked = GetAttributeValue( "DisplayCampusFilter" ).AsBoolean();
             cbCampusContext.Checked = GetAttributeValue( "EnableCampusContext" ).AsBoolean();
+            cbHideOvercapacityGroups.Checked = GetAttributeValue( "HideOvercapacityGroups" ).AsBoolean();
 
             cbShowMap.Checked = GetAttributeValue( "ShowMap" ).AsBoolean();
             dvpMapStyle.DefinedTypeId = DefinedTypeCache.Get( Rock.SystemGuid.DefinedType.MAP_STYLES.AsGuid() ).Id;
@@ -1084,7 +1086,21 @@ namespace RockWeb.Blocks.Groups
                 // If a map is to be shown
                 if ( showMap && groups.Any() )
                 {
-                    Template template = Template.Parse( GetAttributeValue( "MapInfo" ) );
+                    Template template = null;
+                    ILavaTemplate lavaTemplate = null;
+
+                    if ( LavaService.RockLiquidIsEnabled )
+                    {
+                        template = Template.Parse( GetAttributeValue( "MapInfo" ) );
+
+                        LavaHelper.VerifyParseTemplateForCurrentEngine( GetAttributeValue( "MapInfo" ) );
+                    }
+                    else
+                    {
+                        var parseResult = LavaService.ParseTemplate( GetAttributeValue( "MapInfo" ) );
+
+                        lavaTemplate = parseResult.Template;
+                    }
 
                     // Add mapitems for all the remaining valid group locations
                     var groupMapItems = new List<MapItem>();
@@ -1121,7 +1137,16 @@ namespace RockWeb.Blocks.Groups
                             securityActions.Add( "Administrate", group.IsAuthorized( Authorization.ADMINISTRATE, CurrentPerson ) );
                             mergeFields.Add( "AllowedActions", securityActions );
 
-                            string infoWindow = template.Render( Hash.FromDictionary( mergeFields ) );
+                            string infoWindow;
+
+                            if ( LavaService.RockLiquidIsEnabled )
+                            {
+                                infoWindow = template.Render( Hash.FromDictionary( mergeFields ) );
+                            }
+                            else
+                            {
+                                infoWindow = lavaTemplate.Render( mergeFields );
+                            }
 
                             // Add a map item for group
                             var mapItem = new FinderMapItem( gl.Location );
@@ -1333,7 +1358,9 @@ namespace RockWeb.Blocks.Groups
             if ( dvcMapStyle != null )
             {
                 styleCode = dvcMapStyle.GetAttributeValue( "DynamicMapStyle" );
-                markerColors = dvcMapStyle.GetAttributeValue( "Colors" )
+
+                var colorsSetting = dvcMapStyle.GetAttributeValue( "Colors" ) ?? string.Empty;
+                markerColors = colorsSetting
                     .Split( new char[] { '|' }, StringSplitOptions.RemoveEmptyEntries )
                     .ToList();
                 markerColors.ForEach( c => c = c.Replace( "#", string.Empty ) );

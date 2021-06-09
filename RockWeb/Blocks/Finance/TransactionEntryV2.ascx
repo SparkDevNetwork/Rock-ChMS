@@ -46,6 +46,10 @@
 
                             <asp:Literal ID="lIntroMessage" runat="server" />
 
+                            <%-- Special input with rock-fullname class --%>
+                            <Rock:RockTextBox ID="tbRockFullName_AmountEntry" runat="server" CssClass="rock-fullname" ValidationGroup="vgRockFullName_AmountEntry" Placeholder="Please enter name (Required)" />
+                            <Rock:NotificationBox ID="nbRockFullName_AmountEntry" runat="server" NotificationBoxType="Validation" />
+
                             <Rock:CampusAccountAmountPicker ID="caapPromptForAccountAmounts" runat="server" />
 
                             <asp:Panel ID="pnlScheduledTransaction" runat="server">
@@ -124,6 +128,10 @@
                         <asp:Panel ID="pnlPersonalInformation" runat="server" Visible="false">
 
                             <Rock:Toggle ID="tglIndividualOrBusiness" runat="server" ButtonGroupCssClass="btn-group-justified" OnText="Business" OffText="Individual" OnCheckedChanged="tglIndividualOrBusiness_CheckedChanged" />
+
+                            <%-- Special input with rock-fullname class --%>
+                            <Rock:RockTextBox ID="tbRockFullName_PersonalInformation" runat="server" CssClass="rock-fullname" ValidationGroup="vgRockFullName_PersonalInformation" Placeholder="Please enter name (Required)" />
+                            <Rock:NotificationBox ID="nbRockFullName_PersonalInformation" runat="server" NotificationBoxType="Validation" />
 
                             <asp:Panel ID="pnlPersonInformationAsIndividual" runat="server">
                                 <asp:Panel ID="pnlLoggedInNameDisplay" runat="server">
@@ -290,9 +298,15 @@
                     }
                 });
 
-                var feeAmount = (totalAmt * (feePercent / 100)).toFixed(2);
+                var decimalPlaces = $coverTheFeeAmountText.attr('decimal-places');
+                if (!decimalPlaces && decimalPlaces != 0) {
+                    decimalPlaces = 2;
+                }
+                console.log(decimalPlaces);
+                var feeAmount = (totalAmt * (feePercent / 100)).toFixed(decimalPlaces);
+                var displayFeeAmount = (totalAmt * (feePercent / 100)).toLocaleString(undefined, { minimumFractionDigits: decimalPlaces, maximumFractionDigits: decimalPlaces });
 
-                $coverTheFeeAmountText.html(feeAmount);
+                $coverTheFeeAmountText.html(displayFeeAmount);
                 if (feeAmount > 0) {
                     $coverTheFeeContainer.show();
                 }

@@ -17,6 +17,7 @@
 using System;
 using System.Collections.Generic;
 using System.ComponentModel;
+using System.Globalization;
 using System.Linq;
 using System.Security.Cryptography;
 using System.Text;
@@ -1022,6 +1023,30 @@ namespace Rock
         }
 
         /// <summary>
+        /// Attempts to convert string to decimal with invariant culture. Returns null if unsuccessful.
+        /// </summary>
+        /// <param name="str">The string.</param>
+        /// <returns></returns>
+        public static decimal? AsDecimalInvariantCultureOrNull( this string str )
+        {
+            if ( !string.IsNullOrWhiteSpace( str ) )
+            {
+                // strip off non numeric and characters at the beginning of the line (currency symbols)
+                str = Regex.Replace( str, @"^[^0-9\.-]", string.Empty );
+            }
+
+            decimal value;
+            if ( decimal.TryParse( str, NumberStyles.Number, CultureInfo.InvariantCulture, out value ) )
+            {
+                return value;
+            }
+            else
+            {
+                return null;
+            }
+        }
+
+        /// <summary>
         /// Attempts to convert string to double.  Returns 0 if unsuccessful.
         /// </summary>
         /// <param name="str">The string.</param>
@@ -1234,6 +1259,16 @@ namespace Rock
         }
 
         /// <summary>
+        /// Removes all whitespace in a string, including carriage return and line feed characters.
+        /// </summary>
+        /// <param name="input">The input string.</param>
+        /// <returns></returns>
+        public static string RemoveWhiteSpace( this string input )
+        {
+            return string.Concat( input.Where( c => !char.IsWhiteSpace( c ) ) );
+        }
+
+        /// <summary>
         /// Breaks a string into chunks. Handy for splitting a large string into smaller chunks
         /// from https://stackoverflow.com/a/1450889/1755417
         /// </summary>
@@ -1286,6 +1321,16 @@ namespace Rock
             writer.Flush();
             stream.Position = 0;
             return new System.IO.StreamReader( stream );
+        }
+
+        /// <summary>
+        /// A string extension method that escape XML.
+        /// </summary>
+        /// <param name="str">The string.</param>
+        /// <returns>A string.</returns>
+        public static string EscapeXml( this string str )
+        {
+            return str.Replace( "&", "&amp;" ).Replace( "<", "&lt;" ).Replace( ">", "&gt;" ).Replace( "\"", "&quot;" ).Replace( "'", "&apos;" );
         }
 
         #endregion String Extensions

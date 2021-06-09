@@ -285,6 +285,20 @@ namespace RockWeb.Blocks.WorkFlow
         /// <param name="eventArgument">A <see cref="T:System.String" /> that represents an optional event argument to be passed to the event handler.</param>
         public void RaisePostBackEvent( string eventArgument )
         {
+            if ( tbRockFullName.Text.IsNotNullOrWhiteSpace() )
+            {
+                /* 03/22/2021 MDP
+
+                see https://app.asana.com/0/1121505495628584/1200018171012738/f on why this is done
+
+                */
+
+                nbRockFullName.Visible = true;
+                nbRockFullName.NotificationBoxType = NotificationBoxType.Validation;
+                nbRockFullName.Text = "Invalid Form Value";
+                return;
+            }
+
             using ( var personEntryRockContext = new RockContext() )
             {
                 GetWorkflowFormPersonEntryValues( personEntryRockContext );
@@ -802,7 +816,7 @@ namespace RockWeb.Blocks.WorkFlow
 
                 buttonMergeFields.Add( "ButtonClick", buttonClickScript );
 
-                var buttonLinkScript = Page.ClientScript.GetPostBackClientHyperlink( this, buttonText );
+                var buttonLinkScript = Page.ClientScript.GetPostBackClientHyperlink( this, button.ActionName );
                 buttonMergeFields.Add( "ButtonLink", buttonLinkScript );
 
                 buttonHtml = buttonHtml.ResolveMergeFields( buttonMergeFields );
@@ -1411,7 +1425,8 @@ namespace RockWeb.Blocks.WorkFlow
             {
                 if ( button.CausesValidation )
                 {
-                    Page.Validate();
+                    //Page.Validate();
+                    Page.Validate( this.BlockValidationGroup );
 
                     if ( !Page.IsValid )
                     {

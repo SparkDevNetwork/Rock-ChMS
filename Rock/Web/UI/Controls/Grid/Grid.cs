@@ -33,6 +33,7 @@ using OfficeOpenXml;
 using Rock;
 using Rock.Attribute;
 using Rock.Data;
+using Rock.Lava;
 using Rock.Utility;
 using Rock.Web.Cache;
 
@@ -2296,6 +2297,15 @@ $('#{this.ClientID} .{GRID_SELECT_CELL_CSS_CLASS}').on( 'click', function (event
                             continue;
                         }
                     }
+                    else if ( selectedKeys.Any() )
+                    {
+                        // If the grid has multiple DataKeyNames the selected keys contains the one based row index.
+                        gridRowCounter++;
+                        if ( !selectedKeys.Contains( gridRowCounter ) )
+                        {
+                            continue;
+                        }
+                    }
 
                     rowCounter++;
 
@@ -2333,11 +2343,6 @@ $('#{this.ClientID} .{GRID_SELECT_CELL_CSS_CLASS}').on( 'click', function (event
                     if ( dataField is RockTemplateField )
                     {
                         var rockTemplateField = dataField as RockTemplateField;
-                        if ( rockTemplateField.ExcelExportBehavior == ExcelExportBehavior.AlwaysInclude )
-                        {
-                            // Since we are in ExcelExportSource.DataSource mode, only export RockTemplateField if ExcelExportBehavior is AlwaysInclude
-                            visibleFields.Add( fieldOrder++, rockTemplateField );
-                        }
 
                         /*
                          * 2020-03-03 - JPH
@@ -2349,11 +2354,29 @@ $('#{this.ClientID} .{GRID_SELECT_CELL_CSS_CLASS}').on( 'click', function (event
                          *
                          * Reason: Issue #3950 (Lava report fields generate two columns in Excel exports)
                          * https://github.com/SparkDevNetwork/Rock/issues/3950
+                         * 
+                         * 2021-05-28 ETD
+                         * Changed to check if this is a LavaField first and then add it to the LavaField list.
+                         * Add it to the Visibility list if it is Visible and ExcelExportBehavior is IncludeIfVisible.
+                         * 
+                         * Reason: This is to ensure that a lava field in a report does get exported.
+                         * https://github.com/SparkDevNetwork/Rock/issues/4673
                          */
                         if ( dataField is LavaField )
                         {
                             var lavaField = dataField as LavaField;
                             lavaFields.Add( lavaField );
+
+                            if ( rockTemplateField.ExcelExportBehavior == ExcelExportBehavior.AlwaysInclude
+                                || ( rockTemplateField.Visible == true && rockTemplateField.ExcelExportBehavior == ExcelExportBehavior.IncludeIfVisible ) )
+                            {
+                                visibleFields.Add( fieldOrder++, rockTemplateField );
+                            }
+                        }
+                        else if ( rockTemplateField.ExcelExportBehavior == ExcelExportBehavior.AlwaysInclude )
+                        {
+                            // Since we are in ExcelExportSource.DataSource mode, only export RockTemplateField if ExcelExportBehavior is AlwaysInclude
+                            visibleFields.Add( fieldOrder++, rockTemplateField );
                         }
                     }
                 }
@@ -2373,18 +2396,8 @@ $('#{this.ClientID} .{GRID_SELECT_CELL_CSS_CLASS}').on( 'click', function (event
                 // get all properties of the objects in the grid
                 List<PropertyInfo> allprops = new List<PropertyInfo>( oType.GetProperties() );
 
-                // If this is a DotLiquid.Drop class, don't include any of the properties that are inherited from DotLiquid.Drop
-                if ( typeof( DotLiquid.Drop ).IsAssignableFrom( oType ) )
-                {
-                    var dropProperties = typeof( DotLiquid.Drop ).GetProperties().Select( a => a.Name );
-                    allprops = allprops.Where( a => !dropProperties.Contains( a.Name ) ).ToList();
-                }
-                // If this is a RockDynamic class, don't include any of the properties that are inherited from RockDynamic
-                else if ( typeof( RockDynamic ).IsAssignableFrom( oType ) )
-                {
-                    var dropProperties = typeof( RockDynamic ).GetProperties().Select( a => a.Name );
-                    allprops = allprops.Where( a => !dropProperties.Contains( a.Name ) ).ToList();
-                }
+                // If this is a dynamic class, don't include any of the properties that are inherited from the base class.
+                allprops = FilterDynamicObjectPropertiesCollection( oType, allprops );
 
                 // Inspect the collection of Fields that appear in the Grid and add the corresponding data item properties to the set of fields to be exported.
                 // The fields are exported in the same order as they appear in the Grid.
@@ -2662,6 +2675,53 @@ $('#{this.ClientID} .{GRID_SELECT_CELL_CSS_CLASS}').on( 'click', function (event
 
             // send the spreadsheet to the browser
             excel.SendToBrowser( this.Page, filename );
+        }
+
+        /// <summary>
+        /// Filters a collection of properties from a dynamic type to exclude properties of the base class.
+        /// </summary>
+        /// <param name="dataSourceObjectType"></param>
+        /// <param name="additionalMergeProperties"></param>
+        /// <returns></returns>
+        private List<PropertyInfo> FilterDynamicObjectPropertiesCollection( Type dataSourceObjectType, List<PropertyInfo> additionalMergeProperties )
+        {
+            if ( LavaService.RockLiquidIsEnabled )
+            {
+                // If this is a DotLiquid.Drop class, don't include any of the properties that are inherited from DotLiquid.Drop
+                if ( typeof( DotLiquid.Drop ).IsAssignableFrom( dataSourceObjectType ) )
+                {
+                    var dropProperties = typeof( DotLiquid.Drop ).GetProperties().Select( a => a.Name );
+                    additionalMergeProperties = additionalMergeProperties.Where( a => !dropProperties.Contains( a.Name ) ).ToList();
+                }
+                // If this is a RockDynamic class, don't include any of the properties that are inherited from RockDynamic
+                else if ( typeof( RockDynamic ).IsAssignableFrom( dataSourceObjectType ) )
+                {
+                    var dropProperties = typeof( RockDynamic ).GetProperties().Select( a => a.Name );
+                    additionalMergeProperties = additionalMergeProperties.Where( a => !dropProperties.Contains( a.Name ) ).ToList();
+                }
+            }
+            else
+            {
+                // If this is a dynamic class, don't include any of the properties that are inherited from the base class.
+                Type excludeType = null;
+
+                if ( typeof( LavaDataObject ).IsAssignableFrom( dataSourceObjectType ) )
+                {
+                    excludeType = typeof( LavaDataObject );
+                }
+                else if ( typeof( RockDynamic ).IsAssignableFrom( dataSourceObjectType ) )
+                {
+                    excludeType = typeof( RockDynamic );
+                }
+
+                if ( excludeType != null )
+                {
+                    var excludeProperties = excludeType.GetProperties().Select( a => a.Name );
+                    additionalMergeProperties = additionalMergeProperties.Where( a => !excludeProperties.Contains( a.Name ) ).ToList();
+                }
+            }
+
+            return additionalMergeProperties;
         }
 
         /// <summary>
@@ -3459,6 +3519,15 @@ $('#{this.ClientID} .{GRID_SELECT_CELL_CSS_CLASS}').on( 'click', function (event
                             continue;
                         }
                     }
+                    else if ( selectedKeys.Any() )
+                    {
+                        // If the grid has multiple DataKeyNames the selected keys contains the one based row index.
+                        gridRowCounter++;
+                        if ( !selectedKeys.Contains( gridRowCounter ) )
+                        {
+                            continue;
+                        }
+                    }                    
 
                     var item = new Rock.Model.EntitySetItem();
 
@@ -3669,12 +3738,8 @@ $('#{this.ClientID} .{GRID_SELECT_CELL_CSS_CLASS}').on( 'click', function (event
                 additionalMergeProperties = dataSourceObjectType.GetProperties().ToList();
             }
 
-            // If this is a DotLiquid.Drop class, don't include any of the properties that are inherited from DotLiquid.Drop
-            if ( typeof( DotLiquid.Drop ).IsAssignableFrom( dataSourceObjectType ) )
-            {
-                var dropProperties = typeof( DotLiquid.Drop ).GetProperties().Select( a => a.Name );
-                additionalMergeProperties = additionalMergeProperties.Where( a => !dropProperties.Contains( a.Name ) ).ToList();
-            }
+            // If this is a dynamic class, don't include any of the properties that are inherited from the base class.
+            additionalMergeProperties = FilterDynamicObjectPropertiesCollection( dataSourceObjectType, additionalMergeProperties );
 
             var gridDataFields = this.Columns.OfType<BoundField>().ToList();
 
