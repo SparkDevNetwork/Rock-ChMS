@@ -139,14 +139,25 @@ namespace Rock.Model
         public DateTime? LastStatusUpdateDateTime { get; set; }
 
         /// <summary>
-        /// Gets the status of the scheduled transactions provided by the payment gateway (i.e. Active, Cancelled, etc)
+        /// The status of the scheduled transactions provided by the payment gateway (i.e. Active, Cancelled, etc).
+        /// The payment gateway component maps this based on the <seealso cref="StatusMessage"/>.
         /// </summary>
         /// <value>
         /// The status.
         /// </value>
         [DataMember]
-        [MaxLength( 50 )]
-        public string Status { get; set; }
+        public FinancialScheduledTransactionStatus? Status { get; set; }
+
+        /// <summary>
+        /// Gets or sets the raw scheduled transaction status message returned from the Gateway
+        /// </summary>
+        /// <value>
+        /// The status message.
+        /// </value>
+        [DataMember]
+        [MaxLength( 200 )]
+        public string StatusMessage { get; set; }
+
 
         /// <summary>
         /// Gets or sets a flag indicating if this scheduled transaction is active.
@@ -501,6 +512,36 @@ namespace Rock.Model
             this.HasOptional( t => t.FinancialPaymentDetail ).WithMany().HasForeignKey( t => t.FinancialPaymentDetailId ).WillCascadeOnDelete( false );
             this.HasRequired( t => t.TransactionFrequencyValue ).WithMany().HasForeignKey( t => t.TransactionFrequencyValueId ).WillCascadeOnDelete( false );
         }
+    }
+
+    #endregion
+
+    #region Enumerations
+
+    /// <summary>
+    /// The status of a Scheduled Transaction
+    /// </summary>
+    public enum FinancialScheduledTransactionStatus
+    {
+        /// <summary>
+        /// Scheduled Transaction is operating normally
+        /// </summary>
+        Active = 0,
+
+        /// <summary>
+        /// Scheduled Transaction completed
+        /// </summary>
+        Completed = 1,
+
+        /// <summary>
+        /// Scheduled Transaction is paused
+        /// </summary>
+        Paused = 2,
+
+        /// <summary>
+        /// Scheduled Transaction is cancelled
+        /// </summary>
+        Canceled = 3
     }
 
     #endregion

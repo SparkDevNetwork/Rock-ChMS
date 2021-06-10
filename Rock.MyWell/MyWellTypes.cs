@@ -1764,26 +1764,6 @@ namespace Rock.MyWell
         /// </value>
         [JsonProperty( "data" )]
         public SubscriptionData Data { get; set; }
-
-        /// <summary>
-        /// The canceled statuses, MyWell spells it 'cancelled', but just in case they change it to 'canceled'
-        /// </summary>
-        private static readonly string[] cancelledStatuses = { "cancelled", "canceled" };
-
-
-        /* 4/25/2021 Email from John Pinkerton says these are the possible values for status
-
-        active, completed, paused, cancelled, past_due
-         
-         */
-
-        /// <summary>
-        /// Determines whether this instance is canceled.
-        /// </summary>
-        /// <returns>
-        ///   <c>true</c> if this instance is canceled; otherwise, <c>false</c>.
-        /// </returns>
-        public bool IsCancelled() => cancelledStatuses.Contains( Data?.SubscriptionStatus, StringComparer.OrdinalIgnoreCase );
     }
 
     /// <summary>
@@ -1820,7 +1800,7 @@ namespace Rock.MyWell
 
         /// <summary>
         /// Gets or sets the status.
-        /// possible values include 'active', 'cancelled'
+        /// possible values include 'active', 'completed', 'paused', 'cancelled', 'passed_due'
         /// </summary>
         /// <value>
         /// The status.

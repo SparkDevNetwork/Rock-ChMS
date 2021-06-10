@@ -1287,6 +1287,32 @@ namespace Rock.MyWell
         }
 
         /// <summary>
+        /// Gets <see cref="FinancialScheduledTransactionStatus" /> mapped from <seealso cref="SubscriptionStatus"/>
+        /// </summary>
+        /// <returns></returns>
+        private Rock.Model.FinancialScheduledTransactionStatus? GetFinancialScheduledTransactionStatus( SubscriptionResponse subscriptionResponse)
+        {
+            switch ( subscriptionResponse?.Data?.SubscriptionStatus.ToLower() )
+            {
+                case "active":
+                    return Model.FinancialScheduledTransactionStatus.Active;
+                case "completed":
+                    return Model.FinancialScheduledTransactionStatus.Completed;
+                case "paused":
+                    return Model.FinancialScheduledTransactionStatus.Paused;
+
+                /// The canceled statuses, MyWell spells it 'cancelled' (British spelling), but just in case they change it to 'canceled'
+                /// https://www.grammarly.com/blog/canceled-vs-cancelled/
+                case "cancelled":
+                case "canceled":
+                    return Model.FinancialScheduledTransactionStatus.Canceled;
+
+                default:
+                    return null;
+            }
+        }
+
+        /// <summary>
         /// Updates the scheduled payment.
         /// </summary>
         /// <param name="scheduledTransaction">The scheduled transaction.</param>
@@ -1339,9 +1365,9 @@ namespace Rock.MyWell
 
                 SubscriptionResponse subscriptionResult;
                 var subscriptionStatusResult = this.GetSubscription( gatewayUrl, apiKey, subscriptionId );
-                if ( subscriptionStatusResult?.IsCancelled() == true )
+                if ( GetFinancialScheduledTransactionStatus( subscriptionStatusResult ) == FinancialScheduledTransactionStatus.Canceled )
                 {
-                    // if we get a cancelled status, MyWell doesn't support a way to undo cancel it, so, we'll have to re-create it
+                    // if we get a canceled status, MyWell doesn't support a way to undo cancel it, so, we'll have to re-create it
                     subscriptionResult = this.CreateSubscription( gatewayUrl, apiKey, subscriptionParameters );
                     if ( subscriptionResult?.IsSuccessStatus() == true )
                     {
@@ -1490,7 +1516,8 @@ namespace Rock.MyWell
                 {
                     scheduledTransaction.NextPaymentDate = subscriptionInfo.NextBillDateUTC?.Date;
                     scheduledTransaction.FinancialPaymentDetail.GatewayPersonIdentifier = subscriptionInfo.Customer?.Id;
-                    scheduledTransaction.Status = subscriptionInfo.SubscriptionStatus;
+                    scheduledTransaction.StatusMessage = subscriptionInfo.SubscriptionStatus;
+                    scheduledTransaction.Status = GetFinancialScheduledTransactionStatus( subscriptionResult );
                 }
 
                 scheduledTransaction.LastStatusUpdateDateTime = RockDateTime.Now;

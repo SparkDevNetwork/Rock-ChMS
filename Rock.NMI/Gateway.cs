@@ -747,6 +747,24 @@ Transaction id: {threeStepChangeStep3Response.TransactionId}.
         }
 
         /// <summary>
+        /// Gets <see cref="FinancialScheduledTransactionStatus" /> mapped from <seealso cref="SubscriptionStatus"/>
+        /// </summary>
+        /// <returns></returns>
+        private Rock.Model.FinancialScheduledTransactionStatus? GetFinancialScheduledTransactionStatus( Subscription subscription )
+        {
+            var subscriptionStatus = subscription?.State;
+
+            switch ( subscriptionStatus.ToLower() )
+            {
+                // The NMI documentation doesn't say what the possible status values are. But 'active' is a known value that comes back.
+                case "active":
+                    return Model.FinancialScheduledTransactionStatus.Active;
+                default:
+                    return null;
+            }
+        }
+
+        /// <summary>
         /// Gets the scheduled payment status.
         /// </summary>
         /// <param name="transaction">The transaction.</param>
@@ -806,7 +824,7 @@ Transaction id: {threeStepChangeStep3Response.TransactionId}.
 
                     transaction.NextPaymentDate = subscription.NextChargeDate;
                     transaction.LastStatusUpdateDateTime = RockDateTime.Now;
-                    transaction.Status = subscription.State;
+                    transaction.StatusMessage = subscription.State;
 
                     return true;
                 }
