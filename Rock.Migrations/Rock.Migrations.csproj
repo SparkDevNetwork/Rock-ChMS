@@ -555,6 +555,12 @@
     <EmbeddedResource Include="Migrations\202106072348124_EventCalendarIndexProperty.resx">
       <DependentUpon>202106072348124_EventCalendarIndexProperty.cs</DependentUpon>
     </EmbeddedResource>
+    <EmbeddedResource Include="Migrations\202106081803525_Rollup_0608.resx">
+      <DependentUpon>202106081803525_Rollup_0608.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Migrations\202106081839210_CodeGenerated_0608.resx">
+      <DependentUpon>202106081839210_CodeGenerated_0608.cs</DependentUpon>
+    </EmbeddedResource>
     <EmbeddedResource Include="Migrations\202106091502220_AddStepProgramCompletion.resx">
       <DependentUpon>202106091502220_AddStepProgramCompletion.cs</DependentUpon>
     </EmbeddedResource>
