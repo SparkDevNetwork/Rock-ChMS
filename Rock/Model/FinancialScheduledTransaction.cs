@@ -541,7 +541,17 @@ namespace Rock.Model
         /// <summary>
         /// Scheduled Transaction is cancelled
         /// </summary>
-        Canceled = 3
+        Canceled = 3,
+
+        /// <summary>
+        /// Scheduled Transaction is failed
+        /// </summary>
+        Failed = 4,
+
+        /// <summary>
+        /// Scheduled Transaction is Past Due
+        /// </summary>
+        PastDue = 5
     }
 
     #endregion

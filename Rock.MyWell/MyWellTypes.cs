@@ -17,8 +17,10 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+
 using Newtonsoft.Json;
 using Newtonsoft.Json.Converters;
+
 using Rock.Utility;
 
 //// <summary>
@@ -1798,15 +1800,16 @@ namespace Rock.MyWell
         [JsonProperty( "plan_name" )]
         public string PlanName { get; set; }
 
+        [JsonProperty( "status" )]
+        public string SubscriptionStatusRaw { get; set; }
+
         /// <summary>
-        /// Gets or sets the status.
-        /// possible values include 'active', 'completed', 'paused', 'cancelled', 'passed_due'
+        /// Gets the subscription status, converted from <seealso cref="SubscriptionStatusRaw"/>
         /// </summary>
         /// <value>
-        /// The status.
+        /// The subscription status.
         /// </value>
-        [JsonProperty( "status" )]
-        public string SubscriptionStatus { get; set; }
+        public MyWellSubscriptionStatus? SubscriptionStatus => MyWellSubscriptionStatusConverter.ConvertFromString( SubscriptionStatusRaw );
 
         /// <summary>
         /// Gets or sets the description.
@@ -2938,6 +2941,52 @@ namespace Rock.MyWell
         /// The ach
         /// </summary>
         ach
+    }
+
+    /// <summary>
+    /// 
+    /// </summary>
+    [JsonConverter( typeof( MyWellSubscriptionStatusConverter ) )]
+    public enum MyWellSubscriptionStatus
+    {
+        active,
+        completed,
+        paused,
+        canceled,
+        failed,
+        past_due
+    }
+
+    /// <summary>
+    /// 
+    /// </summary>
+    /// <seealso cref="Newtonsoft.Json.Converters.StringEnumConverter" />
+    internal class MyWellSubscriptionStatusHelper
+    {
+        /// <summary>
+        /// Converts from string.
+        /// </summary>
+        /// <param name="value">The value.</param>
+        /// <returns></returns>
+        internal static MyWellSubscriptionStatus? ConvertFromString( string value )
+        {
+            if ( value == null )
+            {
+                return null;
+            }
+
+            if ( value == "cancelled" || value == "canceled" )
+            {
+                /// The canceled statuses, MyWell spells it 'cancelled' (British spelling), but just in case they change it to 'canceled'
+                /// https://www.grammarly.com/blog/canceled-vs-cancelled/
+                return MyWellSubscriptionStatus.canceled;
+            }
+
+            return value.ConvertToEnumOrNull<MyWellSubscriptionStatus>();
+        }
+
+        
+
     }
 
     #endregion Rock Wrapper Types

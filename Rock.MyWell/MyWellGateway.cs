@@ -21,8 +21,11 @@ using System.ComponentModel.Composition;
 using System.Linq;
 using System.Text;
 using System.Web.UI;
+
 using Newtonsoft.Json;
+
 using RestSharp;
+
 using Rock.Attribute;
 using Rock.Financial;
 using Rock.Model;
@@ -905,6 +908,26 @@ namespace Rock.MyWell
         }
 
         /// <summary>
+        /// Sets the subscription status.
+        /// Undocumented - Email from MyWell on 6/10/2021 told us about it
+        /// </summary>
+        /// <param name="gatewayUrl">The gateway URL.</param>
+        /// <param name="apiKey">The API key.</param>
+        /// <param name="subscriptionId">The subscription identifier.</param>
+        /// <param name="subscriptionStatus">The subscription status.</param>
+        /// <returns></returns>
+        private SubscriptionResponse SetSubscriptionStatus( string gatewayUrl, string apiKey, string subscriptionId, MyWellSubscriptionStatus subscriptionStatus )
+        {
+            var restClient = new RestClient( gatewayUrl );
+            RestRequest restRequest = new RestRequest( $"/api/recurring/subscription/{subscriptionId}/status/{subscriptionStatus.ConvertToString( false )}", Method.GET );
+            restRequest.AddHeader( "Authorization", apiKey );
+
+            var response = restClient.Execute( restRequest );
+
+            return ParseResponse<SubscriptionResponse>( response );
+        }
+
+        /// <summary>
         /// Updates the subscription.
         /// https://sandbox.gotnpgateway.com/docs/api/#update-a-subscription
         /// </summary>
@@ -1059,7 +1082,7 @@ namespace Rock.MyWell
                 var exception = new MyWellGatewayException( $"Error processing MyWell transaction. Message:  {response.Message}, " +
                     $"processorResponseCode: {response.ProcessorResponseCode}, " +
                     $"processorResponseText: {response.ProcessorResponseText} " );
-                
+
                 ExceptionLogService.LogException( exception );
 
                 return null;
@@ -1286,29 +1309,29 @@ namespace Rock.MyWell
             }
         }
 
-        /// <summary>
-        /// Gets <see cref="FinancialScheduledTransactionStatus" /> mapped from <seealso cref="SubscriptionStatus"/>
-        /// </summary>
-        /// <returns></returns>
-        private Rock.Model.FinancialScheduledTransactionStatus? GetFinancialScheduledTransactionStatus( SubscriptionResponse subscriptionResponse)
+        internal static Rock.Model.FinancialScheduledTransactionStatus? GetFinancialScheduledTransactionStatus( MyWellSubscriptionStatus? subscriptionStatus )
         {
-            switch ( subscriptionResponse?.Data?.SubscriptionStatus.ToLower() )
+            if ( subscriptionStatus == null )
             {
-                case "active":
-                    return Model.FinancialScheduledTransactionStatus.Active;
-                case "completed":
-                    return Model.FinancialScheduledTransactionStatus.Completed;
-                case "paused":
-                    return Model.FinancialScheduledTransactionStatus.Paused;
+                return null;
+            }
 
-                /// The canceled statuses, MyWell spells it 'cancelled' (British spelling), but just in case they change it to 'canceled'
-                /// https://www.grammarly.com/blog/canceled-vs-cancelled/
-                case "cancelled":
-                case "canceled":
-                    return Model.FinancialScheduledTransactionStatus.Canceled;
-
+            switch ( subscriptionStatus )
+            {
+                case MyWellSubscriptionStatus.active:
+                    return FinancialScheduledTransactionStatus.Active;
+                case MyWellSubscriptionStatus.canceled:
+                    return FinancialScheduledTransactionStatus.Canceled;
+                case MyWellSubscriptionStatus.completed:
+                    return FinancialScheduledTransactionStatus.Completed;
+                case MyWellSubscriptionStatus.failed:
+                    return FinancialScheduledTransactionStatus.Failed;
+                case MyWellSubscriptionStatus.past_due:
+                    return FinancialScheduledTransactionStatus.PastDue;
+                case MyWellSubscriptionStatus.paused:
+                    return FinancialScheduledTransactionStatus.Paused;
                 default:
-                    return null;
+                    return subscriptionStatus.ConvertToString( false ).ConvertToEnumOrNull<FinancialScheduledTransactionStatus>();
             }
         }
 
@@ -1365,19 +1388,27 @@ namespace Rock.MyWell
 
                 SubscriptionResponse subscriptionResult;
                 var subscriptionStatusResult = this.GetSubscription( gatewayUrl, apiKey, subscriptionId );
-                if ( GetFinancialScheduledTransactionStatus( subscriptionStatusResult ) == FinancialScheduledTransactionStatus.Canceled )
+                if ( subscriptionStatusResult?.Data?.SubscriptionStatus != MyWellSubscriptionStatus.active )
                 {
-                    // if we get a canceled status, MyWell doesn't support a way to undo cancel it, so, we'll have to re-create it
-                    subscriptionResult = this.CreateSubscription( gatewayUrl, apiKey, subscriptionParameters );
-                    if ( subscriptionResult?.IsSuccessStatus() == true )
+                    // If subscription isn't active (it might be cancelled due to expired card),
+                    // change the status back to active
+                    var setSubscriptionStatusResult = this.SetSubscriptionStatus( gatewayUrl, apiKey, subscriptionId, MyWellSubscriptionStatus.active );
+
+                    if ( !setSubscriptionStatusResult.IsSuccessStatus() )
                     {
-                        this.DeleteSubscription( gatewayUrl, apiKey, subscriptionId );
+                        // Write decline/error as an exception.
+                        // Note: MyWell doesn't include processor errors when creating subscriptions, probably because the processor doesn't do anything until the transactions are charged.
+                        var exception = new MyWellGatewayException( $"Error re-activating MyWell subscription. Message:  {setSubscriptionStatusResult.Message} " );
+
+                        ExceptionLogService.LogException( exception );
+
+                        errorMessage = setSubscriptionStatusResult.Message;
+
+                        return false;
                     }
                 }
-                else
-                {
-                    subscriptionResult = this.UpdateSubscription( gatewayUrl, apiKey, subscriptionId, subscriptionParameters );
-                }
+
+                subscriptionResult = this.UpdateSubscription( gatewayUrl, apiKey, subscriptionId, subscriptionParameters );
 
                 if ( !subscriptionResult.IsSuccessStatus() )
                 {
@@ -1516,8 +1547,8 @@ namespace Rock.MyWell
                 {
                     scheduledTransaction.NextPaymentDate = subscriptionInfo.NextBillDateUTC?.Date;
                     scheduledTransaction.FinancialPaymentDetail.GatewayPersonIdentifier = subscriptionInfo.Customer?.Id;
-                    scheduledTransaction.StatusMessage = subscriptionInfo.SubscriptionStatus;
-                    scheduledTransaction.Status = GetFinancialScheduledTransactionStatus( subscriptionResult );
+                    scheduledTransaction.StatusMessage = subscriptionInfo.SubscriptionStatusRaw;
+                    scheduledTransaction.Status = GetFinancialScheduledTransactionStatus( subscriptionInfo.SubscriptionStatus );
                 }
 
                 scheduledTransaction.LastStatusUpdateDateTime = RockDateTime.Now;
