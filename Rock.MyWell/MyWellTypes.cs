@@ -1809,7 +1809,7 @@ namespace Rock.MyWell
         /// <value>
         /// The subscription status.
         /// </value>
-        public MyWellSubscriptionStatus? SubscriptionStatus => MyWellSubscriptionStatusConverter.ConvertFromString( SubscriptionStatusRaw );
+        public MyWellSubscriptionStatus? SubscriptionStatus => MyWellSubscriptionStatusHelper.ConvertFromString( SubscriptionStatusRaw );
 
         /// <summary>
         /// Gets or sets the description.
@@ -2946,7 +2946,7 @@ namespace Rock.MyWell
     /// <summary>
     /// 
     /// </summary>
-    [JsonConverter( typeof( MyWellSubscriptionStatusConverter ) )]
+    [JsonConverter( typeof(StringEnumConverter) )]
     public enum MyWellSubscriptionStatus
     {
         active,

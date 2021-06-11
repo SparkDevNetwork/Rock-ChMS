@@ -260,8 +260,10 @@ namespace RockWeb.Blocks.Finance
                 scheduleSummary.Add( "UrlEncryptedKey", transactionSchedule.UrlEncodedKey );
                 scheduleSummary.Add( "Frequency", transactionSchedule.TransactionFrequencyValue.Value );
                 scheduleSummary.Add( "FrequencyDescription", transactionSchedule.TransactionFrequencyValue.Description );
+                scheduleSummary.Add( "Status", transactionSchedule.Status );
+                scheduleSummary.Add( "CardIsExpired", transactionSchedule.FinancialPaymentDetail.CardExpirationDate < RockDateTime.Now );
 
-                List<Dictionary<string, object>> summaryDetails = new List<Dictionary<string, object>>();
+                List <Dictionary<string, object>> summaryDetails = new List<Dictionary<string, object>>();
                 decimal totalAmount = 0;
 
                 foreach ( FinancialScheduledTransactionDetail detail in transactionSchedule.ScheduledTransactionDetails )
