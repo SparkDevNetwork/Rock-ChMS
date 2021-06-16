@@ -15,27 +15,23 @@
 // </copyright>
 //
 using System;
-using System.Collections.Generic;
 using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace Rock.Model
 {
     public partial class EventItemService
     {
-
         /// <summary>
         /// Gets the active calendar items.
         /// </summary>
         /// <returns></returns>
         public IQueryable<EventItem> GetActiveItems()
         {
+            // Filter for EventItems that have at least one Occurrence associated with a Schedule having an EffectiveDate now or in the future.
             return Queryable()
-                    .Where( e => e.IsActive == true
-                       && e.IsApproved == true )
-                    .Where( e => e.EventCalendarItems.Any( c =>
-                                   c.EventCalendar.IsActive == true ) );
+                    .Where( e => e.IsActive && e.IsApproved )
+                    .HasActiveCalendarItems()
+                    .HasOccurrencesOnOrAfterDate( RockDateTime.Now.Date );
         }
 
         /// <summary>
@@ -63,4 +59,54 @@ namespace Rock.Model
                                         && c.EventCalendar.IsIndexEnabled ) );
         }
     }
+
+    #region Extension Methods
+
+    /// <summary>
+    /// Linq filter methods for EventItem queries.
+    /// </summary>
+    public static class EventItemServiceExtensions
+    {
+        /// <summary>
+        /// Gets the active calendar items.
+        /// </summary>
+        /// <returns></returns>
+        public static IQueryable<EventItem> HasActiveCalendarItems( this IQueryable<EventItem> eventItems )
+        {
+            // Filter out EventItems that do not have at least one Occurrence that has a schedule with an EffectiveDate in the future.
+            var items = eventItems
+                .Where( e => e.EventCalendarItems.Any( c => c.EventCalendar.IsActive ) );
+
+            return items;
+        }
+
+        /// <summary>
+        /// Gets the active calendar items.
+        /// </summary>
+        /// <returns></returns>
+        public static IQueryable<EventItem> HasOccurrencesOnOrAfterDate( this IQueryable<EventItem> eventItems, DateTime effectiveDate )
+        {
+            // Filter out EventItems that do not have at least one Occurrence that has a schedule with an EffectiveDate in the future.
+            var items = eventItems
+                .Where( e => e.EventItemOccurrences.Any( o => o.Schedule.EffectiveEndDate == null
+                             || o.Schedule.EffectiveEndDate >= effectiveDate ) );
+
+            return items;
+        }
+
+        /// <summary>
+        /// Gets the active calendar items.
+        /// </summary>
+        /// <returns></returns>
+        public static IQueryable<EventItem> InCalendar( this IQueryable<EventItem> eventItems, int calendarId )
+        {
+            // Filter out EventItems that do not have at least one Occurrence that has a schedule with an EffectiveDate in the future.
+            var items = eventItems
+                .Where( e => e.EventCalendarItems.Any( c => c.EventCalendar.Id == calendarId ) );
+
+            return items;
+        }
+    }
+
+    #endregion 
 }
