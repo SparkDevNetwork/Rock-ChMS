@@ -119,28 +119,35 @@ namespace Rock.Lava.Fluid
             // If this type is not registered, Fluid throws some seemingly unrelated exceptions.
             templateOptions.ValueConverters.Add( ( value ) => value is System.DBNull ? FluidValue.Create( null, templateOptions ) : null );
 
-            // Converter for a Dictionary with a non-string key type.
-            // If this converter is not registered, any attempt to access the dictionary by key returns a null value.
+            // Converter for a Dictionary with a non-string key type; wraps the dictionary in a proxy so it can be accessed
+            // with a key that is not a string type.
+            // If this converter is not registered, any attempt to access a non-standard dictionary by key returns a null value.
             templateOptions.ValueConverters.Add( ( value ) =>
             {
                 var valueType = value.GetType();
 
-                // If this is not a dictionary type, this converter is not applicable.
-                if ( !typeof( IDictionary ).IsAssignableFrom( valueType ) )
+                if ( typeof( IDictionary<,> ).IsAssignableFrom( valueType ) )
                 {
-                    return null;
+                    // If this is a dictionary with a string key type, no conversion is needed.
+                    var keyType = valueType.GetGenericArguments()[0];
+
+                    if ( keyType == typeof( string ) )
+                    {
+                        return null;
+                    }
+
+                    return new LavaDataObject( value );
+                }
+                
+                if ( typeof( IDictionary ).IsAssignableFrom( valueType ) )
+                {
+                    return new LavaDataObject( value );
                 }
 
-                // If this is a dictionary with a string key type, no conversion is needed.
-                var keyType = valueType.GetGenericArguments()[0];
-
-                if ( keyType == typeof( string ) )
-                {
-                    return null;
-                }
+                return null;
 
                 // Wrap the dictionary in a proxy so it can be accessed with a key that is not a string type.
-                return new LavaDataObject( value );
+                //new LavaDataObject( value );
             } );
         }
 
