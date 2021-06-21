@@ -103,6 +103,15 @@ namespace Rock.Lava
         }
 
         /// <summary>
+        /// Sets the global instance of the Lava Engine with the default configuration options.
+        /// </summary>
+        /// <param name="lavaEngineType"></param>
+        public static void SetCurrentEngine( Type lavaEngineType )
+        {
+            SetCurrentEngine( lavaEngineType, null );
+        }
+
+        /// <summary>
         /// Sets the global instance of the Lava Engine with the specified configuration options.
         /// </summary>
         /// <param name="lavaEngineType"></param>

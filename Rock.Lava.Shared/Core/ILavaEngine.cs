@@ -268,16 +268,6 @@ namespace Rock.Lava
 
     #region Enumerations
 
-    public enum LavaEngineTypeSpecifier
-    {
-        // A fork of the DotLiquid framework, customised to include Lava syntax and features.
-        RockLiquid = 1,
-        // DotLiquid is an open-source implementation of the Liquid templating language. [https://github.com/dotliquid/dotliquid]
-        DotLiquid = 2,
-        // Fluid is an open-source implementation of the Liquid templating language. [https://github.com/sebastienros/fluid]
-        Fluid = 3,
-    }
-
     /// <summary>
     /// Specifies a strategy for handling exceptions encountered during the template rendering process.
     /// </summary>

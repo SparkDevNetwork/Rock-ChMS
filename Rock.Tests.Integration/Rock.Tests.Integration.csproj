@@ -142,6 +142,7 @@
     <Compile Include="Communications\Transport\MailgunTests.cs" />
     <Compile Include="Communications\Transport\SMTPTests.cs" />
     <Compile Include="Communications\Transport\TwilioTests.cs" />
+    <Compile Include="Constants.cs" />
     <Compile Include="Core\FieldTypesListing.cs" />
     <Compile Include="Field.Types\UrlLinkFieldTypeTests.cs" />
     <Compile Include="Jobs\GivingAnalyticsJobTests.cs" />

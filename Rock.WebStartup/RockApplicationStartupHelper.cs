@@ -703,7 +703,7 @@ namespace Rock.WebStartup
         private static void InitializeLava()
         {
             // Get the Lava Engine configuration settings.
-            LavaEngineTypeSpecifier? engineType = null;
+            Type? engineType = null;
 
             var liquidEngineTypeValue = GlobalAttributesCache.Value( Rock.SystemKey.SystemSetting.LAVA_ENGINE_LIQUID_FRAMEWORK )?.ToLower();
 
@@ -719,12 +719,12 @@ namespace Rock.WebStartup
             }
             else if ( liquidEngineTypeValue == "fluid" )
             {
-                engineType = LavaEngineTypeSpecifier.Fluid;
+                engineType = typeof( FluidEngine );
                 LavaService.RockLiquidIsEnabled = false;
             }
             else if ( liquidEngineTypeValue == "fluidverification" )
             {
-                engineType = LavaEngineTypeSpecifier.Fluid;
+                engineType = typeof( FluidEngine );
                 LavaService.RockLiquidIsEnabled = true;
             }
             else
@@ -765,7 +765,7 @@ namespace Rock.WebStartup
             Template.FileSystem = new LavaFileSystem();
         }
 
-        private static void InitializeGlobalLavaEngineInstance( LavaEngineTypeSpecifier? engineType )
+        private static void InitializeGlobalLavaEngineInstance( Type engineType )
         {
             if ( engineType == null )
             {
@@ -844,11 +844,7 @@ namespace Rock.WebStartup
                 return fluidEngine;
             } );
 
-            if ( engineType == LavaEngineTypeSpecifier.DotLiquid )
-            {
-
-            }
-            LavaService.SetCurrentEngine( engineType, engineOptions );
+            LavaService.SetCurrentEngine( engineType );
 
             // Subscribe to exception notifications from the Lava Engine.
             var engine = LavaService.GetCurrentEngine();

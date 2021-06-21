@@ -20,6 +20,8 @@ using System.Diagnostics;
 using System.Text.RegularExpressions;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using Rock.Lava;
+using Rock.Lava.DotLiquid;
+using Rock.Lava.Fluid;
 using Rock.Tests.Shared;
 using Rock.Utility;
 
@@ -73,7 +75,7 @@ namespace Rock.Tests.UnitTests.Lava
 
                 engineOptions.CacheService = new WebsiteLavaTemplateCacheService();
 
-                _dotliquidEngine = global::Rock.Lava.LavaService.NewEngineInstance(LavaEngineTypeSpecifier.DotLiquid, engineOptions );
+                _dotliquidEngine = global::Rock.Lava.LavaService.NewEngineInstance( typeof(DotLiquidEngine), engineOptions );
 
                 RegisterFilters( _dotliquidEngine );
             }
@@ -85,7 +87,7 @@ namespace Rock.Tests.UnitTests.Lava
 
                 engineOptions.CacheService = new WebsiteLavaTemplateCacheService();
 
-                _fluidEngine = global::Rock.Lava.LavaService.NewEngineInstance( LavaEngineTypeSpecifier.Fluid, engineOptions );
+                _fluidEngine = global::Rock.Lava.LavaService.NewEngineInstance( typeof(FluidEngine), engineOptions );
 
                 RegisterFilters( _fluidEngine );
             }
@@ -129,19 +131,28 @@ namespace Rock.Tests.UnitTests.Lava
         /// <returns></returns>
         public string GetTemplateOutput( LavaEngineTypeSpecifier engineType, string inputTemplate, LavaDataDictionary mergeValues = null )
         {
-            inputTemplate = inputTemplate ?? string.Empty;
-
             var engine = GetEngineInstance( engineType );
+
+            return GetTemplateOutput( engine, inputTemplate, mergeValues );
+        }
+
+        /// <summary>
+        /// Process the specified input template and return the result.
+        /// </summary>
+        /// <param name="inputTemplate"></param>
+        /// <returns></returns>
+        public string GetTemplateOutput( ILavaEngine engine, string inputTemplate, LavaDataDictionary mergeValues = null )
+        {
+            inputTemplate = inputTemplate ?? string.Empty;
 
             var context = engine.NewRenderContext( mergeValues );
 
             var result = engine.RenderTemplate( inputTemplate.Trim(), new LavaRenderParameters { Context = context } );
-            
+
             Assert.That.IsFalse( result.HasErrors, "Lava Template is invalid." );
 
             return result.Text;
         }
-
         /// <summary>
         /// For each of the currently enabled Lava Engines, process the specified input template and verify against the expected output.
         /// </summary>
@@ -229,9 +240,9 @@ namespace Rock.Tests.UnitTests.Lava
         /// </summary>
         /// <param name="expectedOutput"></param>
         /// <param name="inputTemplate"></param>
-        public void AssertTemplateOutput( LavaEngineTypeSpecifier engineType, string expectedOutput, string inputTemplate, LavaDataDictionary mergeValues = null, bool ignoreWhitespace = false )
+        public void AssertTemplateOutput( ILavaEngine engine, string expectedOutput, string inputTemplate, LavaDataDictionary mergeValues = null, bool ignoreWhitespace = false )
         {
-            var outputString = GetTemplateOutput( engineType, inputTemplate, mergeValues );
+            var outputString = GetTemplateOutput( engine, inputTemplate, mergeValues );
 
             var debugString = outputString;
 
@@ -243,7 +254,7 @@ namespace Rock.Tests.UnitTests.Lava
                 debugString += "\n(Comparison ignores WhiteSpace)";
             }
 
-            WriteOutputToDebug( engineType, debugString );
+            WriteOutputToDebug( engine.EngineName, debugString );
 
             Assert.That.Equal( expectedOutput, outputString );
         }
@@ -271,7 +282,7 @@ namespace Rock.Tests.UnitTests.Lava
         /// </summary>
         /// <param name="expectedOutputRegex"></param>
         /// <param name="inputTemplate"></param>
-        public void AssertTemplateOutputRegex( LavaEngineTypeSpecifier engineType, string expectedOutputRegex, string inputTemplate, LavaDataDictionary mergeValues = null )
+        public void AssertTemplateOutputRegex( Type engineType, string expectedOutputRegex, string inputTemplate, LavaDataDictionary mergeValues = null )
         {
             var outputString = GetTemplateOutput( engineType, inputTemplate, mergeValues );
 
@@ -349,11 +360,9 @@ namespace Rock.Tests.UnitTests.Lava
         /// Write the rendered template to debug output.
         /// </summary>
         /// <param name="outputString"></param>
-        private void WriteOutputToDebug( LavaEngineTypeSpecifier engineType, string outputString )
+        private void WriteOutputToDebug( string engineName, string outputString )
         {
-            var engine = GetEngineInstance( engineType );
-
-            Debug.Print( $"\n**\n** Template Output ({engine.EngineName}):\n**\n{outputString}" );
+            Debug.Print( $"\n**\n** Template Output ({engineName}):\n**\n{outputString}" );
         }
 
         #region Test Data

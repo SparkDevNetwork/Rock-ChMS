@@ -156,6 +156,14 @@
       <Project>{13568622-324e-4493-b605-c9896e725d30}</Project>
       <Name>Rock.Common</Name>
     </ProjectReference>
+    <ProjectReference Include="..\Rock.Lava.DotLiquid\Rock.Lava.DotLiquid.csproj">
+      <Project>{79aa470a-dc63-4cb4-b0b6-77285f60c69b}</Project>
+      <Name>Rock.Lava.DotLiquid</Name>
+    </ProjectReference>
+    <ProjectReference Include="..\Rock.Lava.Fluid\Rock.Lava.Fluid.csproj">
+      <Project>{afce6f84-bf3a-4182-a816-8fb47afc0305}</Project>
+      <Name>Rock.Lava.Fluid</Name>
+    </ProjectReference>
     <ProjectReference Include="..\Rock.Lava.Shared\Rock.Lava.Shared.csproj">
       <Project>{8820cd93-70ee-496d-b17b-0c4c68dd4957}</Project>
       <Name>Rock.Lava.Shared</Name>
