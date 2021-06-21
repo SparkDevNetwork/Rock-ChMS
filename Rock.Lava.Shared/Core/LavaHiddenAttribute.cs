@@ -21,7 +21,7 @@ namespace Rock.Lava
     /// <summary>
     /// Marks a property as being inaccessible to a Lava template if an object of the type exists in the Lava context.
     /// </summary>
-    [AttributeUsage( AttributeTargets.Property )]
+    [AttributeUsage( AttributeTargets.Field | AttributeTargets.Property  )]
     public class LavaHiddenAttribute : Attribute
     {
         //
