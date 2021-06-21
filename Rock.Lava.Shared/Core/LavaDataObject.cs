@@ -73,7 +73,6 @@ namespace Rock.Lava
         /// <param name="key"></param>
         /// <param name="result"></param>
         /// <returns>True if the value was resolved.</returns>
-        [LavaHidden]
         protected virtual bool OnTryGetValue( string key, out object result )
         {
             if ( key == null )
@@ -138,7 +137,6 @@ namespace Rock.Lava
         /// </summary>
         /// <param name="key">The key.</param>
         /// <returns></returns>
-        [LavaHidden]
         public bool ContainsKey( string key )
         {
             // First, check if this is a defined member name or or an existing dictionary entry.
@@ -159,7 +157,6 @@ namespace Rock.Lava
         /// </summary>
         /// <param name="key"></param>
         /// <returns></returns>
-        [LavaHidden]
         public object GetValue( string key )
         {
             object result;
