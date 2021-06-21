@@ -364,7 +364,7 @@ Total: {{ '3,5,7' | Split:',' | Sum }}
                 var mergeValues = new LavaDataDictionary { { "OrderedList", new List<string>( _TestOrderedList ) } };
 
                 // First, verify that the unshuffled lists are equal.
-                var orderedResult = TestHelper.GetTemplateOutput( engine.EngineType, "{% assign items = OrderedList %}{% for item in items %}{{ item }};{% endfor %}", mergeValues );
+                var orderedResult = TestHelper.GetTemplateOutput( engine.EngineIdentifier, "{% assign items = OrderedList %}{% for item in items %}{{ item }};{% endfor %}", mergeValues );
 
                 Assert.That.Equal( orderedOutput, orderedResult );
 
@@ -377,7 +377,7 @@ Total: {{ '3,5,7' | Split:',' | Sum }}
                 string shuffledResult = string.Empty;
                 for ( int i = 0; i < 10; i++ )
                 {
-                    shuffledResult = TestHelper.GetTemplateOutput( engine.EngineType, "{% assign items = OrderedList | Shuffle %}{% for item in items %}{{ item }};{% endfor %}", mergeValues );
+                    shuffledResult = TestHelper.GetTemplateOutput( engine.EngineIdentifier, "{% assign items = OrderedList | Shuffle %}{% for item in items %}{{ item }};{% endfor %}", mergeValues );
 
                     if ( orderedOutput != shuffledResult )
                     {

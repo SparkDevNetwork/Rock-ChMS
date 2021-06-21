@@ -38,6 +38,8 @@ using Rock.Configuration;
 using Rock.Data;
 using Rock.Jobs;
 using Rock.Lava;
+using Rock.Lava.DotLiquid;
+using Rock.Lava.Fluid;
 using Rock.Model;
 using Rock.Web.Cache;
 using Rock.WebFarm;
@@ -771,16 +773,82 @@ namespace Rock.WebStartup
             }
 
             // Initialize the Lava engine.
-            var defaultEnabledLavaCommands = GlobalAttributesCache.Value( "DefaultEnabledLavaCommands" ).SplitDelimitedValues( "," ).ToList();
 
-            var engineOptions = new LavaEngineConfigurationOptions
+            /*
+            if ( engineIdentifier == "Fluid" )
             {
-                FileSystem = new WebsiteLavaFileSystem(),
-                CacheService = new WebsiteLavaTemplateCacheService(),
-                DefaultEnabledCommands = defaultEnabledLavaCommands
-            };
+                engine = new FluidEngine();
 
-            LavaService.Initialize( engineType, engineOptions );
+                options = options ?? new LavaEngineConfigurationOptions();
+
+                if ( options.FileSystem != null )
+                {
+                    options.FileSystem = new FluidFileSystem( options.FileSystem );
+                }
+            }
+            else if ( engineIdentifier == "DotLiquid" )
+            {
+                engine = new DotLiquidEngine();
+
+                options = options ?? new LavaEngineConfigurationOptions();
+
+                if ( options.FileSystem != null )
+                {
+                    options.FileSystem = new DotLiquidFileSystem( options.FileSystem );
+                }
+            }
+            else if ( engineIdentifier == "RockLiquid" )
+            {
+                // Instantiate the default engine.
+                engine = new RockLiquidEngine();
+
+                options = options ?? new LavaEngineConfigurationOptions();
+            }
+*/
+
+            // Register the DotLiquid Engine.
+            LavaService.RegisterEngine<DotLiquidEngine>( ( engineServiceType ) =>
+            {
+                var defaultEnabledLavaCommands = GlobalAttributesCache.Value( "DefaultEnabledLavaCommands" ).SplitDelimitedValues( "," ).ToList();
+
+                var engineOptions = new LavaEngineConfigurationOptions
+                {
+                    FileSystem = new DotLiquidFileSystem( new WebsiteLavaFileSystem() ),
+                    CacheService = new WebsiteLavaTemplateCacheService(),
+                    DefaultEnabledCommands = defaultEnabledLavaCommands
+                };
+
+                var dotLiquidEngine = new DotLiquidEngine();
+
+                dotLiquidEngine.Initialize( engineOptions );
+
+                return dotLiquidEngine;
+            } );
+
+            // Register the Fluid Engine.
+            LavaService.RegisterEngine<FluidEngine>( ( engineServiceType ) =>
+            {
+                var defaultEnabledLavaCommands = GlobalAttributesCache.Value( "DefaultEnabledLavaCommands" ).SplitDelimitedValues( "," ).ToList();
+
+                var engineOptions = new LavaEngineConfigurationOptions
+                {
+                    FileSystem = new WebsiteLavaFileSystem(),
+                    CacheService = new WebsiteLavaTemplateCacheService(),
+                    DefaultEnabledCommands = defaultEnabledLavaCommands
+                };
+
+                var fluidEngine = new FluidEngine();
+
+                fluidEngine.Initialize( engineOptions );
+
+                return fluidEngine;
+            } );
+
+            if ( engineType == LavaEngineTypeSpecifier.DotLiquid )
+            {
+
+            }
+            LavaService.SetCurrentEngine( engineType, engineOptions );
 
             // Subscribe to exception notifications from the Lava Engine.
             var engine = LavaService.GetCurrentEngine();

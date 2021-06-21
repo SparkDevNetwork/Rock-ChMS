@@ -87,7 +87,7 @@ Panel 3 - Panel 3 content.
             {
                 engine.RegisterShortcode( shortcodeDefinition.Name, ( shortcodeName ) => { return shortcodeDefinition; } );
 
-                TestHelper.AssertTemplateOutput( engine.EngineType, expectedOutput, input );
+                TestHelper.AssertTemplateOutput( engine.EngineIdentifier, expectedOutput, input );
             } );
         }
 
@@ -139,15 +139,15 @@ Potty Trained --- Id: 141 - Guid: e6905502-4c23-4879-a60f-8c4ceb3ee2e9
 
             TestHelper.ExecuteForActiveEngines( ( engine ) =>
             {
-                if ( engine.EngineType == LavaEngineTypeSpecifier.RockLiquid )
+                if ( engine.EngineIdentifier == LavaEngineTypeSpecifier.RockLiquid )
                 {
-                    TestHelper.DebugWriteRenderResult( engine.EngineType, "(Not Implemented)", "(Not Implemented)" );
+                    TestHelper.DebugWriteRenderResult( engine.EngineIdentifier, "(Not Implemented)", "(Not Implemented)" );
                     return;
                 }
 
                 engine.RegisterShortcode( shortcodeDefinition.Name, ( shortcodeName ) => { return shortcodeDefinition; } );
 
-                TestHelper.AssertTemplateOutput( engine.EngineType, expectedOutput, input );
+                TestHelper.AssertTemplateOutput( engine.EngineIdentifier, expectedOutput, input );
             } );
 
         }
@@ -197,15 +197,15 @@ Font Bold: true
 
             TestHelper.ExecuteForActiveEngines( ( engine ) =>
             {
-                if ( engine.EngineType == LavaEngineTypeSpecifier.RockLiquid )
+                if ( engine.EngineIdentifier == LavaEngineTypeSpecifier.RockLiquid )
                 {
-                    TestHelper.DebugWriteRenderResult( engine.EngineType, "(Not Implemented)", "(Not Implemented)" );
+                    TestHelper.DebugWriteRenderResult( engine.EngineIdentifier, "(Not Implemented)", "(Not Implemented)" );
                     return;
                 }
 
                 engine.RegisterShortcode( shortcodeDefinition.Name, ( shortcodeName ) => { return shortcodeDefinition; } );
 
-                TestHelper.AssertTemplateOutput( engine.EngineType, expectedOutput, input );
+                TestHelper.AssertTemplateOutput( engine.EngineIdentifier, expectedOutput, input );
             } );
         }
 
@@ -241,10 +241,10 @@ Parameter 1: Testing 'single' quotes...
 
             TestHelper.ExecuteForActiveEngines( ( engine ) =>
             {
-                if ( engine.EngineType == LavaEngineTypeSpecifier.RockLiquid )
+                if ( engine.EngineIdentifier == LavaEngineTypeSpecifier.RockLiquid )
                 {
                     // Unfortunately, there is no way of testing dynamically-defined shortcodes with RockLiquid.
-                    TestHelper.DebugWriteRenderResult( engine.EngineType, "(Not Implemented)", "(Not Implemented)" );
+                    TestHelper.DebugWriteRenderResult( engine.EngineIdentifier, "(Not Implemented)", "(Not Implemented)" );
                     return;
                 }
 
@@ -252,7 +252,7 @@ Parameter 1: Testing 'single' quotes...
 
                 var options = new LavaTestRenderOptions { MergeFields = mergeFields };
 
-                TestHelper.AssertTemplateOutput( engine.EngineType, expectedOutput, input, options );
+                TestHelper.AssertTemplateOutput( engine.EngineIdentifier, expectedOutput, input, options );
             } );
         }
 
@@ -304,11 +304,11 @@ Font Bold: true
                 engine.RegisterShortcode( shortcode1.Name, ( shortcodeName ) => { return shortcode1; } );
                 engine.RegisterShortcode( shortcode2.Name, ( shortcodeName ) => { return shortcode2; } );
 
-                TestHelper.AssertTemplateOutput( engine.EngineType, expectedOutput, input );
+                TestHelper.AssertTemplateOutput( engine.EngineIdentifier, expectedOutput, input );
 
                 var parallelOptions = new ParallelOptions { MaxDegreeOfParallelism = 30 };
 
-                Parallel.For( 0, 1000, parallelOptions, ( x ) => TestHelper.AssertTemplateOutput( engine.EngineType, expectedOutput, input ) );
+                Parallel.For( 0, 1000, parallelOptions, ( x ) => TestHelper.AssertTemplateOutput( engine.EngineIdentifier, expectedOutput, input ) );
             } );
         }
 

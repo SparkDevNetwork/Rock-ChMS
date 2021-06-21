@@ -25,6 +25,7 @@ namespace Rock.Lava
     /// </summary>
     public interface ILavaTemplate
     {
+/*
         /// <summary>
         /// Try to render the template using the provided context values.
         /// Errors will be included in the rendered output.
@@ -47,5 +48,6 @@ namespace Rock.Lava
         /// <param name="parameters"></param>
         /// <returns></returns>
         LavaRenderResult Render( LavaRenderParameters parameters );
+*/
     }
 }

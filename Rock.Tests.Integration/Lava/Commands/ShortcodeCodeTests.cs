@@ -62,7 +62,7 @@ Font Bold: true
             {
                 engine.RegisterShortcode( shortcodeDefinition.Name, ( shortcodeName ) => { return shortcodeDefinition; } );
 
-                TestHelper.AssertTemplateOutput( engine.EngineType, expectedOutput, input, options );
+                TestHelper.AssertTemplateOutput( engine.EngineIdentifier, expectedOutput, input, options );
             } );
         }
 

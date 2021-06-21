@@ -13,17 +13,27 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 // </copyright>
-//
 using System;
 using System.Collections.Generic;
 
 namespace Rock.Lava
 {
+
     /// <summary>
     /// Stores the configuration and data used by the Lava Engine to resolve a Lava template.
     /// </summary>
     public abstract class LavaRenderContextBase : ILavaRenderContext
     {
+        private LavaServiceProvider _serviceProvider = new LavaServiceProvider();
+
+        internal LavaServiceProvider ServiceProvider
+        {
+            get
+            {
+                return _serviceProvider;
+            }
+        }
+
         /// <summary>
         /// Gets a named value that is for internal use only, by other components of the Lava engine.
         /// Internal values are not available to be resolved in the Lava Template.
@@ -215,5 +225,16 @@ namespace Rock.Lava
         /// Exits the current scope that has been created by <see cref="EnterChildScope" />.
         /// </summary>
         public abstract void ExitChildScope();
+
+        public TService GetService<TService>()
+            where TService : class, ILavaService
+        {
+            return _serviceProvider.GetService<TService>();
+        }
+
+        public ILavaService GetService( Type serviceType )
+        {
+            return _serviceProvider.GetService(serviceType);  
+        }
     }
 }

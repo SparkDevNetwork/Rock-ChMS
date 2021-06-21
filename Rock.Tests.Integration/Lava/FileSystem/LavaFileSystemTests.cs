@@ -56,9 +56,9 @@ Email: ted@rocksolidchurch.com
 
             TestHelper.ExecuteForActiveEngines( ( engine ) =>
             {
-                var testEngine = LavaService.NewEngineInstance( engine.EngineType, new LavaEngineConfigurationOptions { FileSystem = fileSystem } );
+                var testEngine = LavaService.NewEngineInstance( engine.EngineIdentifier, new LavaEngineConfigurationOptions { FileSystem = fileSystem } );
 
-                TestHelper.AssertTemplateOutput( testEngine.EngineType, expectedOutput, input, options );
+                TestHelper.AssertTemplateOutput( testEngine.EngineIdentifier, expectedOutput, input, options );
             } );
         }
 
@@ -112,11 +112,11 @@ Outer 'a' = a
 
             TestHelper.ExecuteForActiveEngines( ( engine ) =>
             {
-                var testEngine = LavaService.NewEngineInstance( engine.EngineType, new LavaEngineConfigurationOptions { FileSystem = fileSystem } );
+                var testEngine = LavaService.NewEngineInstance( engine.EngineIdentifier, new LavaEngineConfigurationOptions { FileSystem = fileSystem } );
 
                 var result = testEngine.RenderTemplate( input, new LavaRenderParameters { ExceptionHandlingStrategy = ExceptionHandlingStrategySpecifier.RenderToOutput } );
 
-                TestHelper.DebugWriteRenderResult( engine.EngineType, input, result.Text );
+                TestHelper.DebugWriteRenderResult( engine.EngineIdentifier, input, result.Text );
 
                 Assert.That.Contains( result.Error.Messages().JoinStrings( "//" ), "File Load Failed." );
             } );
@@ -131,7 +131,7 @@ Outer 'a' = a
 
             TestHelper.ExecuteForActiveEngines( ( engine ) =>
             {
-                var testEngine = LavaService.NewEngineInstance( engine.EngineType, new LavaEngineConfigurationOptions() );
+                var testEngine = LavaService.NewEngineInstance( engine.EngineIdentifier, new LavaEngineConfigurationOptions() );
 
                 var result = testEngine.RenderTemplate( input );
 

@@ -253,7 +253,7 @@ namespace Rock.Lava
                 templateKey = content.XxHash();
             }
 
-            return $"{ _engine.EngineType}:{templateKey}";
+            return $"{ _engine.EngineIdentifier}:{templateKey}";
         }
 
         #endregion

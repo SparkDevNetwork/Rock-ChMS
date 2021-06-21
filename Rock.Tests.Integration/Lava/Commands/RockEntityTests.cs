@@ -85,9 +85,9 @@ namespace Rock.Tests.Integration.Lava
 ";
             TestHelper.ExecuteForActiveEngines( ( engine ) =>
             {
-                var output = TestHelper.GetTemplateOutput( engine.EngineType, template );
+                var output = TestHelper.GetTemplateOutput( engine.EngineIdentifier, template );
 
-                TestHelper.DebugWriteRenderResult( engine.EngineType, template, output );
+                TestHelper.DebugWriteRenderResult( engine.EngineIdentifier, template, output );
 
                 // Verify that the output contains series headings and relevant dates for both schedules.
                 Assert.That.Contains( output, "<b>Series 1</b>" );
@@ -117,7 +117,7 @@ namespace Rock.Tests.Integration.Lava
             {
                 var output = TestHelper.GetTemplateOutput( engine, template, engine.NewRenderContext( new List<string> { "All" } ) );
 
-                TestHelper.DebugWriteRenderResult( engine.EngineType, template, output );
+                TestHelper.DebugWriteRenderResult( engine.EngineIdentifier, template, output );
 
                 // Verify that the output contains series headings and relevant dates for both schedules.
                 //Assert.That.Contains( output, "<b>Series 1</b>" );

@@ -148,7 +148,7 @@ namespace Rock.Tests.Integration.Lava
         private static void RegisterFilters( ILavaEngine engine )
         {
             // Register the common Rock.Lava filters first, then overwrite with the web-specific filters.
-            if ( engine.EngineType == LavaEngineTypeSpecifier.RockLiquid )
+            if ( engine.EngineIdentifier == LavaEngineTypeSpecifier.RockLiquid )
             {
                 engine.RegisterFilters( typeof( global::Rock.Lava.Filters.TemplateFilters ) );
                 engine.RegisterFilters( typeof( Rock.Lava.RockFilters ) );
@@ -163,7 +163,7 @@ namespace Rock.Tests.Integration.Lava
         private static void RegisterTags( ILavaEngine engine )
         {
             // Get all tags and call OnStartup methods
-            if ( engine.EngineType == LavaEngineTypeSpecifier.RockLiquid )
+            if ( engine.EngineIdentifier == LavaEngineTypeSpecifier.RockLiquid )
             {
                 // Find all tag elements that implement IRockStartup.
                 var elementTypes = Rock.Reflection.FindTypes( typeof( DotLiquid.Tag ) ).Select( a => a.Value ).ToList();
@@ -191,7 +191,7 @@ namespace Rock.Tests.Integration.Lava
                 }
             }
 
-            if ( engine.EngineType == LavaEngineTypeSpecifier.RockLiquid )
+            if ( engine.EngineIdentifier == LavaEngineTypeSpecifier.RockLiquid )
             {
                 return;
             }
@@ -242,7 +242,7 @@ namespace Rock.Tests.Integration.Lava
         private static void RegisterBlocks( ILavaEngine engine )
         {
             // Get all blocks and call OnStartup methods
-            if ( engine.EngineType == LavaEngineTypeSpecifier.RockLiquid )
+            if ( engine.EngineIdentifier == LavaEngineTypeSpecifier.RockLiquid )
             {
                 // Find all tag elements that implement IRockStartup.
                 var elementTypes = Rock.Reflection.FindTypes( typeof( DotLiquid.Block ) ).Select( a => a.Value ).ToList();
@@ -525,7 +525,7 @@ namespace Rock.Tests.Integration.Lava
             {
                 LavaService.SetCurrentEngine( engine );
 
-                Debug.Print( $"\n**\n** Lava Render Test: {engine.EngineType}\n**\n" );
+                Debug.Print( $"\n**\n** Lava Render Test: {engine.EngineIdentifier}\n**\n" );
 
                 try
                 {
@@ -616,7 +616,7 @@ namespace Rock.Tests.Integration.Lava
 
             Assert.IsNotNull( outputString, "Template failed to render." );
 
-            DebugWriteRenderResult( engine.EngineType, inputTemplate, outputString );
+            DebugWriteRenderResult( engine.EngineIdentifier, inputTemplate, outputString );
 
             // If ignoring whitespace, strip it from the input and output.
             if ( options.IgnoreWhiteSpace )
@@ -670,7 +670,7 @@ namespace Rock.Tests.Integration.Lava
         {
             ExecuteForActiveEngines( ( engine ) =>
             {
-                AssertTemplateIsInvalid( engine.EngineType, inputTemplate, mergeFields );
+                AssertTemplateIsInvalid( engine.EngineIdentifier, inputTemplate, mergeFields );
             } );
         }
 
@@ -704,7 +704,7 @@ namespace Rock.Tests.Integration.Lava
         /// Useful to document the result of a test that would otherwise produce no output.
         /// </summary>
         /// <param name="outputString"></param>
-        public void DebugWriteRenderResult( LavaEngineTypeSpecifier engineType, string inputString, string outputString )
+        public void DebugWriteRenderResult( Guid engineType, string inputString, string outputString )
         {
             var engine = GetEngineInstance( engineType );
 
@@ -722,9 +722,9 @@ namespace Rock.Tests.Integration.Lava
         {
             ExecuteForActiveEngines( ( engine ) =>
             {
-                var outputString = GetTemplateOutput( engine.EngineType, inputTemplate );
+                var outputString = GetTemplateOutput( engine.EngineIdentifier, inputTemplate );
 
-                DebugWriteRenderResult( engine.EngineType, inputTemplate, outputString );
+                DebugWriteRenderResult( engine.EngineIdentifier, inputTemplate, outputString );
 
                 DateTime outputDate;
 

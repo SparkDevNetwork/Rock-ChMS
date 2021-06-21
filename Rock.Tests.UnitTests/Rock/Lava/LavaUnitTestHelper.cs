@@ -96,7 +96,7 @@ namespace Rock.Tests.UnitTests.Lava
         private static void RegisterFilters( ILavaEngine engine )
         {
             // Register the common Rock.Lava filters first, then overwrite with the web-specific filters.
-            if ( engine.EngineType == LavaEngineTypeSpecifier.RockLiquid )
+            if ( engine.EngineIdentifier == LavaEngineTypeSpecifier.RockLiquid )
             {
                 engine.RegisterFilters( typeof( global::Rock.Lava.Filters.TemplateFilters ) );
                 engine.RegisterFilters( typeof( global::Rock.Lava.RockFilters ) );
@@ -153,7 +153,7 @@ namespace Rock.Tests.UnitTests.Lava
 
             foreach ( var engine in engines )
             { 
-                AssertTemplateOutput( engine.EngineType, expectedOutput, inputTemplate, mergeValues, ignoreWhitespace );
+                AssertTemplateOutput( engine.EngineIdentifier, expectedOutput, inputTemplate, mergeValues, ignoreWhitespace );
             }
         }
 
