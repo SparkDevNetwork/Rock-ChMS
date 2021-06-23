@@ -127,34 +127,27 @@ namespace Rock.Lava.Fluid
             {
                 var valueType = value.GetType();
 
-                if ( typeof( IDictionary<,> ).IsAssignableFrom( valueType ) )
+                // If this is a generic dictionary with a string key type, no conversion is needed.
+                if ( valueType.IsGenericType
+                     && valueType.GetGenericTypeDefinition() == typeof( Dictionary<,> ) )
                 {
-                    // If this is a dictionary with a string key type, no conversion is needed.
                     var keyType = valueType.GetGenericArguments()[0];
 
                     if ( keyType == typeof( string ) )
                     {
                         return null;
                     }
-
-                    return new LavaDataObject( value );
                 }
-                
+
+                // If this is any other type of dictionary implementation, wrap it in a proxy
+                // so it can be accessed with a key that is not a string type.
                 if ( typeof( IDictionary ).IsAssignableFrom( valueType ) )
                 {
                     return new LavaDataObject( value );
                 }
 
                 return null;
-
-                // Wrap the dictionary in a proxy so it can be accessed with a key that is not a string type.
-                //new LavaDataObject( value );
             } );
-        }
-
-        private Dictionary<string,TValue> ConvertToDictionaryWithStringKey<TKey,TValue>(IDictionary<TKey,TValue> dictionary)
-        {
-            return dictionary.ToDictionary( k => k.Key.ToString(), v => v.Value );
         }
 
         private TemplateOptions GetTemplateOptions()
