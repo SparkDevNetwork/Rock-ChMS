@@ -19,6 +19,7 @@ using Rock.Lava;
 using System.Collections.Generic;
 using System.Threading.Tasks;
 using System.Threading;
+using Rock.Lava.RockLiquid;
 
 namespace Rock.Tests.Integration.Lava
 {
@@ -102,9 +103,9 @@ Font Bold: true
 
             TestHelper.ExecuteForActiveEngines( ( engine ) =>
             {
-                if ( engine.EngineIdentifier == LavaEngineTypeSpecifier.RockLiquid )
+                if ( engine.GetType() == typeof( RockLiquidEngine ) )
                 {
-                    TestHelper.DebugWriteRenderResult( engine.EngineIdentifier, "(Ignored)", "(Ignored)" );
+                    TestHelper.DebugWriteRenderResult( engine, "(Ignored)", "(Ignored)" );
                     return;
                 }
 
@@ -122,7 +123,7 @@ Font Bold: true
 
                     var options = new LavaTestRenderOptions() { MergeFields = context, Wildcards = new List<string> { "<?>" } };
 
-                    TestHelper.AssertTemplateOutput( engine.EngineIdentifier, expectedOutput, input, options );
+                    TestHelper.AssertTemplateOutput( engine, expectedOutput, input, options );
                 } );
             } );
         }
@@ -184,9 +185,9 @@ Panel 3 - Panel 3 content.
 
             TestHelper.ExecuteForActiveEngines( ( engine ) =>
             {
-                if ( engine.EngineIdentifier == LavaEngineTypeSpecifier.RockLiquid )
+                if ( engine.GetType() == typeof( RockLiquidEngine ) )
                 {
-                    TestHelper.DebugWriteRenderResult( engine.EngineIdentifier, "(Ignored)", "(Ignored)" );
+                    TestHelper.DebugWriteRenderResult( engine, "(Ignored)", "(Ignored)" );
                     return;
                 }
 
@@ -201,7 +202,7 @@ Panel 3 - Panel 3 content.
 
                     var options = new LavaTestRenderOptions() { MergeFields = context, Wildcards = new List<string> { "<?>" } };
 
-                    TestHelper.AssertTemplateOutput( engine.EngineIdentifier, expectedOutput, input, options );
+                    TestHelper.AssertTemplateOutput( engine, expectedOutput, input, options );
                 } );
             } );
 

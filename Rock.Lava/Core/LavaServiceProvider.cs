@@ -24,14 +24,23 @@ namespace Rock.Lava
     /// <remarks>
     /// In the future, this container should be reimplemented using the Microsoft.Extensions.DependencyInjection library.
     /// </remarks>
-    public class LavaServiceProvider
+    public class LavaServiceProvider : ILavaServiceProvider
     {
-        private Dictionary<Type, Func<Type, ILavaService>> _services = new Dictionary<Type, Func<Type, ILavaService>>();
+        private Dictionary<Type, Func<Type, object, ILavaService>> _services = new Dictionary<Type, Func<Type, object, ILavaService>>();
+        //private Dictionary<Type, Func<Type, ILavaService>> _services = new Dictionary<Type, Func<Type, ILavaService>>();
 
-        public void RegisterService<TService>( Func<Type, TService> serviceInstance )
+        public void RegisterService<TService>( Func<Type, object, TService> serviceInstance )
             where TService : class, ILavaService
         {
             _services.AddOrReplace( typeof( TService ), serviceInstance );
+        }
+
+        public void RegisterService( Type serviceType, Func<Type, object, ILavaService> factoryMethod )
+        {
+            // Resolve the Type
+            //var engineType = Type.GetType( typeName );
+
+            _services.AddOrReplace( serviceType, factoryMethod );
         }
 
         // Get an instance of a Lava service component of the specified type.
@@ -44,7 +53,7 @@ namespace Rock.Lava
         }
 
         // Get an instance of a Lava service component of the specified type.
-        public ILavaService GetService( Type serviceType )
+        public ILavaService GetService( Type serviceType, object configuration = null )
         {
             var factoryFunc = _services.GetValueOrNull( serviceType );
 
@@ -53,7 +62,7 @@ namespace Rock.Lava
                 throw new LavaException( $"GetService failed. The service type \"{ serviceType.FullName }\" is not registered." );
             }
 
-            var service = factoryFunc( serviceType );
+            var service = factoryFunc( serviceType, configuration );
 
             if ( service == null )
             {

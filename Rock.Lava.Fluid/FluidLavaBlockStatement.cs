@@ -80,6 +80,7 @@ namespace Rock.Lava.Fluid
 
         public override ValueTask<Completion> WriteToAsync( TextWriter writer, TextEncoder encoder, TemplateContext context )
         {
+            
             var lavaContext = new FluidRenderContext( context );
 
             if ( !_factoryMethods.ContainsKey( _tagName ) )

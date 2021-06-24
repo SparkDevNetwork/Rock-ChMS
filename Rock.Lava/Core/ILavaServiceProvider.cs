@@ -13,31 +13,15 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 // </copyright>
-//
-
 using System;
 
 namespace Rock.Lava
 {
-    /// <summary>
-    /// Represents a component that is capable of providing extension services to the Lava library.
-    /// </summary>
-    public interface ILavaService
+    public interface ILavaServiceProvider
     {
-        /// <summary>
-        /// The friendly name of the service.
-        /// </summary>
-        string ServiceName { get; }
-
-        /// <summary>
-        /// A unique identifier for the service.
-        /// </summary>
-        Guid ServiceIdentifier { get; }
-
-        /// <summary>
-        /// Called when an instance of the service is first initialized.
-        /// </summary>
-        /// <param name="settings"></param>
-        void OnInitialize( object settings );
+        ILavaService GetService( Type serviceType, object configuration = null );
+        //TService GetService<TService>() where TService : class, ILavaService;
+        void RegisterService( Type serviceType, Func<Type, object, ILavaService> factoryMethod );
+        //void RegisterService<TService>( Func<Type, object, TService> serviceInstance ) where TService : class, ILavaService;
     }
 }

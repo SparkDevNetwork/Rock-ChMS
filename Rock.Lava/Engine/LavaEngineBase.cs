@@ -28,6 +28,11 @@ namespace Rock.Lava
     {
         private List<string> _defaultEnabledCommands = new List<string>();
 
+        void ILavaService.OnInitialize( object settings )
+        {
+            Initialize( settings as LavaEngineConfigurationOptions );
+        }
+
         /// <summary>
         /// Initializes the Lava engine with the specified options.
         /// </summary>
@@ -105,6 +110,9 @@ namespace Rock.Lava
             }
 
             context.SetEnabledCommands( this.DefaultEnabledCommands );
+
+            // Set a reference to the current Lava Engine.            
+            context.SetInternalField( LavaUtilityHelper.GetContextKeyFromType( typeof( ILavaEngine ) ), this );
 
             return context;
         }
@@ -587,6 +595,16 @@ namespace Rock.Lava
                 {
                     parameters.Context = NewRenderContext();
                 }
+
+                if ( parameters.Context.GetService( typeof( ILavaEngine ) ) == null )
+                {
+                    int i = 0;
+                }
+
+                // Register the services that are accessible to the render context.
+                //var serviceProvider = ( ILavaServiceProvider ) parameters.Context;
+
+                //serviceProvider.RegisterService( typeof( ILavaEngine ), ( t, o ) => { return this; } );
 
                 result = OnRenderTemplate( template, parameters );
 

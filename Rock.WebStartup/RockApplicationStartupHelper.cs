@@ -40,6 +40,7 @@ using Rock.Jobs;
 using Rock.Lava;
 using Rock.Lava.DotLiquid;
 using Rock.Lava.Fluid;
+using Rock.Lava.RockLiquid;
 using Rock.Model;
 using Rock.Web.Cache;
 using Rock.WebFarm;
@@ -703,7 +704,7 @@ namespace Rock.WebStartup
         private static void InitializeLava()
         {
             // Get the Lava Engine configuration settings.
-            Type? engineType = null;
+            Type engineType = null;
 
             var liquidEngineTypeValue = GlobalAttributesCache.Value( Rock.SystemKey.SystemSetting.LAVA_ENGINE_LIQUID_FRAMEWORK )?.ToLower();
 
@@ -755,7 +756,7 @@ namespace Rock.WebStartup
             // Initialize an instance of the RockLiquid engine.
             // This engine is used for testing purposes and is not referenced in Rock source code.
             // However, it is created here to perform some necessary global initialization tasks for the RockLiquid framework.
-            _ = LavaService.NewEngineInstance( LavaEngineTypeSpecifier.RockLiquid, new LavaEngineConfigurationOptions() );
+            _ = LavaService.NewEngineInstance( typeof( RockLiquidEngine ) );
 
             // Register the set of filters that are compatible with RockLiquid.
             Template.RegisterFilter( typeof( Rock.Lava.Filters.TemplateFilters ) );
@@ -806,43 +807,7 @@ namespace Rock.WebStartup
             }
 */
 
-            // Register the DotLiquid Engine.
-            LavaService.RegisterEngine<DotLiquidEngine>( ( engineServiceType ) =>
-            {
-                var defaultEnabledLavaCommands = GlobalAttributesCache.Value( "DefaultEnabledLavaCommands" ).SplitDelimitedValues( "," ).ToList();
 
-                var engineOptions = new LavaEngineConfigurationOptions
-                {
-                    FileSystem = new DotLiquidFileSystem( new WebsiteLavaFileSystem() ),
-                    CacheService = new WebsiteLavaTemplateCacheService(),
-                    DefaultEnabledCommands = defaultEnabledLavaCommands
-                };
-
-                var dotLiquidEngine = new DotLiquidEngine();
-
-                dotLiquidEngine.Initialize( engineOptions );
-
-                return dotLiquidEngine;
-            } );
-
-            // Register the Fluid Engine.
-            LavaService.RegisterEngine<FluidEngine>( ( engineServiceType ) =>
-            {
-                var defaultEnabledLavaCommands = GlobalAttributesCache.Value( "DefaultEnabledLavaCommands" ).SplitDelimitedValues( "," ).ToList();
-
-                var engineOptions = new LavaEngineConfigurationOptions
-                {
-                    FileSystem = new WebsiteLavaFileSystem(),
-                    CacheService = new WebsiteLavaTemplateCacheService(),
-                    DefaultEnabledCommands = defaultEnabledLavaCommands
-                };
-
-                var fluidEngine = new FluidEngine();
-
-                fluidEngine.Initialize( engineOptions );
-
-                return fluidEngine;
-            } );
 
             LavaService.SetCurrentEngine( engineType );
 

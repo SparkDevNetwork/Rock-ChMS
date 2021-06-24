@@ -186,6 +186,9 @@ namespace Rock.Lava
         void ILavaTemplateCacheService.ClearCache()
         {
             WebsiteLavaTemplateCache.Clear();
+
+            _cacheHits = 0;
+            _cacheMisses = 0;
         }
 
         bool ILavaTemplateCacheService.ContainsKey( string key )

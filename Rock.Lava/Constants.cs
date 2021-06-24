@@ -29,6 +29,7 @@ namespace Rock.Lava
 
         public static class ContextKeys
         {
+            public const string LavaEngineInstance = "LavaEngineInstance";
             public const string SourceTemplateElements = "SourceElements";
             public const string SourceTemplateStatements = "Statements";
         }

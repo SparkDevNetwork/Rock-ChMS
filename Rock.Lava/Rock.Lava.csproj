@@ -52,9 +52,6 @@
     <Reference Include="Ical.Net.Collections, Version=2.1.0.20780, Culture=neutral, processorArchitecture=MSIL">
       <HintPath>..\packages\Ical.Net.2.3.5\lib\net46\Ical.Net.Collections.dll</HintPath>
     </Reference>
-    <Reference Include="Irony, Version=1.0.7.0, Culture=neutral, PublicKeyToken=ca48ace7223ead47, processorArchitecture=MSIL">
-      <HintPath>..\packages\Irony.Core.1.0.7\lib\net461\Irony.dll</HintPath>
-    </Reference>
     <Reference Include="Microsoft.Bcl.AsyncInterfaces, Version=1.0.0.0, Culture=neutral, PublicKeyToken=cc7b13ffcd2ddd51, processorArchitecture=MSIL">
       <HintPath>..\packages\Microsoft.Bcl.AsyncInterfaces.1.1.0\lib\net461\Microsoft.Bcl.AsyncInterfaces.dll</HintPath>
     </Reference>
@@ -75,9 +72,6 @@
     </Reference>
     <Reference Include="NodaTime, Version=1.3.0.0, Culture=neutral, PublicKeyToken=4226afe0d9b296d1, processorArchitecture=MSIL">
       <HintPath>..\packages\Ical.Net.2.3.5\lib\net46\NodaTime.dll</HintPath>
-    </Reference>
-    <Reference Include="Parlot, Version=0.0.17.0, Culture=neutral, PublicKeyToken=2e92ba9c8d81157f, processorArchitecture=MSIL">
-      <HintPath>..\packages\Parlot.0.0.17\lib\netstandard2.0\Parlot.dll</HintPath>
     </Reference>
     <Reference Include="System" />
     <Reference Include="System.AppContext, Version=4.1.1.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a, processorArchitecture=MSIL">
@@ -217,6 +211,7 @@
   <ItemGroup>
     <Compile Include="Constants.cs" />
     <Compile Include="Core\Blocks\LavaBlockInfo.cs" />
+    <Compile Include="Core\ILavaServiceProvider.cs" />
     <Compile Include="Core\ILiquidFrameworkDataObjectProxy.cs" />
     <Compile Include="Core\LavaSecurityHelper.cs" />
     <Compile Include="Core\Blocks\LavaBlockBase.cs" />

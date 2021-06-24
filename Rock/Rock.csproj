@@ -679,7 +679,6 @@
     <Compile Include="Lava\LavaService.cs" />
     <Compile Include="Lava\RockLiquid\Shortcodes\MediaPlayer.cs" />
     <Compile Include="Lava\Shortcodes\MediaPlayerShortcode.cs" />
-    <Compile Include="Lava\WebsiteLavaTemplateCache.cs" />
     <Compile Include="Jobs\GroupAttendanceReporting.cs" />
     <Compile Include="Lava\RockLiquid\Blocks\Cache.cs" />
     <Compile Include="Lava\RockLiquid\Blocks\CalendarEvents.cs" />
@@ -710,7 +709,9 @@
     <Compile Include="Lava\RockLiquid\Shortcodes\RockLavaShortcodeBlockBase.cs" />
     <Compile Include="Lava\RockLiquid\Shortcodes\ScheduledContent.cs" />
     <Compile Include="Lava\RockLiquid\Shortcodes\Scripturize.cs" />
+    <Compile Include="Lava\WebsiteLavaFileSystem.cs" />
     <Compile Include="Lava\WebsiteLavaShortcodeProvider.cs" />
+    <Compile Include="Lava\WebsiteLavaTemplateCache.cs" />
     <Compile Include="Lava\WebsiteLavaTemplateCacheService.cs" />
     <Compile Include="Media\MediaWatchedInteractionData.cs" />
     <Compile Include="Model\EventItemService.Partial.cs" />
@@ -825,7 +826,6 @@
     <Compile Include="Lava\Blocks\CalendarEventsBlock.cs" />
     <Compile Include="Lava\ILiquidizable.cs" />
     <Compile Include="Lava\LavaElementAttributes.cs" />
-    <Compile Include="Lava\WebsiteLavaFileSystem.cs" />
     <Compile Include="Lava\LavaFilters.cs" />
     <Compile Include="Logging\IRockLogReader.cs" />
     <Compile Include="Logging\RockLogEvent.cs" />
@@ -3344,6 +3344,10 @@
     <ProjectReference Include="..\Rock.Lava.Shared\Rock.Lava.Shared.csproj">
       <Project>{8820cd93-70ee-496d-b17b-0c4c68dd4957}</Project>
       <Name>Rock.Lava.Shared</Name>
+    </ProjectReference>
+    <ProjectReference Include="..\Rock.Lava.Web\Rock.Lava.Web.csproj">
+      <Project>{dd8dc474-9f6e-4389-8ad3-bfbefc83516f}</Project>
+      <Name>Rock.Lava.Web</Name>
     </ProjectReference>
     <ProjectReference Include="..\Rock.Lava\Rock.Lava.csproj">
       <Project>{37e293dd-f282-4a34-91fa-5fb8503d5672}</Project>

@@ -347,7 +347,18 @@ namespace Rock.Lava.Fluid
                         // If this is the first parameter, it may be a LavaContext or the input template.
                         if ( hasContextParameter )
                         {
-                            lavaFilterMethodArguments[0] = new FluidRenderContext( context );
+                            var renderContext = new FluidRenderContext( context );
+
+                            // Register the current Lava engine as a service that can be accessed through the render context.
+                            var provider = renderContext as ILavaServiceProvider;
+
+                            provider.RegisterService( typeof( ILavaEngine ), ( type, configurationObject ) =>
+                            {
+                                return this;
+                            } );
+
+                            lavaFilterMethodArguments[0] = renderContext;
+
                             continue;
                         }
                         else
