@@ -18,7 +18,6 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
-using System.Web.Compilation;
 using DotLiquid;
 
 namespace Rock.Lava.DotLiquid
@@ -117,7 +116,7 @@ namespace Rock.Lava.DotLiquid
             Template.RegisterValueTypeTransformer( typeof( DotLiquidLavaDataDictionaryProxy ),
                 ( value ) =>
                 {
-                    return ( (ILiquidFrameworkDataObjectProxy)value ).GetProxiedDataObject();
+                    return ( ( ILiquidFrameworkDataObjectProxy ) value ).GetProxiedDataObject();
                 } );
         }
 
@@ -258,22 +257,16 @@ namespace Rock.Lava.DotLiquid
 
                 if ( args[i] is DropProxy )
                 {
-                    args[i] = ( (DropProxy)args[i] ).ConvertToValueType();
+                    args[i] = ( ( DropProxy ) args[i] ).ConvertToValueType();
                 }
             }
 
-            // Inject the render context if it is requested, and add services that may be required by the filter.
+            // Inject the render context if it is requested.
             if ( lavaFilterFunctionParams.Length > 0 && lavaFilterFunctionParams[0].ParameterType == typeof( ILavaRenderContext ) )
             {
                 var renderContext = new DotLiquidRenderContext( dotLiquidContext );
 
-                // Register the current Lava engine as a service that can be accessed through the render context.
-                var provider = renderContext as ILavaServiceProvider;
-
-                provider.RegisterService( typeof(ILavaEngine), ( type, configurationObject ) =>
-                {
-                    return this;
-                } );
+                InitializeRenderContext( renderContext );
 
                 args.Insert( 0, renderContext );
             }
@@ -405,7 +398,7 @@ namespace Rock.Lava.DotLiquid
                     ( obj ) =>
                     {
                         // Get the Lava Dictionary and return it in a wrapper that supports the IDictionary<string, object> interface.
-                        var lavaDictionary = ( (Rock.Lava.ILavaDataDictionarySource)obj ).GetLavaDataDictionary();
+                        var lavaDictionary = ( ( Rock.Lava.ILavaDataDictionarySource ) obj ).GetLavaDataDictionary();
 
                         return new DotLiquidLavaDataDictionaryProxy( lavaDictionary );
                     } );

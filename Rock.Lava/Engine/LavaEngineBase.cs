@@ -102,19 +102,7 @@ namespace Rock.Lava
         /// <returns></returns>
         public ILavaRenderContext NewRenderContext()
         {
-            var context = OnCreateRenderContext();
-
-            if ( context == null )
-            {
-                throw new LavaException( "Failed to create a new render context." );
-            }
-
-            context.SetEnabledCommands( this.DefaultEnabledCommands );
-
-            // Set a reference to the current Lava Engine.            
-            context.SetInternalField( LavaUtilityHelper.GetContextKeyFromType( typeof( ILavaEngine ) ), this );
-
-            return context;
+            return NewRenderContextInternal( null, this.DefaultEnabledCommands );
         }
 
         /// <summary>
@@ -124,18 +112,7 @@ namespace Rock.Lava
         /// <returns></returns>
         public ILavaRenderContext NewRenderContext( IEnumerable<string> enabledCommands )
         {
-            var context = OnCreateRenderContext();
-
-            if ( context == null )
-            {
-                throw new LavaException( "Failed to create a new render context." );
-            }
-
-            enabledCommands = enabledCommands ?? this.DefaultEnabledCommands;
-
-            context.SetEnabledCommands( enabledCommands );
-
-            return context;
+            return NewRenderContextInternal( null, enabledCommands );
         }
 
         /// <summary>
@@ -145,20 +122,7 @@ namespace Rock.Lava
         /// <returns></returns>
         public ILavaRenderContext NewRenderContext( ILavaDataDictionary mergeFields, IEnumerable<string> enabledCommands = null )
         {
-            var context = OnCreateRenderContext();
-
-            if ( context == null )
-            {
-                throw new LavaException( "Failed to create a new render context." );
-            }
-
-            context.SetMergeFields( mergeFields );
-
-            enabledCommands = enabledCommands ?? this.DefaultEnabledCommands;
-
-            context.SetEnabledCommands( enabledCommands );
-
-            return context;
+            return NewRenderContextInternal( mergeFields, enabledCommands );
         }
 
         /// <summary>
@@ -168,6 +132,16 @@ namespace Rock.Lava
         /// <returns></returns>
         public ILavaRenderContext NewRenderContext( IDictionary<string, object> mergeFields, IEnumerable<string> enabledCommands = null )
         {
+            return NewRenderContextInternal( mergeFields, enabledCommands );
+        }
+
+        /// <summary>
+        /// Create a new template context and add the specified merge fields.
+        /// </summary>
+        /// <param name="mergeFields"></param>
+        /// <returns></returns>
+        private ILavaRenderContext NewRenderContextInternal( object mergeFields, IEnumerable<string> enabledCommands )
+        {
             var context = OnCreateRenderContext();
 
             if ( context == null )
@@ -175,11 +149,16 @@ namespace Rock.Lava
                 throw new LavaException( "Failed to create a new render context." );
             }
 
-            context.SetMergeFields( mergeFields );
+            if ( mergeFields is IDictionary<string, object> dictionary )
+            {
+                context.SetMergeFields( dictionary );
+            }
+            else if ( mergeFields is ILavaDataDictionary ldd )
+            {
+                context.SetMergeFields( ldd );
+            }
 
-            enabledCommands = enabledCommands ?? this.DefaultEnabledCommands;
-
-            context.SetEnabledCommands( enabledCommands );
+            InitializeRenderContext( context, enabledCommands ?? this.DefaultEnabledCommands );
 
             return context;
         }
@@ -193,7 +172,27 @@ namespace Rock.Lava
         {
             // This method exists as a convenience to disambiguate method calls using the LavaDataDictionary parameter, because
             //  it supports both the ILavaDataDictionary and IDictionary<string, object> interfaces.
-            return NewRenderContext( (ILavaDataDictionary)mergeFields, enabledCommands );
+            return NewRenderContext( ( ILavaDataDictionary ) mergeFields, enabledCommands );
+        }
+
+        /// <summary>
+        /// Initializes a new template context.
+        /// </summary>
+        /// <returns></returns>
+        protected void InitializeRenderContext( ILavaRenderContext context, IEnumerable<string> enabledCommands = null )
+        {
+            if ( context == null )
+            {
+                return;
+            }
+
+            if ( enabledCommands != null )
+            {
+                context.SetEnabledCommands( enabledCommands );
+            }
+
+            // Set a reference to the current Lava Engine.            
+            context.SetInternalField( LavaUtilityHelper.GetContextKeyFromType( typeof( ILavaEngine ) ), this );
         }
 
         /// <summary>
@@ -549,7 +548,7 @@ namespace Rock.Lava
                     message = "{Request aborted}";
                 }
                 else
-                { 
+                {
                     ProcessException( lre, exceptionStrategy, out message );
                 }
 
@@ -595,16 +594,6 @@ namespace Rock.Lava
                 {
                     parameters.Context = NewRenderContext();
                 }
-
-                if ( parameters.Context.GetService( typeof( ILavaEngine ) ) == null )
-                {
-                    int i = 0;
-                }
-
-                // Register the services that are accessible to the render context.
-                //var serviceProvider = ( ILavaServiceProvider ) parameters.Context;
-
-                //serviceProvider.RegisterService( typeof( ILavaEngine ), ( t, o ) => { return this; } );
 
                 result = OnRenderTemplate( template, parameters );
 

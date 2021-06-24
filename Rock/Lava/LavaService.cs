@@ -29,102 +29,6 @@ namespace Rock.Lava
         private static object _initializationLock = new object();
         private static bool _rockLiquidIsEnabled = true;
 
-        private static LavaServiceProvider _serviceProvider = new LavaServiceProvider();
-
-/*
-        static LavaService()
-        {
-            // Register the RockLiquid Engine (pre-v13).
-            _serviceProvider.RegisterService( ( engineServiceType, options ) =>
-            {
-                //var defaultEnabledLavaCommands = GlobalAttributesCache.Value( "DefaultEnabledLavaCommands" ).SplitDelimitedValues( "," ).ToList();
-
-                var engineOptions = new LavaEngineConfigurationOptions();
-
-                //{
-                //    FileSystem = new DotLiquidFileSystem( new WebsiteLavaFileSystem() ),
-                //    CacheService = new WebsiteLavaTemplateCacheService(),
-                //    DefaultEnabledCommands = defaultEnabledLavaCommands
-                //};
-
-                var rockLiquidEngine = new RockLiquidEngine();
-
-                rockLiquidEngine.Initialize( engineOptions );
-
-                return rockLiquidEngine;
-            } );
-
-            // Register the DotLiquid Engine.
-            _serviceProvider.RegisterService( ( engineServiceType, options ) =>
-            {
-                var defaultEnabledLavaCommands = GlobalAttributesCache.Value( "DefaultEnabledLavaCommands" ).SplitDelimitedValues( "," ).ToList();
-
-                var engineOptions = new LavaEngineConfigurationOptions
-                {
-                    FileSystem = new WebsiteLavaFileSystem(),
-                    CacheService = new WebsiteLavaTemplateCacheService(),
-                    DefaultEnabledCommands = defaultEnabledLavaCommands
-                };
-
-                var dotLiquidEngine = new DotLiquidEngine();
-
-                dotLiquidEngine.Initialize( engineOptions );
-
-                return dotLiquidEngine;
-            } );
-
-            // Register the Fluid Engine.
-            _serviceProvider.RegisterService( ( engineServiceType, options ) =>
-            {
-                var defaultEnabledLavaCommands = GlobalAttributesCache.Value( "DefaultEnabledLavaCommands" ).SplitDelimitedValues( "," ).ToList();
-
-                var engineOptions = new LavaEngineConfigurationOptions
-                {
-                    FileSystem = new WebsiteLavaFileSystem(),
-                    CacheService = new WebsiteLavaTemplateCacheService(),
-                    DefaultEnabledCommands = defaultEnabledLavaCommands
-                };
-
-                var fluidEngine = new FluidEngine();
-
-                fluidEngine.Initialize( engineOptions );
-
-                return fluidEngine;
-            } );   
-
-            //    _serviceProvider.RegisterService<FluidEngine>( (engineType) =>
-            //    {
-            //        var engine = new FluidEngine();
-
-            //        options = options ?? new LavaEngineConfigurationOptions();
-
-            //        if ( options.FileSystem != null )
-            //        {
-            //            options.FileSystem = new FluidFileSystem( options.FileSystem );
-            //        }
-            //    }
-            //    else if ( engineIdentifier == "DotLiquid" )
-            //    {
-            //        engine = new DotLiquidEngine();
-
-            //        options = options ?? new LavaEngineConfigurationOptions();
-
-            //        if ( options.FileSystem != null )
-            //        {
-            //            options.FileSystem = new DotLiquidFileSystem( options.FileSystem );
-            //        }
-            //    }
-            //    else if ( engineIdentifier == "RockLiquid" )
-            //    {
-            //        // Instantiate the default engine.
-            //        engine = new RockLiquidEngine();
-
-            //        options = options ?? new LavaEngineConfigurationOptions();
-            //    }
-
-        }
-*/
-
         /// <summary>
         /// A flag indicating if RockLiquid Lava processing is enabled.
         /// RockLiquid is the Rock-specific fork of the DotLiquid framework that provides Lava rendering for Rock v12 or below.
@@ -150,17 +54,6 @@ namespace Rock.Lava
         }
 
         /// <summary>
-        /// Register a Lava Engine.
-        /// </summary>
-        /// <typeparam name="TEngine"></typeparam>
-        /// <param name="factoryMethod"></param>
-        public static void RegisterEngine<TEngine>( Func<Type, object, TEngine> factoryMethod )
-            where TEngine: class, ILavaEngine
-        {
-            _serviceProvider.RegisterService( factoryMethod );
-        }
-
-        /// <summary>
         /// Sets the global instance of the Lava Engine with the default configuration options.
         /// </summary>
         /// <param name="lavaEngineType"></param>
@@ -177,7 +70,7 @@ namespace Rock.Lava
         public static void SetCurrentEngine( Type lavaEngineType, LavaEngineConfigurationOptions options )
         {
             lock ( _initializationLock )
-            {  
+            {
                 // Release the current instance.
                 _engine = null;
 
@@ -213,8 +106,6 @@ namespace Rock.Lava
         /// <param name="options"></param>
         public static ILavaEngine NewEngineInstance( Type lavaEngineType, LavaEngineConfigurationOptions options )
         {
-            //ILavaEngine engine = null;
-
             // Create an instance of the Lava Engine of the requested type, and initialize it with the specified options.
             ILavaEngine engine = null;
 
@@ -224,49 +115,13 @@ namespace Rock.Lava
 
                 if ( engine == null )
                 {
-                    throw new Exception( $"Lava Engine instance creation failed. The type \"{ lavaEngineType.FullName }\" does not implement the { nameof(ILavaEngine) } interface." );
+                    throw new Exception( $"Lava Engine instance creation failed. The type \"{ lavaEngineType.FullName }\" does not implement the { nameof( ILavaEngine ) } interface." );
                 }
             }
-            catch (Exception ex)
+            catch ( Exception ex )
             {
                 throw new Exception( $"Lava Engine instance creation failed. The type \"{ lavaEngineType.FullName }\" does not implement the { nameof( ILavaEngine ) } interface.", ex );
             }
-
-
-
-            //ILavaEngine engine = _serviceProvider.GetService( lavaEngineType ) as ILavaEngine;
-
-            /*
-            if ( engineIdentifier == "Fluid" )
-            {
-                engine = new FluidEngine();
-
-                options = options ?? new LavaEngineConfigurationOptions();
-
-                if ( options.FileSystem != null )
-                {
-                    options.FileSystem = new FluidFileSystem( options.FileSystem );
-                }
-            }
-            else if ( engineIdentifier == "DotLiquid" )
-            {
-                engine = new DotLiquidEngine();
-
-                options = options ?? new LavaEngineConfigurationOptions();
-
-                if ( options.FileSystem != null )
-                {
-                    options.FileSystem = new DotLiquidFileSystem( options.FileSystem );
-                }
-            }
-            else if ( engineIdentifier == "RockLiquid" )
-            {
-                // Instantiate the default engine.
-                engine = new RockLiquidEngine();
-
-                options = options ?? new LavaEngineConfigurationOptions();
-            }
-*/
 
             options = options ?? new LavaEngineConfigurationOptions();
 

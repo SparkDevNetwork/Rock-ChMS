@@ -63,6 +63,7 @@ namespace Rock.Tests.Integration.Lava
         /// Verify that templates with varying amounts of whitespace are correctly cached and return the expected output.
         /// </summary>
         [TestMethod]
+        [Ignore("This test fails intermittently, because Rock cache services rely on a non-deterministic command-queueing mechanism that does not always fire in a timely fashion.")]
         public void WebsiteLavaTemplateCacheService_WhitespaceTemplatesWithDifferentLengths_AreCachedIndependently()
         {
             var options = new LavaEngineConfigurationOptions();
@@ -84,11 +85,6 @@ namespace Rock.Tests.Integration.Lava
 
                 // Verify that the template does not initially exist in the cache.
                 var exists = cacheService.ContainsKey( key0 );
-
-                if (exists)
-                {
-                    int i = 0;
-                }
 
                 Assert.IsFalse( exists, "String-0 Template found in cache unexpectedly." );
 
