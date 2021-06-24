@@ -3359,10 +3359,6 @@
       <Project>{8820cd93-70ee-496d-b17b-0c4c68dd4957}</Project>
       <Name>Rock.Lava.Shared</Name>
     </ProjectReference>
-    <ProjectReference Include="..\Rock.Lava.Web\Rock.Lava.Web.csproj">
-      <Project>{dd8dc474-9f6e-4389-8ad3-bfbefc83516f}</Project>
-      <Name>Rock.Lava.Web</Name>
-    </ProjectReference>
     <ProjectReference Include="..\Rock.Lava\Rock.Lava.csproj">
       <Project>{37e293dd-f282-4a34-91fa-5fb8503d5672}</Project>
       <Name>Rock.Lava</Name>

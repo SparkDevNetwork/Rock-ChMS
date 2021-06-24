@@ -356,13 +356,7 @@ namespace Rock.Lava.Fluid
                         {
                             var renderContext = new FluidRenderContext( context );
 
-                            // Register the current Lava engine as a service that can be accessed through the render context.
-                            var provider = renderContext as ILavaServiceProvider;
-
-                            provider.RegisterService( typeof( ILavaEngine ), ( type, configurationObject ) =>
-                            {
-                                return this;
-                            } );
+                            InitializeRenderContext( renderContext );
 
                             lavaFilterMethodArguments[0] = renderContext;
 
@@ -421,7 +415,7 @@ namespace Rock.Lava.Fluid
                 }
                 else
                 {
-                    lavaArgument = (int)fluidFilterArgument.ToNumberValue();
+                    lavaArgument = ( int ) fluidFilterArgument.ToNumberValue();
                 }
             }
             else if ( argumentType == typeof( bool ) )
@@ -501,7 +495,7 @@ namespace Rock.Lava.Fluid
 
             var success = _parser.TryParse( liquidTemplate, out fluidTemplate, out error );
 
-            var fluidTemplateObject = (FluidTemplate)fluidTemplate;
+            var fluidTemplateObject = ( FluidTemplate ) fluidTemplate;
 
             if ( success )
             {

@@ -22,18 +22,8 @@ namespace Rock.Lava
     /// <summary>
     /// Stores the configuration and data used by the Lava Engine to resolve a Lava template.
     /// </summary>
-    public abstract class LavaRenderContextBase : ILavaRenderContext, ILavaServiceProvider
+    public abstract class LavaRenderContextBase : ILavaRenderContext
     {
-        private LavaServiceProvider _serviceProvider = new LavaServiceProvider();
-
-        internal LavaServiceProvider ServiceProvider
-        {
-            get
-            {
-                return _serviceProvider;
-            }
-        }
-
         /// <summary>
         /// Gets a named value that is for internal use only, by other components of the Lava engine.
         /// Internal values are not available to be resolved in the Lava Template.
@@ -237,37 +227,13 @@ namespace Rock.Lava
             return GetService( serviceType, null );
         }
 
-        #region ILavaServiceProvider
-
         private ILavaService GetService( Type serviceType, object configuration )
         {
             var key = LavaUtilityHelper.GetContextKeyFromType( serviceType );
 
             var service = this.GetInternalField( key );
 
-            if ( service != null )
-            {
-                return service as ILavaService;
-            }
-
-            return _serviceProvider.GetService( serviceType, configuration );
+            return service as ILavaService;
         }
-
-        ILavaService ILavaServiceProvider.GetService( Type serviceType, object configuration )
-        {
-            return GetService( serviceType, configuration );
-        }
-
-        void ILavaServiceProvider.RegisterService( Type serviceType, Func<Type, object, ILavaService> serviceFactoryMethod )
-        {
-            var key = LavaUtilityHelper.GetContextKeyFromType( serviceType );
-
-            SetInternalField( key, serviceFactoryMethod( serviceType, null ) );
-
-            _serviceProvider.RegisterService( serviceType, serviceFactoryMethod );
-        }
-
-        #endregion
-
     }
 }
