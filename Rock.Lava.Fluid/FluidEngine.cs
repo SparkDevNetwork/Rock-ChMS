@@ -116,6 +116,14 @@ namespace Rock.Lava.Fluid
         {
             var templateOptions = GetTemplateOptions();
 
+            /* [2021-06-24] DL
+             * Value Converters can have a significant impact on rendering performance.
+             * Wherever possible, a conversion function should:
+             * 1. Process all conversions related to a specific Type domain, to avoid the need to execute similar code in multiple converters.
+             * 2. Order from most to least frequently executed and least to most expensive execution time.
+             * 3. Return a FluidValue as quickly as possible, to avoid executing subsequent value converters in the collection.
+             */
+
             // DBNull is required to process results from the Sql command.
             // If this type is not registered, Fluid throws some seemingly unrelated exceptions.
             templateOptions.ValueConverters.Add( ( value ) => value is System.DBNull ? FluidValue.Create( null, templateOptions ) : null );
@@ -125,36 +133,48 @@ namespace Rock.Lava.Fluid
             // If this converter is not registered, any attempt to access a non-standard dictionary by key returns a null value.
             templateOptions.ValueConverters.Add( ( value ) =>
             {
+                // If the value is not a dictionary, this converter is not applicable.
+                if ( !( value is IDictionary ) )
+                {
+                    return value;
+                }
+
+                // If the value is a standard Liquid-compatible dictionary,
+                // return the appropriate Fluid wrapper to short-circuit further conversion attempts.
+                if ( value is IDictionary<string, object> liquidDictionary )
+                {
+                    return new DictionaryValue( new ObjectDictionaryFluidIndexable( liquidDictionary, _templateOptions ) );
+                }
+
                 var valueType = value.GetType();
 
-                if ( typeof( IDictionary<,> ).IsAssignableFrom( valueType ) )
+                // If the value is derived from LavaDataObject, no conversion is needed.
+                if ( typeof( LavaDataObject ).IsAssignableFrom( valueType ) )
                 {
-                    // If this is a dictionary with a string key type, no conversion is needed.
+                    return value;
+                }
+
+                // If this is a generic dictionary with a string key type, no conversion is needed.
+                if ( valueType.IsGenericType
+                     && valueType.GetGenericTypeDefinition() == typeof( Dictionary<,> ) )
+                {
                     var keyType = valueType.GetGenericArguments()[0];
 
                     if ( keyType == typeof( string ) )
                     {
-                        return null;
+                        return value;
                     }
-
-                    return new LavaDataObject( value );
                 }
-                
+
+                // If this is any other type of dictionary implementation, wrap it in a proxy
+                // so it can be accessed with a key that is not a string type.
                 if ( typeof( IDictionary ).IsAssignableFrom( valueType ) )
                 {
                     return new LavaDataObject( value );
                 }
 
-                return null;
-
-                // Wrap the dictionary in a proxy so it can be accessed with a key that is not a string type.
-                //new LavaDataObject( value );
+                return value;
             } );
-        }
-
-        private Dictionary<string,TValue> ConvertToDictionaryWithStringKey<TKey,TValue>(IDictionary<TKey,TValue> dictionary)
-        {
-            return dictionary.ToDictionary( k => k.Key.ToString(), v => v.Value );
         }
 
         private TemplateOptions GetTemplateOptions()

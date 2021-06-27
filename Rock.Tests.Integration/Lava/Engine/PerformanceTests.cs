@@ -41,7 +41,7 @@ namespace Rock.Tests.Integration.Lava
             // Create a Fluid engine with template caching disabled.
             var engineOptions = new LavaEngineConfigurationOptions { CacheService = new MockTemplateCacheService() };
 
-            var engine = LavaService.NewEngineInstance( LavaEngineTypeSpecifier.Fluid, engineOptions );
+            var engine = LavaService.NewEngineInstance( typeof( FluidEngine ), engineOptions );
 
             var standardLavaDictionary = new Dictionary<string, object>();
 
