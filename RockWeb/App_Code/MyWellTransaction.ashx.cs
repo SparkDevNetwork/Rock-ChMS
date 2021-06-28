@@ -29,7 +29,7 @@ namespace RockWeb.Webhooks
 {
     /// <summary>
     /// </summary>
-    public class MyWellCardSync : IHttpHandler
+    public class MyWellTransaction : IHttpHandler
     {
         public void ProcessRequest( HttpContext context )
         {

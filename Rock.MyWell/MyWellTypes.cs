@@ -2760,13 +2760,13 @@ namespace Rock.MyWell
     public class CardSyncWebhookResponse : BaseResponseData
     {
         [JsonProperty( "account_type" )]
-        public string account_type { get; set; }
+        public string AccountType { get; set; }
 
         [JsonProperty( "account_type_id" )]
-        public string account_type_id { get; set; }
+        public string AccountTypeId { get; set; }
 
         [JsonProperty( "transaction_id" )]
-        public string transaction_id { get; set; }
+        public string TransactionId { get; set; }
 
         [JsonProperty( "action_at" )]
         public DateTime action_at { get; set; }
@@ -2781,7 +2781,7 @@ namespace Rock.MyWell
     public class CardSyncWebhookPaymentMethod
     {
         [JsonProperty( "card_id" )]
-        public string card_id { get; set; }
+        public string CardId { get; set; }
 
         [JsonProperty( "digest" )]
         public string digest { get; set; }
@@ -2790,10 +2790,10 @@ namespace Rock.MyWell
         public string ExpirationDate { get; set; }
 
         [JsonProperty( "flags" )]
-        public object flags { get; set; }
-
+        public object Flags { get; set; }
+        
         [JsonProperty( "generic_card_level" )]
-        public string generic_card_level { get; set; }
+        public string GenericCardLevel { get; set; }
 
         [JsonProperty( "instrument_type" )]
         public string instrument_type { get; set; }
@@ -3028,7 +3028,7 @@ namespace Rock.MyWell
     /// <summary>
     /// MyWell Subscription Status Enum
     /// </summary>
-    [JsonConverter( typeof(StringEnumConverter) )]
+    [JsonConverter( typeof( StringEnumConverter ) )]
     public enum MyWellSubscriptionStatus
     {
         /// <summary>
