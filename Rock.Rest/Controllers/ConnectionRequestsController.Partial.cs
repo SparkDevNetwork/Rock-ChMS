@@ -43,6 +43,9 @@ namespace Rock.Rest.Controllers
         [Authenticate, Secured]
         public override void Delete( int id )
         {
+            // We need to enable proxy creation so the IsAuthorizedToEdit call works correctly.
+            SetProxyCreation( true );
+
             var rockContext = Service.Context as RockContext;
             var service = Service as ConnectionRequestService;
             var connectionRequest = service.Queryable()
@@ -57,6 +60,12 @@ namespace Rock.Rest.Controllers
             if ( !service.CanDelete( connectionRequest, out var errorMessage ) )
             {
                 var errorResponse = ControllerContext.Request.CreateErrorResponse( HttpStatusCode.BadRequest, errorMessage );
+                throw new HttpResponseException( errorResponse );
+            }
+
+            if ( !service.IsAuthorizedToEdit( connectionRequest, GetPerson() ) )
+            {
+                var errorResponse = ControllerContext.Request.CreateErrorResponse( HttpStatusCode.Unauthorized, string.Empty );
                 throw new HttpResponseException( errorResponse );
             }
 
@@ -184,6 +193,7 @@ namespace Rock.Rest.Controllers
         /// <param name="delimitedConnectionStates">The delimited connection states.</param>
         /// <param name="delimitedLastActivityTypeIds">The delimited last activity type ids.</param>
         /// <param name="statusIconsTemplate">The status icons template.</param>
+        /// <param name="pastDueOnly">if set to <c>true</c> [past due only] for requests that are future follow-up.</param>
         /// <returns></returns>
         /// <exception cref="HttpResponseException"></exception>
         [Authenticate, Secured]
@@ -198,7 +208,8 @@ namespace Rock.Rest.Controllers
             string delimitedStatusIds = null,
             string delimitedConnectionStates = null,
             string delimitedLastActivityTypeIds = null,
-            string statusIconsTemplate = null )
+            string statusIconsTemplate = null,
+            bool pastDueOnly = false )
         {
             var personAliasId = GetPersonAliasId();
 
@@ -224,7 +235,8 @@ namespace Rock.Rest.Controllers
                         .SplitDelimitedValues()
                         .Select( s => ( ConnectionState ) Enum.Parse( typeof( ConnectionState ), s ) )
                         .ToList(),
-                    LastActivityTypeIds = delimitedLastActivityTypeIds.SplitDelimitedValues().AsIntegerList()
+                    LastActivityTypeIds = delimitedLastActivityTypeIds.SplitDelimitedValues().AsIntegerList(),
+                    IsFutureFollowUpPastDueOnly = pastDueOnly
                 },
                 statusIconsTemplate );
         }
@@ -244,8 +256,9 @@ namespace Rock.Rest.Controllers
         /// <param name="statusIconsTemplate">The status icons template.</param>
         /// <param name="sortProperty">The sort property.</param>
         /// <param name="maxRequestsPerStatus">The maximum requests per status.</param>
+        /// <param name="pastDueOnly">if set to <c>true</c> [past due only] for future follow-up requests.</param>
         /// <returns></returns>
-        /// <exception cref="HttpResponseException"></exception>
+        /// <exception cref="HttpResponseException">errorResponse</exception>
         [Authenticate, Secured]
         [System.Web.Http.Route( "api/ConnectionRequests/ConnectionBoardStatusViewModels/{connectionOpportunityId}" )]
         public List<ConnectionStatusViewModel> GetConnectionBoardStatusViewModels(
@@ -260,7 +273,8 @@ namespace Rock.Rest.Controllers
             string delimitedLastActivityTypeIds = null,
             string statusIconsTemplate = null,
             ConnectionRequestViewModelSortProperty? sortProperty = null,
-            int? maxRequestsPerStatus = null )
+            int? maxRequestsPerStatus = null,
+            bool pastDueOnly = false )
         {
             var personAliasId = GetPersonAliasId();
 
@@ -274,7 +288,8 @@ namespace Rock.Rest.Controllers
             var connectionStatusViewModels = connectionRequestService.GetConnectionBoardStatusViewModels(
                 personAliasId.Value,
                 connectionOpportunityId,
-                new ConnectionRequestViewModelQueryArgs {
+                new ConnectionRequestViewModelQueryArgs
+                {
                     CampusId = campusId,
                     ConnectorPersonAliasId = connectorPersonAliasId,
                     RequesterPersonAliasId = requesterPersonAliasId,
@@ -286,7 +301,8 @@ namespace Rock.Rest.Controllers
                         .Select( s => ( ConnectionState ) Enum.Parse( typeof( ConnectionState ), s ) )
                         .ToList(),
                     LastActivityTypeIds = delimitedLastActivityTypeIds.SplitDelimitedValues().AsIntegerList(),
-                    SortProperty = sortProperty
+                    SortProperty = sortProperty,
+                    IsFutureFollowUpPastDueOnly = pastDueOnly
                 },
                 statusIconsTemplate,
                 maxRequestsPerStatus );

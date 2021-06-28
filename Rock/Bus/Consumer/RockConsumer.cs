@@ -19,9 +19,13 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
+
 using MassTransit;
+
 using Rock.Bus.Message;
 using Rock.Bus.Queue;
+using Rock.Logging;
+using Rock.Utility.ExtensionMethods;
 
 namespace Rock.Bus.Consumer
 {
@@ -77,6 +81,7 @@ namespace Rock.Bus.Consumer
         /// <returns></returns>
         public virtual Task Consume( ConsumeContext<TMessage> context )
         {
+            RockLogger.Log.Debug( RockLogDomains.Core, "Rock Task Consumer: {0} TMessage Type: {1} Context: {@context}", GetType(), typeof( TMessage ), context );
             ConsumeContext = context;
             Consume( context.Message );
             return RockMessageBus.GetCompletedTask();
@@ -140,8 +145,9 @@ namespace Rock.Bus.Consumer
         {
             var consumerTypes = new Dictionary<string, Type>();
             var assemblies = Reflection.GetRockAndPluginAssemblies();
+
             var types = assemblies
-                .SelectMany( a => a.GetTypes()
+                .SelectMany( a => a.GetTypesSafe()
                 .Where( t => t.IsClass && !t.IsNestedPrivate && !t.IsAbstract ) );
 
             foreach ( var type in types )

@@ -54,7 +54,7 @@
         var data = {
             labels: chartLabel,
             datasets: [{
-                fill: false,
+                fill: true,
                 backgroundColor: '#059BFF',
                 borderColor: '#059BFF',
                 borderWidth: 0,
@@ -113,27 +113,27 @@
             </div>
 
             <div class="row">
-                <asp:Panel ID="pnlCheckedIn" runat="server" CssClass="col-lg-4">
+                <asp:Panel ID="pnlCheckedInCount" runat="server" CssClass="col-lg-4">
                     <div class="panel">
                         <div class="panel-body">
-                            <span class="h3 font-weight-bolder"><asp:Literal ID="lCheckedInPeople" runat="server" /></span>
-                            <span class="d-block small text-muted font-weight-bold">Checked-In People</span>
+                            <span class="h3 font-weight-bolder"><asp:Literal ID="lCheckedInPeopleCount" runat="server" /></span>
+                            <span class="d-block small text-muted font-weight-bold">Checked-in</span>
                         </div>
                     </div>
                 </asp:Panel>
-                <asp:Panel ID="pnlPending" runat="server" CssClass="col-lg-4">
+                <asp:Panel ID="pnlPresentCount" runat="server" CssClass="col-lg-4">
                     <div class="panel">
                         <div class="panel-body">
-                            <span class="h3 font-weight-bolder"><asp:Literal ID="lPendingPeople" runat="server" /></span>
-                            <span class="d-block small text-muted font-weight-bold">Pending People</span>
+                            <span class="h3 font-weight-bolder"><asp:Literal ID="lPresentPeopleCount" runat="server" /></span>
+                            <span class="d-block small text-muted font-weight-bold">Present</span>
                         </div>
                     </div>
                 </asp:Panel>
-                <asp:Panel ID="pnlCheckedOut" runat="server" CssClass="col-lg-4">
+                <asp:Panel ID="pnlTotalCount" runat="server" CssClass="col-lg-4">
                     <div class="panel">
                         <div class="panel-body">
-                            <span class="h3 font-weight-bolder"><asp:Literal ID="lCheckedOutPeople" runat="server" /></span>
-                            <span class="d-block small text-muted font-weight-bold">Checked-Out People</span>
+                            <span class="h3 font-weight-bolder"><asp:Literal ID="lTotalPeopleCount" runat="server" /></span>
+                            <span class="d-block small text-muted font-weight-bold">Total</span>
                         </div>
                     </div>
                 </asp:Panel>
@@ -150,7 +150,7 @@
                             <asp:Literal ID="lNavHeading" runat="server" />
                         </div>
                         <div class="pull-right">
-                            <asp:Literal ID="lHeadingStatus" runat="server" />
+                            <Rock:Toggle ID="tglHeadingRoom" runat="server" OnText="Open" OffText="Close" ButtonSizeCssClass="btn-xs" OnCssClass="btn-success" OffCssClass="btn-danger" OnCheckedChanged="tglRoom_CheckedChanged" />
                         </div>
                         <asp:Panel ID="pnlThreshold" runat="server" CssClass="location-threshold pull-right d-flex mr-2 js-threshold">
                             <span class="small align-self-center mr-1">Threshold: </span>
@@ -170,9 +170,9 @@
                             <li id="liNavItem" runat="server" class="list-group-item cursor-pointer">
                                 <div class="content"><%# Eval("Name") %></div>
                                 <div class="pull-right d-flex align-items-center">
-                                    <asp:Literal ID="lStatus" runat="server" />
                                     <asp:Label ID="lblCurrentCount" runat="server" CssClass="badge" />
-                                    <i class='fa fa-fw fa-chevron-right'></i>
+                                    <Rock:Toggle ID="tglRoom" runat="server" CssClass="ml-3" OnText="Open" OffText="Close" ButtonSizeCssClass="btn-xs" OnCssClass="btn-success" OffCssClass="btn-danger" OnCheckedChanged="tglRoom_CheckedChanged"  />
+                                    <i class='fa fa-fw fa-chevron-right ml-3'></i>
                                 </div>
                             </li>
                         </ItemTemplate>

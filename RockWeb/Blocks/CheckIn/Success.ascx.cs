@@ -30,6 +30,7 @@ using Rock;
 using Rock.Attribute;
 using Rock.CheckIn;
 using Rock.Data;
+using Rock.Lava;
 using Rock.Model;
 using Rock.Utility;
 using Rock.Web.UI;
@@ -69,7 +70,10 @@ namespace RockWeb.Blocks.CheckIn
 
     public partial class Success : CheckInBlock
     {
-        private static class AttributeKey
+        /* 2021-05/07 ETD
+         * Use new here because the parent CheckInBlock also has inherited class AttributeKey.
+         */
+        private new static class AttributeKey
         {
             public const string PersonSelectPage = "PersonSelectPage";
             public const string Title = "Title";
@@ -97,8 +101,8 @@ namespace RockWeb.Blocks.CheckIn
         /// <summary>
         /// CheckinResult for rendering the Success Lava Template
         /// </summary>
-        /// <seealso cref="DotLiquid.Drop" />
-        public class CheckinResult : DotLiquid.Drop
+        /// <seealso cref="RockDynamic" />
+        public class CheckinResult : RockDynamic
         {
             /// <summary>
             /// Gets the person.
@@ -219,15 +223,18 @@ namespace RockWeb.Blocks.CheckIn
                         if ( printFromClient.Any() )
                         {
                             var urlRoot = string.Format( "{0}://{1}", Request.Url.Scheme, Request.Url.Authority );
-#if DEBUG
+
+                            /*
                             // This is extremely useful when debugging with ngrok and an iPad on the local network.
                             // X-Original-Host will contain the name of your ngrok hostname, therefore the labels will
                             // get a LabelFile url that will actually work with that iPad.
-                            if ( Request.Headers["X-Forwarded-Proto"] != null && Request.Headers["X-Original-Host" ] != null )
+                            if ( Request.Headers["X-Original-Host" ] != null )
                             {
-                                urlRoot = string.Format( "{0}://{1}", Request.Headers.GetValues( "X-Forwarded-Proto" ).First(), Request.Headers.GetValues( "X-Original-Host" ).First() );
+                                var scheme = Request.Headers["X-Forwarded-Proto"] ?? "http";
+                                urlRoot = string.Format( "{0}://{1}", scheme, Request.Headers.GetValues( "X-Original-Host" ).First() );
                             }
-#endif
+                            */
+
                             printFromClient
                                 .OrderBy( l => l.PersonId )
                                 .ThenBy( l => l.Order )

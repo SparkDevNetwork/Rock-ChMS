@@ -230,6 +230,14 @@ namespace Rock.Data
         public DbSet<AnalyticsSourcePersonHistorical> AnalyticsSourcePersonHistoricals { get; set; }
 
         /// <summary>
+        /// Gets or sets the analytics source giving units.
+        /// </summary>
+        /// <value>
+        /// The analytics source giving units.
+        /// </value>
+        public DbSet<AnalyticsSourceGivingUnit> AnalyticsSourceGivingUnits { get; set; }
+
+        /// <summary>
         /// Gets or sets the asset storage providers.
         /// </summary>
         /// <value>
@@ -508,6 +516,14 @@ namespace Rock.Data
         /// The communication recipients.
         /// </value>
         public DbSet<CommunicationRecipient> CommunicationRecipients { get; set; }
+
+        /// <summary>
+        /// Gets or sets the communication response attachments.
+        /// </summary>
+        /// <value>
+        /// The communication response attachments.
+        /// </value>
+        public DbSet<CommunicationResponseAttachment> CommunicationResponseAttachments { get; set; }
 
         /// <summary>
         /// Gets or sets the communication responses.
@@ -918,12 +934,36 @@ namespace Rock.Data
         public DbSet<FinancialScheduledTransactionDetail> FinancialScheduledTransactionDetails { get; set; }
 
         /// <summary>
+        /// Gets or sets the financial statement templates.
+        /// </summary>
+        /// <value>
+        /// The financial statement templates.
+        /// </value>
+        public DbSet<FinancialStatementTemplate> FinancialStatementTemplates { get; set; }
+
+        /// <summary>
         /// Gets or sets the transactions.
         /// </summary>
         /// <value>
         /// The transactions.
         /// </value>
         public DbSet<FinancialTransaction> FinancialTransactions { get; set; }
+
+        /// <summary>
+        /// Gets or sets the financial transaction alert.
+        /// </summary>
+        /// <value>
+        /// The financial transaction alert.
+        /// </value>
+        public DbSet<FinancialTransactionAlert> FinancialTransactionAlerts { get; set; }
+
+        /// <summary>
+        /// Gets or sets the type of the financial transaction alert.
+        /// </summary>
+        /// <value>
+        /// The type of the financial transaction alert.
+        /// </value>
+        public DbSet<FinancialTransactionAlertType> FinancialTransactionAlertTypes { get; set; }
 
         /// <summary>
         /// Gets or sets the transaction details.
@@ -1262,6 +1302,30 @@ namespace Rock.Data
         public DbSet<Location> Locations { get; set; }
 
         /// <summary>
+        /// Gets or sets the media accounts.
+        /// </summary>
+        /// <value>
+        /// The media accounts.
+        /// </value>
+        public DbSet<MediaAccount> MediaAccounts { get; set; }
+
+        /// <summary>
+        /// Gets or sets the media elements.
+        /// </summary>
+        /// <value>
+        /// The media elements.
+        /// </value>
+        public DbSet<MediaElement> MediaElements { get; set; }
+
+        /// <summary>
+        /// Gets or sets the media folders.
+        /// </summary>
+        /// <value>
+        /// The media folders.
+        /// </value>
+        public DbSet<MediaFolder> MediaFolders { get; set; }
+
+        /// <summary>
         /// Gets or sets the merge templates.
         /// </summary>
         /// <value>
@@ -1590,6 +1654,14 @@ namespace Rock.Data
         public DbSet<RegistrationRegistrantFee> RegistrationRegistrantFees { get; set; }
 
         /// <summary>
+        /// Gets or sets the registration sessions.
+        /// </summary>
+        /// <value>
+        /// The registration sessions.
+        /// </value>
+        public DbSet<RegistrationSession> RegistrationSessions { get; set; }
+
+        /// <summary>
         /// Gets or sets the registration templates.
         /// </summary>
         /// <value>
@@ -1782,6 +1854,14 @@ namespace Rock.Data
         public DbSet<StepProgram> StepPrograms { get; set; }
 
         /// <summary>
+        /// Gets or sets the step program completions.
+        /// </summary>
+        /// <value>
+        /// The step program completions.
+        /// </value>
+        public DbSet<StepProgramCompletion> StepProgramCompletions { get; set; }
+
+        /// <summary>
         /// Gets or sets the step statuses.
         /// </summary>
         /// <value>
@@ -1902,6 +1982,14 @@ namespace Rock.Data
         /// The web farm nodes.
         /// </value>
         public DbSet<WebFarmNode> WebFarmNodes { get; set; }
+
+        /// <summary>
+        /// Gets or sets the web farm node metrics.
+        /// </summary>
+        /// <value>
+        /// The web farm node metrics.
+        /// </value>
+        public DbSet<WebFarmNodeMetric> WebFarmNodeMetrics { get; set; }
 
         /// <summary>
         /// Gets or sets the web farm node logs.

@@ -19,7 +19,6 @@ using System.ComponentModel;
 using System.Data.Entity;
 using System.IO;
 using System.Linq;
-using System.Web;
 using System.Web.UI;
 using System.Web.UI.WebControls;
 using Rock;
@@ -74,7 +73,10 @@ namespace RockWeb.Blocks.CheckIn
     {
         #region Attribute Keys
 
-        private static class AttributeKey
+        /* 2021-05/07 ETD
+         * Use new here because the parent CheckInBlock also had inherited class AttributeKey.
+         */
+        private new static class AttributeKey
         {
             public const string AllowManualSetup = "AllowManualSetup";
             public const string EnableLocationSharing = "EnableLocationSharing";
@@ -104,6 +106,8 @@ namespace RockWeb.Blocks.CheckIn
         }
 
         #endregion PageParameterKeys
+
+        protected override bool LoadUnencryptedLocalDeviceConfig { get { return true; } }
 
         /// <summary>
         /// Raises the <see cref="E:System.Web.UI.Control.Load" /> event.
@@ -211,7 +215,7 @@ namespace RockWeb.Blocks.CheckIn
                 ddlKiosk.DataSource = new DeviceService( rockContext )
                     .Queryable().AsNoTracking()
                     .Where( d => d.DeviceTypeValueId == kioskDeviceTypeValueId
-                    && d.IsActive)
+                    && d.IsActive )
                     .OrderBy( d => d.Name )
                     .Select( d => new
                     {
@@ -238,6 +242,25 @@ namespace RockWeb.Blocks.CheckIn
             var urlKioskId = PageParameter( PageParameterKey.KioskId ).AsIntegerOrNull();
             var urlCheckinTypeId = PageParameter( PageParameterKey.CheckinConfigId ).AsIntegerOrNull();
             var urlGroupTypeIds = ( PageParameter( PageParameterKey.GroupTypeIds ) ?? string.Empty ).SplitDelimitedValues().AsIntegerList();
+
+            // If Kiosk and GroupTypes were passed, but not a checkin type, try to calculate it from the group types.
+            /* 
+                2021-04-30 MSB
+                There is a route that supports not passing in the check-in type id. If that route is used
+                we need to try to get the check-in type id from the selected group types.
+             */
+            if ( urlKioskId.HasValue && urlGroupTypeIds.Any() && !urlCheckinTypeId.HasValue )
+            {
+                foreach ( int groupTypeId in urlGroupTypeIds )
+                {
+                    var checkinType = GetCheckinType( groupTypeId );
+                    if ( checkinType != null )
+                    {
+                        urlCheckinTypeId = checkinType.Id;
+                        break;
+                    }
+                }
+            }
 
             /* 2020-09-10 MDP
              If both PageParameterKey.CheckinConfigId and PageParameterKey.GroupTypeIds are specified, set the local device configuration from those.
@@ -272,6 +295,10 @@ namespace RockWeb.Blocks.CheckIn
                 // If the local device is fully configured return true
                 if ( this.LocalDeviceConfig.IsConfigured() )
                 {
+                    // These need to be cleared so they can be correctly reloaded with the new data.
+                    CurrentCheckInState = null;
+                    CurrentWorkflow = null;
+
                     // Since we changed the config, save state
                     SaveState();
                     return true;
@@ -535,8 +562,7 @@ tryGeoLocation();
             if ( LocalDeviceConfig.CurrentTheme != theme )
             {
                 LocalDeviceConfig.CurrentTheme = ddlTheme.SelectedValue;
-                var localDeviceConfigValue = this.LocalDeviceConfig.ToJson( Newtonsoft.Json.Formatting.None );
-                Rock.Web.UI.RockPage.AddOrUpdateCookie( CheckInCookieKey.LocalDeviceConfig, localDeviceConfigValue, RockDateTime.Now.AddYears( 1 ) );
+                LocalDeviceConfig.SaveToCookie();
             }
 
             if ( !RockPage.Site.Theme.Equals( LocalDeviceConfig.CurrentTheme, StringComparison.OrdinalIgnoreCase ) )

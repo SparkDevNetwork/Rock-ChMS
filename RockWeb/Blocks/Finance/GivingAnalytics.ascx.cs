@@ -733,6 +733,7 @@ function(item) {
             var accountIdList = GetSetting( keyPrefix, "AccountIds" ).Split( ',' ).ToList();
             foreach ( var cblAccounts in phAccounts.Controls.OfType<RockCheckBoxList>() )
             {
+                cblAccounts.FormGroupCssClass = "clickable-label js-select-all";
                 cblAccounts.SetValues( accountIdList );
             }
 
@@ -1638,6 +1639,9 @@ function(item) {
                     var missedEnd = drpPatternDateRange.UpperValue;
                     if ( missedStart.HasValue && missedEnd.HasValue )
                     {
+                        // the DateRange picker doesn't automatically add a full day to the end date
+                        missedEnd = missedEnd.Value.AddDays( 1 );
+
                         // Get the givingleaderids that gave any amount during the pattern's date range. These
                         // are needed so that we know who to exclude from the result set
                         previousGivingIds = new FinancialTransactionDetailService( rockContext )

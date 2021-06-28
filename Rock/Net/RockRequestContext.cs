@@ -21,6 +21,7 @@ using System.Net.Http;
 using System.Web;
 
 using Rock.Attribute;
+using Rock.Blocks;
 using Rock.Data;
 using Rock.Lava;
 using Rock.Model;
@@ -32,7 +33,7 @@ namespace Rock.Net
     /// <summary>
     /// Provides an abstraction from user-code and the incoming request. The user code (such as
     /// a block, page or API callback) does not need to interact directly with any low-level
-    /// request objects. This allos for easier testing as well as adding new request types.
+    /// request objects. This allows for easier testing as well as adding new request types.
     /// </summary>
     public class RockRequestContext
     {
@@ -79,7 +80,7 @@ namespace Rock.Net
         /// <value>
         /// The page parameters.
         /// </value>
-        internal protected virtual IDictionary<string, string> PageParameters { get; set; }
+        internal protected virtual IDictionary<string, string> PageParameters { get; private set; }
 
         /// <summary>
         /// Gets or sets the context entities.
@@ -97,6 +98,14 @@ namespace Rock.Net
         /// </value>
         private IDictionary<string, IEnumerable<string>> Headers { get; set; }
 
+        /// <summary>
+        /// Gets the type of the rock client.
+        /// </summary>
+        /// <value>
+        /// The type of the rock client.
+        /// </value>
+        public RockClientType RockClientType { get; private set; }
+
         #endregion
 
         #region Constructors
@@ -104,21 +113,23 @@ namespace Rock.Net
         /// <summary>
         /// Initializes an empty instance of the <see cref="RockRequestContext"/> class.
         /// </summary>
-        internal RockRequestContext()
+        internal RockRequestContext( RockClientType rockClientType )
         {
-            PageParameters = new Dictionary<string, string>();
+            PageParameters = new Dictionary<string, string>( StringComparer.InvariantCultureIgnoreCase );
             ContextEntities = new Dictionary<Type, Lazy<IEntity>>();
-            Headers = new Dictionary<string, IEnumerable<string>>();
+            Headers = new Dictionary<string, IEnumerable<string>>( StringComparer.InvariantCultureIgnoreCase );
             RootUrlPath = string.Empty;
+            RockClientType = rockClientType;
         }
 
         /// <summary>
-        /// Initializes a new instance of the <see cref="RockRequestContext"/> class.
+        /// Initializes a new instance of the <see cref="RockRequestContext" /> class.
         /// </summary>
         /// <param name="request">The request from an HttpContext load that we will initialize from.</param>
-        internal RockRequestContext( HttpRequest request )
+        /// <param name="rockClientType">Type of the rock client.</param>
+        internal RockRequestContext( HttpRequest request, RockClientType rockClientType )
         {
-            CurrentUser = UserLoginService.GetCurrentUser( false );
+            CurrentUser = UserLoginService.GetCurrentUser( true );
 
             var uri = new Uri( request.Url.ToString() );
             RootUrlPath = uri.Scheme + "://" + uri.GetComponents( UriComponents.HostAndPort, UriFormat.UriEscaped ) + request.ApplicationPath;
@@ -128,8 +139,8 @@ namespace Rock.Net
             //
             // Setup the page parameters.
             //
-            PageParameters = new Dictionary<string, string>();
-            foreach ( var key in request.QueryString.AllKeys )
+            PageParameters = new Dictionary<string, string>( StringComparer.InvariantCultureIgnoreCase );
+            foreach ( var key in request.QueryString.AllKeys.Where( k => !k.IsNullOrWhiteSpace() ) )
             {
                 PageParameters.AddOrReplace( key, request.QueryString[key] );
             }
@@ -146,19 +157,22 @@ namespace Rock.Net
                 .ToDictionary( kvp => kvp.Key, kvp => kvp.Value, StringComparer.InvariantCultureIgnoreCase );
 
             //
-            // Todo: Setup the ContextEntities somehow. Probably from an additional paramter of the page cache object.
+            // Initialize any context entities found.
             //
             ContextEntities = new Dictionary<Type, Lazy<IEntity>>();
             AddContextEntitiesFromHeaders();
+
+            RockClientType = rockClientType;
         }
 
         /// <summary>
-        /// Initializes a new instance of the <see cref="RockRequestContext"/> class.
+        /// Initializes a new instance of the <see cref="RockRequestContext" /> class.
         /// </summary>
         /// <param name="request">The request from an API call that we will initialize from.</param>
-        internal RockRequestContext( HttpRequestMessage request )
+        /// <param name="rockClientType">Type of the rock client.</param>
+        internal RockRequestContext( HttpRequestMessage request, RockClientType rockClientType )
         {
-            CurrentUser = UserLoginService.GetCurrentUser( false );
+            CurrentUser = UserLoginService.GetCurrentUser( true );
 
             var uri = request.RequestUri;
             RootUrlPath = uri.Scheme + "://" + uri.GetComponents( UriComponents.HostAndPort, UriFormat.UriEscaped );
@@ -169,7 +183,7 @@ namespace Rock.Net
             // Setup the page parameters, only use query string for now. Route
             // parameters don't make a lot of sense with an API call.
             //
-            PageParameters = new Dictionary<string, string>();
+            PageParameters = new Dictionary<string, string>( StringComparer.InvariantCultureIgnoreCase );
             foreach ( var kvp in request.GetQueryNameValuePairs() )
             {
                 PageParameters.AddOrReplace( kvp.Key, kvp.Value );
@@ -185,6 +199,8 @@ namespace Rock.Net
             //
             ContextEntities = new Dictionary<Type, Lazy<IEntity>>();
             AddContextEntitiesFromHeaders();
+
+            RockClientType = rockClientType;
         }
 
         #endregion
@@ -286,6 +302,17 @@ namespace Rock.Net
         }
 
         /// <summary>
+        /// Sets the page parameters. This is used by things like block actions
+        /// so they can update the request with the original page parameters
+        /// rather than what is currently on the query string.
+        /// </summary>
+        /// <param name="parameters">The parameters to use for the page.</param>
+        internal virtual void SetPageParameters( IDictionary<string, string> parameters )
+        {
+            PageParameters = new Dictionary<string, string>( parameters, StringComparer.InvariantCultureIgnoreCase );
+        }
+
+        /// <summary>
         /// Gets the page parameter value given it's name.
         /// </summary>
         /// <param name="name">The name of the page parameter to retrieve.</param>
@@ -316,9 +343,18 @@ namespace Rock.Net
         /// <returns>A reference to the IEntity object or null if none was found.</returns>
         public virtual T GetContextEntity<T>() where T : IEntity
         {
-            if ( ContextEntities.ContainsKey( typeof(T) ) )
+            return ( T ) GetContextEntity( typeof( T ) );
+        }
+
+        /// <summary>
+        /// Gets the entity object given it's type.
+        /// </summary>
+        /// <returns>A reference to the IEntity object or null if none was found.</returns>
+        public virtual IEntity GetContextEntity( Type entityType )
+        {
+            if ( ContextEntities.ContainsKey( entityType ) )
             {
-                return ( T ) ContextEntities[typeof( T )].Value;
+                return ContextEntities[entityType].Value;
             }
 
             return default;

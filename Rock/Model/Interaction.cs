@@ -23,6 +23,7 @@ using System.Data.Entity.ModelConfiguration;
 using System.Runtime.Serialization;
 using System.Threading.Tasks;
 using Rock.Data;
+using Rock.Lava;
 
 namespace Rock.Model
 {
@@ -39,7 +40,7 @@ namespace Rock.Model
         /* Custom Indexes:
          *
          * InteractionComponentId, InteractionDateTime
-         *      Includes InteractionTimeToServe, Operation, InteractionSessionId
+         *      Includes InteractionTimeToServe, Operation, InteractionSessionId, PersonalDeviceId
          *      This was added for <see cref="Rock.Jobs.RockCleanup.UpdateMedianPageLoadTimes"/>
          *          and CleanupOldInteractions
          *
@@ -336,7 +337,7 @@ namespace Rock.Model
         /// <value>
         /// The personal device.
         /// </value>
-        [LavaInclude]
+        [LavaVisible]
         public virtual PersonalDevice PersonalDevice { get; set; }
 
         /// <summary>

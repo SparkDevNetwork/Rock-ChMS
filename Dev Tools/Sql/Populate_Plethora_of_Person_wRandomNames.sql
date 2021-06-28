@@ -1,7 +1,9 @@
+-- ##Special Note##: Run the RockCleanup immediately after running this script so that any inconsistencies on Group or Person can get cleaned up
+
 SET NOCOUNT ON
 
 -- NOTE: Set @maxPerson to the number of people you want to add. Setting it as high as 99999 might take a minute or so
-DECLARE @maxPerson INT = 99999
+DECLARE @maxPerson INT = 9999
     ,@genderInt INT
     ,@countryCode nvarchar(3) = null
     ,@personRecordType INT = (
@@ -12024,7 +12026,7 @@ BEGIN
         WHERE #personLastNames.number = ROUND(rand() * @lastNameCount, 0)
 
         -- add first member of family
-        SET @email = @firstName + '.' + @lastName + '@nowhere.com';
+        SET @email = @firstName + '.' + @lastName + '@nowhere.test';
         SET @adultBirthYear = datepart(year, sysdatetime()) - 19 - ROUND(rand(CHECKSUM(newid())) * 70, 0);
         SET @month = CONVERT(NVARCHAR(100), ROUND(rand() * 11, 0) + 1);
         SET @day = CONVERT(NVARCHAR(100), ROUND(rand() * 26, 0) + 1);
@@ -12170,7 +12172,7 @@ BEGIN
         WHERE #personFirstNames.number >= ROUND(rand() * @firstNameCount, 0)
             AND gender = @genderInt
 
-        SET @email = @firstName + '.' + @lastName + '@nowhere.com';
+        SET @email = @firstName + '.' + @lastName + '@nowhere.test';
         SET @month = CONVERT(NVARCHAR(100), ROUND(rand() * 11, 0) + 1);
         SET @day = CONVERT(NVARCHAR(100), ROUND(rand() * 26, 0) + 1);
         SET @spousePersonGuid = NEWID();
@@ -12292,7 +12294,6 @@ BEGIN
 
         declare @randomCampusId int = (select top 1 Id from Campus order by newid())
 
-
 		-- create family
 		INSERT INTO [Group] (
             IsSystem
@@ -12332,7 +12333,7 @@ BEGIN
             ,@personId
             ,@adultRole
             ,newid()
-            ,0
+            ,1
 			,SYSDATETIME()
             )
 
@@ -12351,7 +12352,7 @@ BEGIN
             ,@spousePersonId
             ,@adultRole
             ,newid()
-            ,0
+            ,1
 			,SYSDATETIME()
             )
 
@@ -12393,7 +12394,6 @@ BEGIN
                 ,[ConnectionStatusValueId]
 				,[IsDeceased]
 				,[CreatedDateTime]
-				,[GivingGroupId]
 				)
 			VALUES (
 				0
@@ -12415,7 +12415,6 @@ BEGIN
                 ,@connectionStatusValueId
 				,0
 				,SYSDATETIME()
-				,@groupId
 				)
 
 			SET @kidPersonId = SCOPE_IDENTITY()
@@ -12448,19 +12447,31 @@ BEGIN
 				,@kidPersonId
 				,@childRole
 				,newid()
-				,0
+				,1
 				,SYSDATETIME()
 				)
+
+            -- have about 10% of kids in the same giving group as the other members in the family that are in a giving group
+            if (RAND()*10 < 1)
+            begin
+                update Person set GivingGroupId = @groupId where Id = @kidPersonId;
+            end
 
 			set @kidCounter += 1
 		end
 		-- end kids loop
 
-		-- if kids were added to the family, set them all to the same giving group
-		if (@kidCountMax > 0) begin
-          update Person set GivingGroupId = @groupId where Id = @personId;
-	  	  update Person set GivingGroupId = @groupId where Id = @spousePersonId;
-        end  
+        if (RAND()*5 > 1)
+        begin
+            -- have about 80% of first adult person as part of a giving group. 
+            -- then about 90% of those 80% that also have their spouse as part of the same giving group
+            update Person set GivingGroupId = @groupId where Id = @personId;
+            
+            if (RAND()*10 > 1)
+            begin
+                update Person set GivingGroupId = @groupId where Id = @spousePersonId;
+            end
+        end
 
         SET @zipCode = ROUND(rand() * 9999, 0) + 80000;
         SET @streetAddress = ROUND(rand() * 9999, 0) + 100;
@@ -12522,28 +12533,25 @@ BEGIN
 	-- fix up any birthdates that got set to a future date
 	UPDATE Person set BirthYear = DATEPART(year, SysDateTime()) - 1 where BirthDate > SysDateTime();
 
+    -- Set [BirthDate] value for any that haven't been set or are incorrect
     UPDATE Person
-                    SET [BirthDate] = (
-		                    CASE 
-			                    WHEN (
-					                    [BirthYear] IS NOT NULL
-					                    AND [BirthYear] > 1800
-					                    )
-				                    THEN TRY_CONVERT([date], (((CONVERT([varchar], [BirthYear]) + '-') + CONVERT([varchar], [BirthMonth])) + '-') + CONVERT([varchar], [BirthDay]), (126))
-			                    ELSE NULL
-			                    END
-		                    )
-                    FROM Person
-                    where [BirthDate] != (
-		                    CASE 
-			                    WHEN (
-					                    [BirthYear] IS NOT NULL
-					                    AND [BirthYear] > 1800
-					                    )
-				                    THEN TRY_CONVERT([date], (((CONVERT([varchar], [BirthYear]) + '-') + CONVERT([varchar], [BirthMonth])) + '-') + CONVERT([varchar], [BirthDay]), (126))
-			                    ELSE NULL
-			                    END
-		                    )
+    SET [BirthDate] = (
+		    CASE 
+			    WHEN ([BirthYear] IS NOT NULL AND [BirthYear] > 1800)
+				    THEN TRY_CONVERT([date], (((CONVERT([varchar], [BirthYear]) + '-') + CONVERT([varchar], [BirthMonth])) + '-') + CONVERT([varchar], [BirthDay]), (126))
+			    ELSE NULL
+			    END
+		    )
+    FROM Person
+    WHERE [BirthYear] IS NOT NULL AND (
+		    [BirthDate] IS NULL OR [BirthDate] != (
+			    CASE 
+				    WHEN ([BirthYear] IS NOT NULL AND [BirthYear] > 1800)
+					    THEN TRY_CONVERT([date], (((CONVERT([varchar], [BirthYear]) + '-') + CONVERT([varchar], [BirthMonth])) + '-') + CONVERT([varchar], [BirthDay]), (126))
+				    ELSE NULL
+				    END
+			    )
+		    )
 
 
         UPDATE Person

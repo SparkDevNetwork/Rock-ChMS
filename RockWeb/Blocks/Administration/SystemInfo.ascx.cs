@@ -30,12 +30,14 @@ using System.Web.UI;
 using System.Web.UI.HtmlControls;
 using System.Web.UI.WebControls;
 using Rock;
+using Rock.Bus.Message;
 using Rock.Data;
 using Rock.Model;
 using Rock.Transactions;
 using Rock.Utility.Settings;
 using Rock.VersionInfo;
 using Rock.Web.Cache;
+using Rock.WebFarm;
 
 namespace RockWeb.Blocks.Administration
 {
@@ -190,6 +192,7 @@ namespace RockWeb.Blocks.Administration
 
         protected void btnRestart_Click( object sender, EventArgs e )
         {
+            RockWebFarm.OnRestartRequested( CurrentPerson );
             RestartWebApplication();
         }
 
@@ -535,6 +538,8 @@ namespace RockWeb.Blocks.Administration
             lExecLocation.Text += "<br>" + Assembly.GetExecutingAssembly().Location + "<br>" + RockInstanceConfig.PhysicalDirectory;
             
             lLastMigrations.Text = GetLastMigrationData();
+
+            lLavaEngine.Text = RockInstanceConfig.LavaEngineName;
 
             var transactionQueueStats = RockQueue.TransactionQueue.ToList().GroupBy( a => a.GetType().Name ).ToList().Select( a => new { Name = a.Key, Count = a.Count() } );
             lTransactionQueue.Text = transactionQueueStats.Select( a => string.Format( "{0}: {1}", a.Name, a.Count ) ).ToList().AsDelimited( "<br/>" );

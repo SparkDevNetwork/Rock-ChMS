@@ -270,6 +270,11 @@ namespace Rock.SystemGuid
         public const string CHECK_IN_MANAGER = "A4DCE339-9C11-40CA-9A02-D2FE64EA164B";
 
         /// <summary>
+        /// The check in manager attendance detail
+        /// </summary>
+        public const string CHECK_IN_MANAGER_ATTENDANCE_DETAIL = "758ECFCD-9E20-48B5-827B-973492E39C0D";
+
+        /// <summary>
         /// The Check-in Manager Live Metrics page
         /// </summary>
         public const string CHECK_IN_MANAGER_LIVE_METRICS = "04F70D50-5D27-4C12-A76D-B25E6E4CB177";
@@ -295,6 +300,11 @@ namespace Rock.SystemGuid
         public const string CHECK_IN_MANAGER_SEARCH = "5BB14114-BE20-4330-943A-5BC7E367116E";
 
         /// <summary>
+        /// The check in manager room list page
+        /// </summary>
+        public const string CHECK_IN_MANAGER_ROOM_LIST = "CF03D854-AC02-412C-9B21-FB27B9F56BAB";
+
+        /// <summary>
         /// The Check-in Manager room manager page
         /// </summary>
         public const string CHECK_IN_MANAGER_ROOM_MANAGER = "CECB1460-10D4-4054-B5C3-903991CA40AB";
@@ -308,6 +318,11 @@ namespace Rock.SystemGuid
         /// The Check-in Manager roster page
         /// </summary>
         public const string CHECK_IN_MANAGER_ROSTER = "BA04BF01-5244-4637-B12D-7A962D2A9E77";
+
+        /// <summary>
+        /// The Check-in Manager En Route page
+        /// </summary>
+        public const string CHECK_IN_MANAGER_EN_ROUTE = "F6466964-6593-4B20-A49B-D2386D8A260C";
 
         /// <summary>
         /// Gets the Check-in Type page guid
@@ -553,7 +568,7 @@ namespace Rock.SystemGuid
         public const string CMS_CONFIGURATION = "B4A24AB7-9369-4055-883F-4F4892C39AE3";
 
         /// <summary>
-        /// Gets the Communication page guid
+        /// Gets the Communication page guid (stock external page)
         /// ParentPage: Support Pages
         /// </summary>
         public const string COMMUNICATION = "60002BC0-790A-4052-8F8D-B08C2C5D261C";
@@ -816,6 +831,12 @@ namespace Rock.SystemGuid
         public const string EMAIL_ANALYTICS = "DF014200-72A3-48A0-A953-E594E5410E36";
 
         /// <summary>
+        /// Gets the Mass Push Notifications page guid
+        /// ParentPage: Communications
+        /// </summary>
+        public const string MASS_PUSH_NOTIFICATIONS = "3D97725E-5E17-411F-856C-F4B79B9BFF15";
+
+        /// <summary>
         /// Gets the Email Preference page guid
         /// ParentPage: Support Pages
         /// </summary>
@@ -989,6 +1010,12 @@ namespace Rock.SystemGuid
         /// Parent page: System settings
         /// </summary>
         public const string WEB_FARM = "249BE98D-9DDE-4B19-9D97-9C76D9EA3056";
+
+        /// <summary>
+        /// The web farm node
+        /// Parent page: Web Farm
+        /// </summary>
+        public const string WEB_FARM_NODE = "63698D5C-7C73-44A4-A27D-A7EB777EB2A2";
 
         /// <summary>
         /// Gets the File Storage Providers page guid

@@ -7,14 +7,13 @@
 </script>
 
 <style>
-.chart-banner
-{
-    width: 100%;
-}
-.chart-banner canvas
-{
-    height: 350px;
-}
+    .chart-banner {
+        width: 100%;
+    }
+
+        .chart-banner canvas {
+            height: 350px;
+        }
 </style>
 
 <asp:UpdatePanel ID="upStepType" runat="server">
@@ -39,32 +38,35 @@
                 <Rock:NotificationBox ID="nbEditModeMessage" runat="server" NotificationBoxType="Info" />
                 <asp:ValidationSummary ID="valStepTypeDetail" runat="server" HeaderText="Please correct the following:" CssClass="alert alert-validation" />
                 <asp:CustomValidator ID="cvStepType" runat="server" Display="None" />
+
                 <div id="pnlViewDetails" runat="server">
+                    <h3 class="mt-1">
+                        <asp:Literal ID="lStepTypeName" runat="server" />
+                        Step Type
+                    </h3>
                     <div class="row">
-                        <div class="col-md-12">
-                            <asp:Literal ID="lStepTypeDescription" runat="server"></asp:Literal>
+                        <div class="col-sm-12 col-md-6 col-lg-7">
+                            <asp:Literal ID="lStepTypeDescription" runat="server" />
                         </div>
-                    </div>
-                    <%-- Steps Activity Summary --%>
-                    <div id="pnlActivitySummary" runat="server">
-                        <div class="d-flex flex-wrap">
-                            <div>
-                                <h5 class="mt-0">Steps Activity Summary</h5>
-                            </div>
+                        <div class="col-sm-12 col-md-6 col-lg-5">
                             <div class="flex-grow-1 d-flex justify-content-end">
                                 <Rock:SlidingDateRangePicker ID="drpSlidingDateRange"
-                                            runat="server"
-                                            EnabledSlidingDateRangeTypes="Previous, Last, Current, DateRange"
-                                            EnabledSlidingDateRangeUnits="Week, Month, Year"
-                                            SlidingDateRangeMode="Current"
-                                            TimeUnit="Year"
-                                            Label=""
-                                            FormGroupCssClass="input-group-sm d-flex flex-wrap justify-content-end" />
+                                    runat="server"
+                                    EnabledSlidingDateRangeTypes="Previous, Last, Current, DateRange"
+                                    EnabledSlidingDateRangeUnits="Week, Month, Year"
+                                    SlidingDateRangeMode="Current"
+                                    TimeUnit="Year"
+                                    Label=""
+                                    FormGroupCssClass="input-group-sm d-flex flex-wrap justify-content-end" />
 
                                 <asp:LinkButton ID="btnRefreshChart" runat="server" CssClass="btn btn-default btn-sm btn-square" ToolTip="Refresh Chart"
                                     OnClick="btnRefreshChart_Click"><i class="fa fa-refresh"></i></asp:LinkButton>
                             </div>
                         </div>
+                    </div>
+                    <asp:Literal ID="lKpi" runat="server" />
+                    <%-- Steps Activity Summary --%>
+                    <div id="pnlActivitySummary" runat="server">
                         <%-- Steps Activity Chart --%>
                         <Rock:NotificationBox ID="nbActivityChartMessage" runat="server" NotificationBoxType="Info" />
                         <div id="pnlActivityChart" runat="server" class="chart-banner">
@@ -96,7 +98,7 @@
                             <Rock:DataTextBox ID="tbName" runat="server" SourceTypeName="Rock.Model.StepType, Rock" PropertyName="Name" />
                         </div>
                         <div class="col-md-6">
-                            <Rock:RockCheckBox ID="cbIsActive" runat="server" SourceTypeName="Rock.Model.StepType, Rock" PropertyName="IsActive" Label="Active" Checked="true" Text="Yes" />
+                            <Rock:RockCheckBox ID="cbIsActive" runat="server" SourceTypeName="Rock.Model.StepType, Rock" PropertyName="IsActive" Label="Active" Checked="true" />
                         </div>
                     </div>
 
@@ -155,11 +157,14 @@
                                 Checked="false"
                                 Text="Yes" />
                         </div>
+                        <div class="col-md-12">
+                            <Rock:AttributeValuesContainer runat="server" ID="avcStepProgramAttributes" NumberOfColumns="3" />
+                        </div>
                     </div>
 
                     <Rock:PanelWidget ID="wpAttributes" runat="server" Title="Step Attributes">
                         <div class="grid">
-                            <Rock:Grid ID="gAttributes" runat="server" RowItemText="Step Attribute" >
+                            <Rock:Grid ID="gAttributes" runat="server" RowItemText="Step Attribute">
                                 <Columns>
                                     <Rock:ReorderField />
                                     <Rock:RockBoundField DataField="Name" HeaderText="Attribute" />
@@ -198,7 +203,8 @@
                                     DataField="WorkflowType"
                                     Label="Audience Data View"
                                     Help="A Data View that returns a list of people who are eligible to take this step."
-                                    Visible="false" /><!-- feature coming soon -->
+                                    Visible="false" />
+                                <!-- feature coming soon -->
                             </div>
                             <div class="col-md-6">
                                 <Rock:RockCheckBox ID="cbAllowEdit"

@@ -19,11 +19,14 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 // </copyright>
-//
+
 using System;
 using System.Linq;
 
+using Rock.Attribute;
 using Rock.Data;
+using Rock.ViewModel;
+using Rock.Web.Cache;
 
 namespace Rock.Model
 {
@@ -56,6 +59,70 @@ namespace Rock.Model
     }
 
     /// <summary>
+    /// Attendance View Model Helper
+    /// </summary>
+    public partial class AttendanceViewModelHelper : ViewModelHelper<Attendance, Rock.ViewModel.AttendanceViewModel>
+    {
+        /// <summary>
+        /// Converts to viewmodel.
+        /// </summary>
+        /// <param name="model">The entity.</param>
+        /// <param name="currentPerson">The current person.</param>
+        /// <param name="loadAttributes">if set to <c>true</c> [load attributes].</param>
+        /// <returns></returns>
+        public override Rock.ViewModel.AttendanceViewModel CreateViewModel( Attendance model, Person currentPerson = null, bool loadAttributes = true )
+        {
+            if ( model == null )
+            {
+                return default;
+            }
+
+            var viewModel = new Rock.ViewModel.AttendanceViewModel
+            {
+                Id = model.Id,
+                Guid = model.Guid,
+                AttendanceCheckInSessionId = model.AttendanceCheckInSessionId,
+                AttendanceCodeId = model.AttendanceCodeId,
+                CampusId = model.CampusId,
+                CheckedInByPersonAliasId = model.CheckedInByPersonAliasId,
+                CheckedOutByPersonAliasId = model.CheckedOutByPersonAliasId,
+                DeclineReasonValueId = model.DeclineReasonValueId,
+                DeviceId = model.DeviceId,
+                DidAttend = model.DidAttend,
+                EndDateTime = model.EndDateTime,
+                IsFirstTime = model.IsFirstTime,
+                Note = model.Note,
+                OccurrenceId = model.OccurrenceId,
+                PersonAliasId = model.PersonAliasId,
+                PresentByPersonAliasId = model.PresentByPersonAliasId,
+                PresentDateTime = model.PresentDateTime,
+                Processed = model.Processed,
+                QualifierValueId = model.QualifierValueId,
+                RequestedToAttend = model.RequestedToAttend,
+                RSVP = ( int ) model.RSVP,
+                RSVPDateTime = model.RSVPDateTime,
+                ScheduleConfirmationSent = model.ScheduleConfirmationSent,
+                ScheduledByPersonAliasId = model.ScheduledByPersonAliasId,
+                ScheduledToAttend = model.ScheduledToAttend,
+                ScheduleReminderSent = model.ScheduleReminderSent,
+                SearchResultGroupId = model.SearchResultGroupId,
+                SearchTypeValueId = model.SearchTypeValueId,
+                SearchValue = model.SearchValue,
+                StartDateTime = model.StartDateTime,
+                CreatedDateTime = model.CreatedDateTime,
+                ModifiedDateTime = model.ModifiedDateTime,
+                CreatedByPersonAliasId = model.CreatedByPersonAliasId,
+                ModifiedByPersonAliasId = model.ModifiedByPersonAliasId,
+            };
+
+            AddAttributesToViewModel( model, viewModel, currentPerson, loadAttributes );
+            ApplyAdditionalPropertiesAndSecurityToViewModel( model, viewModel, currentPerson, loadAttributes );
+            return viewModel;
+        }
+    }
+
+
+    /// <summary>
     /// Generated Extension Methods
     /// </summary>
     public static partial class AttendanceExtensionMethods
@@ -78,6 +145,29 @@ namespace Rock.Model
                 target.CopyPropertiesFrom( source );
                 return target;
             }
+        }
+
+        /// <summary>
+        /// Clones this Attendance object to a new Attendance object with default values for the properties in the Entity and Model base classes.
+        /// </summary>
+        /// <param name="source">The source.</param>
+        /// <returns></returns>
+        public static Attendance CloneWithoutIdentity( this Attendance source )
+        {
+            var target = new Attendance();
+            target.CopyPropertiesFrom( source );
+
+            target.Id = 0;
+            target.Guid = Guid.NewGuid();
+            target.ForeignKey = null;
+            target.ForeignId = null;
+            target.ForeignGuid = null;
+            target.CreatedByPersonAliasId = null;
+            target.CreatedDateTime = RockDateTime.Now;
+            target.ModifiedByPersonAliasId = null;
+            target.ModifiedDateTime = RockDateTime.Now;
+
+            return target;
         }
 
         /// <summary>
@@ -126,5 +216,20 @@ namespace Rock.Model
             target.ForeignId = source.ForeignId;
 
         }
+
+        /// <summary>
+        /// Creates a view model from this entity
+        /// </summary>
+        /// <param name="model">The entity.</param>
+        /// <param name="currentPerson" >The currentPerson.</param>
+        /// <param name="loadAttributes" >Load attributes?</param>
+        public static Rock.ViewModel.AttendanceViewModel ToViewModel( this Attendance model, Person currentPerson = null, bool loadAttributes = false )
+        {
+            var helper = new AttendanceViewModelHelper();
+            var viewModel = helper.CreateViewModel( model, currentPerson, loadAttributes );
+            return viewModel;
+        }
+
     }
+
 }

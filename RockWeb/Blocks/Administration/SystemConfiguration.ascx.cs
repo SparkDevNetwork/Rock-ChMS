@@ -153,6 +153,7 @@ namespace RockWeb.Blocks.Administration
 
             // Save General
             Rock.Web.SystemSettings.SetValue( SystemSetting.ENABLE_MULTI_TIME_ZONE_SUPPORT, cbEnableMultipleTimeZone.Checked.ToString() );
+            Rock.Web.SystemSettings.SetValue( SystemSetting.ALWAYS_SHOW_BUSINESS_IN_PERSONPICKER, cbIncludeBusinessInPersonPicker.Checked.ToString() );
 
             nbGeneralMessage.NotificationBoxType = NotificationBoxType.Success;
             nbGeneralMessage.Title = string.Empty;
@@ -229,6 +230,8 @@ namespace RockWeb.Blocks.Administration
 
             Rock.Web.SystemSettings.SetValue( SystemSetting.ROCK_LOGGING_SETTINGS, logConfig.ToJson() );
 
+            Rock.Logging.RockLogger.Log.ReloadConfiguration();
+
             nbLoggingMessage.NotificationBoxType = NotificationBoxType.Success;
             nbLoggingMessage.Title = string.Empty;
             nbLoggingMessage.Text = "Setting saved successfully.";
@@ -254,6 +257,7 @@ namespace RockWeb.Blocks.Administration
         private void BindGeneralConfiguration()
         {
             cbEnableMultipleTimeZone.Checked = Rock.Web.SystemSettings.GetValue( SystemSetting.ENABLE_MULTI_TIME_ZONE_SUPPORT ).AsBoolean();
+            cbIncludeBusinessInPersonPicker.Checked = Rock.Web.SystemSettings.GetValue( SystemSetting.ALWAYS_SHOW_BUSINESS_IN_PERSONPICKER ).AsBoolean();
         }
 
         private void BindLoggingSettings()
@@ -468,7 +472,7 @@ namespace RockWeb.Blocks.Administration
                 {
                     try
                     {
-                        RockDateTime.UpdateSundayDateData();
+                        RockDateTimeHelper.UpdateSundayDateData();
                     }
                     catch ( Exception ex )
                     {

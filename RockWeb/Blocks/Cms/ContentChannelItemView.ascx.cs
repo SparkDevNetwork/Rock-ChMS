@@ -30,6 +30,7 @@ using Rock.Transactions;
 using Rock.Web.UI;
 using Rock.Web.UI.Controls;
 using Rock.Field.Types;
+using Rock.Tasks;
 
 namespace RockWeb.Blocks.Cms
 {
@@ -879,7 +880,7 @@ Guid - ContentChannelItem Guid
                         .Where( i => i.ContentChannel.Guid.Equals( contentChannelGuid.Value ) && i.StartDateTime <= now && ( !i.ContentChannel.RequiresApproval || statuses.Contains( i.Status ) ) )
                         .OrderByDescending( c => c.StartDateTime )
                         .FirstOrDefault();
-                    
+
                     if ( contentChannelItem != null )
                     {
                         contentChannelItemKey = contentChannelItem.Id.ToString();
@@ -986,27 +987,24 @@ Guid - ContentChannelItem Guid
                 }
             }
 
-            var workflowAttributeValues = new Dictionary<string, string>();
-            workflowAttributeValues.Add( "ContentChannelItem", contentChannelItem.Guid.ToString() );
+            var message = new LaunchWorkflow.Message
+            {
+                WorkflowTypeId = workflowType.Id,
+                InitiatorPersonAliasId = CurrentPersonAliasId,
+                WorkflowAttributeValues = new Dictionary<string, string>
+                {
+                    { "ContentChannelItem", contentChannelItem.Guid.ToString() }
+                }
+            };
 
-            LaunchWorkflowTransaction launchWorkflowTransaction;
             if ( this.CurrentPersonId.HasValue )
             {
-                workflowAttributeValues.Add( "Person", this.CurrentPerson.Guid.ToString() );
-                launchWorkflowTransaction = new Rock.Transactions.LaunchWorkflowTransaction<Person>( workflowType.Id, null, this.CurrentPersonId.Value );
-            }
-            else
-            {
-                launchWorkflowTransaction = new Rock.Transactions.LaunchWorkflowTransaction( workflowType.Id, null );
+                message.WorkflowAttributeValues.Add( "Person", this.CurrentPerson.Guid.ToString() );
+                message.WorkflowTypeId = workflowType.Id;
+                message.EntityId = CurrentPersonId.Value;
             }
 
-            if ( workflowAttributeValues != null )
-            {
-                launchWorkflowTransaction.WorkflowAttributeValues = workflowAttributeValues;
-            }
-
-            launchWorkflowTransaction.InitiatorPersonAliasId = this.CurrentPersonAliasId;
-            launchWorkflowTransaction.Enqueue();
+            message.Send();
         }
 
         /// <summary>
@@ -1079,7 +1077,7 @@ Guid - ContentChannelItem Guid
             }
 
             // use Lava to get the Attribute value formatted for the MetaValue, and specify the URL param in case the Attribute supports rendering the value as a URL (for example, Image)
-            string metaTemplate = string.Format( "{{{{ mergeObject | Attribute:'{0}':'Url' }}}}", attributeKey );
+            string metaTemplate = string.Format( "{{{{ mergeObject | Attribute:'{0}','Url' }}}}", attributeKey );
 
             string resolvedValue = metaTemplate.ResolveMergeFields( new Dictionary<string, object> { { "mergeObject", mergeObject } } );
 

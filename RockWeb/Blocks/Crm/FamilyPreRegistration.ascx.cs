@@ -58,11 +58,28 @@ namespace RockWeb.Blocks.Crm
     [CustomDropdownListField(
         "Planned Visit Date",
         Key = AttributeKey.PlannedVisitDate,
-        Description = "How should the Planned Visit Date field be displayed (this value is only used when starting a workflow)?",
+        Description = "How should the Planned Visit Date field be displayed. The date selected by the user is only used for the workflow. If the 'Campus Schedule Attribute' block setting has a selection this will control if schedule date/time are required or not but not if it shows or not.",
         ListSource = ListSource.HIDE_OPTIONAL_REQUIRED,
         IsRequired = false,
         DefaultValue = "Optional",
         Order = 2 )]
+
+    [AttributeField(
+        "Campus Schedule Attribute",
+        Key = AttributeKey.CampusScheduleAttribute,
+        Description = "Allows you select a campus attribute that contains schedules for determining which dates and times for which pre-registration is available. This requries the creation of an Entity attribute for 'Campus' using a Field Type of 'Schedules'. The schedules can then be selected in the 'Edit Campus' block.",
+        EntityTypeGuid = Rock.SystemGuid.EntityType.CAMPUS,
+        IsRequired = false,
+        Order = 3 )]
+
+    [IntegerField(
+        "Scheduled Days Ahead",
+        Key = AttributeKey.ScheduledDaysAhead,
+        Description = "When using campus specific scheduling this setting determines how many days ahead a person can select. The default is 28 days.",
+        IsRequired = false,
+        DefaultIntegerValue = 28,
+        Order = 4
+        )]
 
     [AttributeField(
         "Family Attributes",
@@ -73,21 +90,21 @@ namespace RockWeb.Blocks.Crm
         EntityTypeQualifierValue = Rock.SystemGuid.GroupType.GROUPTYPE_FAMILY,
         IsRequired = false,
         AllowMultiple = true,
-        Order = 3 )]
+        Order = 5 )]
 
     [BooleanField(
         "Allow Updates",
         Key = AttributeKey.AllowUpdates,
         Description = "If the person visiting this block is logged in, should the block be used to update their family? If not, a new family will always be created unless 'Auto Match' is enabled and the information entered matches an existing person.",
         DefaultBooleanValue = false,
-        Order = 4 )]
+        Order = 6 )]
 
     [BooleanField(
         "Auto Match",
         Key = AttributeKey.AutoMatch,
         Description = "Should this block attempt to match people to to current records in the database.",
         DefaultBooleanValue = true,
-        Order = 5 )]
+        Order = 7 )]
 
     [DefinedValueField(
         "Connection Status",
@@ -97,7 +114,7 @@ namespace RockWeb.Blocks.Crm
         IsRequired = false,
         AllowMultiple = false,
         DefaultValue = Rock.SystemGuid.DefinedValue.PERSON_CONNECTION_STATUS_VISITOR,
-        Order = 6 )]
+        Order = 8 )]
 
     [DefinedValueField(
         "Record Status",
@@ -107,7 +124,7 @@ namespace RockWeb.Blocks.Crm
         IsRequired = false,
         AllowMultiple = false,
         DefaultValue = Rock.SystemGuid.DefinedValue.PERSON_RECORD_STATUS_ACTIVE,
-        Order = 7 )]
+        Order = 9 )]
 
     [WorkflowTypeField(
         "Workflow Types",
@@ -115,7 +132,7 @@ namespace RockWeb.Blocks.Crm
         Description = BlockAttributeDescription.WorkflowTypes,
         AllowMultiple = true,
         IsRequired = false,
-        Order = 8 )]
+        Order = 10 )]
 
     [CodeEditorField(
         "Redirect URL",
@@ -125,14 +142,23 @@ namespace RockWeb.Blocks.Crm
         EditorTheme = CodeEditorTheme.Rock,
         EditorHeight = 200,
         IsRequired = true,
-        Order = 9 )]
+        Order = 11 )]
 
     [BooleanField(
         "Require Campus",
         Key = AttributeKey.RequireCampus,
         Description = "Require that a campus be selected",
         DefaultBooleanValue = true,
-        Order = 10 )]
+        Order = 12 )]
+
+    [CustomDropdownListField(
+        "Number of Columns",
+        Key = AttributeKey.Columns,
+        Description = "How many columns should be used to display the form.",
+        ListSource = ListSource.COLUMNS,
+        IsRequired = false,
+        DefaultValue = "4",
+        Order = 11 )]
 
     #region Adult Category
 
@@ -205,6 +231,16 @@ namespace RockWeb.Blocks.Crm
         IsRequired = false,
         Category = CategoryKey.AdultFields,
         Order = 6 )]
+
+    [CustomDropdownListField(
+        "Display Communication Preference",
+        Key = AttributeKey.AdultDisplayCommunicationPreference,
+        Description = "How should Communication Preference be displayed for adults?",
+        ListSource = "Hide,Required",
+        IsRequired = false,
+        DefaultValue = "Hide",
+        Category = CategoryKey.AdultFields,
+        Order = 7 )]
 
     #endregion
 
@@ -279,6 +315,15 @@ namespace RockWeb.Blocks.Crm
         Category = CategoryKey.ChildFields,
         Order = 6 )]
 
+    [CustomDropdownListField(
+        "Display Communication Preference",
+        Key = AttributeKey.ChildDisplayCommunicationPreference,
+        Description = "How should Communication Preference be displayed for children?",
+        ListSource = "Hide,Required",
+        IsRequired = false,
+        DefaultValue = "Hide",
+        Category = CategoryKey.ChildFields,
+        Order = 7 )]
     #endregion
 
     #region Child Relationship Category
@@ -310,7 +355,7 @@ namespace RockWeb.Blocks.Crm
         ListSource = ListSource.SQL_CAN_CHECKIN_RELATIONSHIP,
         IsRequired = false,
         Category = CategoryKey.ChildRelationship,
-        Order = 2)]
+        Order = 2 )]
 
     #endregion
 
@@ -324,6 +369,8 @@ namespace RockWeb.Blocks.Crm
             public const string ShowCampus = "ShowCampus";
             public const string DefaultCampus = "DefaultCampus";
             public const string PlannedVisitDate = "PlannedVisitDate";
+            public const string CampusScheduleAttribute = "CampusScheduleAttribute";
+            public const string ScheduledDaysAhead = "ScheduledDaysAhead";
             public const string FamilyAttributes = "FamilyAttributes";
             public const string AllowUpdates = "AllowUpdates";
             public const string AutoMatch = "AutoMatch";
@@ -332,6 +379,7 @@ namespace RockWeb.Blocks.Crm
             public const string WorkflowTypes = "WorkflowTypes";
             public const string RedirectURL = "RedirectURL";
             public const string RequireCampus = "RequireCampus";
+            public const string Columns = "Columns";
 
             public const string AdultSuffix = "AdultSuffix";
             public const string AdultGender = "AdultGender";
@@ -340,6 +388,7 @@ namespace RockWeb.Blocks.Crm
             public const string AdultEmail = "AdultEmail";
             public const string AdultMobilePhone = "AdultMobilePhone";
             public const string AdultAttributeCategories = "AdultAttributeCategories";
+            public const string AdultDisplayCommunicationPreference = "AdultDisplayCommunicationPreference";
 
             public const string ChildSuffix = "ChildSuffix";
             public const string ChildGender = "ChildGender";
@@ -348,10 +397,13 @@ namespace RockWeb.Blocks.Crm
             public const string ChildMobilePhone = "ChildMobilePhone";
             public const string ChildEmail = "ChildEmail";
             public const string ChildAttributeCategories = "ChildAttributeCategories";
+            public const string ChildDisplayCommunicationPreference = "ChildDisplayCommunicationPreference";
 
             public const string Relationships = "Relationships";
             public const string FamilyRelationships = "FamilyRelationships";
             public const string CanCheckinRelationships = "CanCheckinRelationships";
+
+
         }
 
         private static class CategoryKey
@@ -377,6 +429,7 @@ the value entered for the Planned Visit Date field if it was displayed.
 
         private static class ListSource
         {
+            public const string COLUMNS = "2,4";
             public const string HIDE_OPTIONAL_REQUIRED = "Hide,Optional,Required";
             public const string HIDE_OPTIONAL = "Hide,Optional";
             public const string SQL_RELATIONSHIP_TYPES = @"
@@ -416,12 +469,18 @@ SELECT 0, 'Child'
 ORDER BY [Text]";
         }
 
+        private static class PageParameterKey
+        {
+            public static string CampusGuid = "CampusGuid";
+            public static string CampusId = "CampusId";
+        }
+
         #endregion Attribute Keys, Categories and Values
 
         #region Fields
 
         private RockContext _rockContext = null;
-        private Dictionary<int, string>  _relationshipTypes = new Dictionary<int, string>();
+        private Dictionary<int, string> _relationshipTypes = new Dictionary<int, string>();
 
         #endregion
 
@@ -434,6 +493,24 @@ ORDER BY [Text]";
         /// The group members.
         /// </value>
         protected List<PreRegistrationChild> Children { get; set; }
+
+        protected string GetColumnStyle( int columns )
+        {
+            if ( ( columns != 3 && columns != 6 ) || GetAttributeValue( AttributeKey.Columns ) == "4" )
+            {
+                return "col-sm-" + columns.ToString();
+            }
+
+            if ( columns == 6 )
+            {
+                return "col-sm-" + columns.ToString();
+            }
+
+            return "col-sm-" + ( columns * 2 ).ToString();
+        }
+
+        private List<OccurrenceSchedule> OccurrenceSchedules { get; set; }
+
 
         #endregion
 
@@ -448,6 +525,7 @@ ORDER BY [Text]";
             base.LoadViewState( savedState );
 
             Children = ViewState["Children"] as List<PreRegistrationChild> ?? new List<PreRegistrationChild>();
+            OccurrenceSchedules = ViewState["OccurrenceSchedules"] as List<OccurrenceSchedule> ?? new List<OccurrenceSchedule>();
 
             BuildAdultAttributes( false, null, null );
             BuildFamilyAttributes( false, null );
@@ -491,6 +569,7 @@ ORDER BY [Text]";
         {
             base.OnLoad( e );
 
+            SetPanelStyles();
             nbError.Visible = false;
 
             if ( !Page.IsPostBack )
@@ -501,7 +580,26 @@ ORDER BY [Text]";
             {
                 GetChildrenData();
             }
-            
+
+        }
+
+        private void SetPanelStyles()
+        {
+            pnlSuffix1.CssClass = GetColumnStyle( 3 );
+            pnlGender1.CssClass = GetColumnStyle( 3 );
+            pnlBirthDate1.CssClass = GetColumnStyle( 6 );
+            pnlMaritalStatus1.CssClass = GetColumnStyle( 3 );
+            pnlMobilePhone1.CssClass = GetColumnStyle( 3 );
+            pnlEmail1.CssClass = GetColumnStyle( 6 );
+            pnlCommunicationPreference1.CssClass = GetColumnStyle( 6 );
+
+            pnlSuffix2.CssClass = GetColumnStyle( 3 ) + " js-Adult2Required";
+            pnlGender2.CssClass = GetColumnStyle( 3 ) + " js-Adult2Required";
+            pnlBirthDate2.CssClass = GetColumnStyle( 6 ) + " js-Adult2Required";
+            pnlMaritalStatus2.CssClass = GetColumnStyle( 3 ) + " js-Adult2Required";
+            pnlMobilePhone2.CssClass = GetColumnStyle( 3 ) + " js-Adult2Required";
+            pnlEmail2.CssClass = GetColumnStyle( 6 ) + " js-Adult2Required";
+            pnlCommunicationPreference2.CssClass = GetColumnStyle( 6 ) + " js-Adult2Required";
         }
 
         /// <summary>
@@ -513,6 +611,7 @@ ORDER BY [Text]";
         protected override object SaveViewState()
         {
             ViewState["Children"] = Children;
+            ViewState["OccurrenceSchedules"] = OccurrenceSchedules;
 
             return base.SaveViewState();
         }
@@ -601,7 +700,7 @@ ORDER BY [Text]";
                 ddlGender2.ClientID,
 
                 hfBirthDateRequired.ClientID,
-                dpBirthDate2.ClientID,
+                bpBirthDate2.ClientID,
 
                 hfMaritalStatusRequired.ClientID,
                 dvpMaritalStatus2.ClientID,
@@ -689,6 +788,7 @@ ORDER BY [Text]";
                 var canCheckinRelationships = GetAttributeValue( AttributeKey.CanCheckinRelationships ).SplitDelimitedValues().AsIntegerList();
                 var showChildMobilePhone = GetAttributeValue( AttributeKey.ChildMobilePhone ) != "Hide";
                 var showChildEmailAddress = GetAttributeValue( AttributeKey.ChildEmail ) != "Hide";
+                var showChildCommunicationPreference = GetAttributeValue( AttributeKey.ChildDisplayCommunicationPreference ) != "Hide";
 
                 // ...and some service objects
                 var personService = new PersonService( _rockContext );
@@ -712,8 +812,8 @@ ORDER BY [Text]";
 
                 // Save the adults
                 var adults = new List<Person>();
-                SaveAdult( ref primaryFamily, adults, 1, hfAdultGuid1, tbFirstName1, tbLastName1, dvpSuffix1, ddlGender1, dpBirthDate1, dvpMaritalStatus1, tbEmail1, pnMobilePhone1, phAttributes1 );
-                SaveAdult( ref primaryFamily, adults, 2, hfAdultGuid2, tbFirstName2, tbLastName2, dvpSuffix2, ddlGender2, dpBirthDate2, dvpMaritalStatus2, tbEmail2, pnMobilePhone2, phAttributes2 );
+                SaveAdult( ref primaryFamily, adults, 1, hfAdultGuid1, tbFirstName1, tbLastName1, dvpSuffix1, ddlGender1, bpBirthDate1, dvpMaritalStatus1, tbEmail1, rblCommunicationPreference1, pnMobilePhone1, phAttributes1 );
+                SaveAdult( ref primaryFamily, adults, 2, hfAdultGuid2, tbFirstName2, tbLastName2, dvpSuffix2, ddlGender2, bpBirthDate2, dvpMaritalStatus2, tbEmail2, rblCommunicationPreference2, pnMobilePhone2, phAttributes2 );
 
                 bool isNewFamily = false;
 
@@ -757,7 +857,7 @@ ORDER BY [Text]";
                 _rockContext.SaveChanges();
 
                 // Make sure adults are part of the primary family, and if not, add them.
-                foreach( Person adult in adults )
+                foreach ( Person adult in adults )
                 {
                     var currentFamilyMember = primaryFamily.Members.FirstOrDefault( m => m.PersonId == adult.Id );
                     if ( currentFamilyMember == null )
@@ -861,7 +961,7 @@ ORDER BY [Text]";
                     {
                         var possibleMatch = new Person { NickName = child.NickName, LastName = child.LastName };
                         possibleMatch.SetBirthDate( child.BirthDate );
-                        person = primaryFamily.MatchingFamilyMember( possibleMatch  );
+                        person = primaryFamily.MatchingFamilyMember( possibleMatch );
                     }
 
                     // Otherwise create a new person
@@ -874,8 +974,8 @@ ORDER BY [Text]";
                         person.FirstName = child.NickName.FixCase();
                         person.LastName = child.LastName.FixCase();
                         person.RecordTypeValueId = recordTypePersonId;
-                        person.RecordStatusValueId = recordStatusValue != null ? recordStatusValue.Id : (int?)null;
-                        person.ConnectionStatusValueId = connectionStatusValue != null ? connectionStatusValue.Id : (int?)null;
+                        person.RecordStatusValueId = recordStatusValue != null ? recordStatusValue.Id : ( int? ) null;
+                        person.ConnectionStatusValueId = connectionStatusValue != null ? connectionStatusValue.Id : ( int? ) null;
                     }
                     else
                     {
@@ -909,17 +1009,23 @@ ORDER BY [Text]";
                         person.Email = child.EmailAddress;
                     }
 
+                    if ( showChildCommunicationPreference )
+                    {
+                        person.CommunicationPreference = child.CommunicationPreference;
+                    }
+
                     _rockContext.SaveChanges();
 
                     // Save the mobile phone number
                     if ( showChildMobilePhone && child.MobilePhoneNumber.IsNotNullOrWhiteSpace() )
                     {
-                        SavePhoneNumber( person.Id, child.MobilePhoneNumber, child.MobileCountryCode );
+                        var isSmsNumber = person.CommunicationPreference == CommunicationType.SMS;
+                        SavePhoneNumber( person.Id, child.MobilePhoneNumber, child.MobileCountryCode, isSmsNumber );
                     }
 
                     // Save the attributes for the child
                     person.LoadAttributes();
-                    foreach( var keyVal in child.AttributeValues )
+                    foreach ( var keyVal in child.AttributeValues )
                     {
                         if ( keyVal.Value.IsNotNullOrWhiteSpace() )
                         {
@@ -933,7 +1039,7 @@ ORDER BY [Text]";
 
                     // Get what the family/relationship state should be for the child
                     bool shouldBeInPrimaryFamily = familyRelationships.Contains( child.RelationshipType ?? 0 );
-                    int? newRelationshipId = shouldBeInPrimaryFamily ? (int?)null : child.RelationshipType;
+                    int? newRelationshipId = shouldBeInPrimaryFamily ? ( int? ) null : child.RelationshipType;
                     bool canCheckin = !shouldBeInPrimaryFamily && canCheckinRelationships.Contains( child.RelationshipType ?? -1 );
 
                     // Check to see if child needs to be added to the primary family or not
@@ -1010,7 +1116,7 @@ ORDER BY [Text]";
                     foreach ( var groupMember in new PersonService( _rockContext )
                         .GetRelatedPeople( adultIds, roleIds ) )
                     {
-                        if ( !newRelationships.ContainsKey(groupMember.PersonId) || !newRelationships[groupMember.PersonId].Contains( groupMember.GroupRoleId ) )
+                        if ( !newRelationships.ContainsKey( groupMember.PersonId ) || !newRelationships[groupMember.PersonId].Contains( groupMember.GroupRoleId ) )
                         {
                             foreach ( var adultId in adultIds )
                             {
@@ -1029,6 +1135,7 @@ ORDER BY [Text]";
                 if ( workflows.Any() || redirectUrl.IsNotNullOrWhiteSpace() )
                 {
                     var family = groupService.Get( primaryFamily.Id );
+                    var schedule = new ScheduleService( _rockContext ).Get( ddlScheduleTime.SelectedValue.AsGuid() );
 
                     var childIds = new List<int>( newChildIds );
                     childIds.AddRange( newRelationships.Select( r => r.Key ).ToList() );
@@ -1045,6 +1152,14 @@ ORDER BY [Text]";
                         {
                             parameters.Add( AttributeKey.PlannedVisitDate, visitDate.Value.ToString( "o" ) );
                         }
+                    }
+                    else if ( pnlPlannedSchedule.Visible && schedule != null )
+                    {
+                        // use this for the planned date
+                        parameters.Add( AttributeKey.PlannedVisitDate, ddlScheduleDate.SelectedValue.AsDateTime()?.ToString( "o" ) );
+
+                        // also add the schedule id
+                        parameters.Add( "ScheduleId", schedule.Id.ToString() );
                     }
 
                     // Look for any workflows
@@ -1065,7 +1180,8 @@ ORDER BY [Text]";
                         var mergeFields = Rock.Lava.LavaHelper.GetCommonMergeFields( this.RockPage, this.CurrentPerson );
                         mergeFields.Add( "Family", family );
                         mergeFields.Add( "RelatedChildren", relatedChildren );
-                        foreach( var keyval in parameters )
+                        mergeFields.Add( "Schedule", schedule );
+                        foreach ( var keyval in parameters )
                         {
                             mergeFields.Add( keyval.Key, keyval.Value );
                         }
@@ -1109,8 +1225,10 @@ ORDER BY [Text]";
                 pnlCampus.Visible = false;
             }
 
-            // Planned Visit Date
-            dpPlannedDate.Required = SetControl( AttributeKey.PlannedVisitDate, pnlPlannedDate, null );
+            ShowHidePlannedDatePanels();
+
+            //// Planned Visit Date
+            //dpPlannedDate.Required = SetControl( AttributeKey.PlannedVisitDate, pnlPlannedDate, null );
 
             // Visit Info
             pnlVisit.Visible = pnlCampus.Visible || pnlPlannedDate.Visible;
@@ -1132,7 +1250,7 @@ ORDER BY [Text]";
 
             // Adult Birthdate
             isRequired = SetControl( AttributeKey.AdultBirthdate, pnlBirthDate1, pnlBirthDate2 );
-            dpBirthDate1.Required = isRequired;
+            bpBirthDate1.Required = isRequired;
             hfBirthDateRequired.Value = isRequired.ToStringSafe();
 
             // Adult Marital Status
@@ -1153,12 +1271,147 @@ ORDER BY [Text]";
             pnMobilePhone1.Required = isRequired;
             hfMobilePhoneRequired.Value = isRequired.ToStringSafe();
 
+            // Adult Communication Preference
+            SetControl( AttributeKey.AdultDisplayCommunicationPreference, pnlCommunicationPreference1, pnlCommunicationPreference2 );
+
             // Check for Current Family
             SetCurrentFamilyValues();
 
             // Build the dynamic children controls
             CreateChildrenControls( true );
         }
+
+        /// <summary>
+        /// Chooses the planned date panel to show. Either pnlPlannedDate which only shows a date, or pnlPlannedSchedule which provides a list of date and times for a campus' schedule.
+        /// </summary>
+        private void ShowHidePlannedDatePanels()
+        {
+            bool dateRequired = SetControl( AttributeKey.PlannedVisitDate, pnlPlannedDate, null );
+            dpPlannedDate.Required = dateRequired;
+            ddlScheduleDate.Required = dateRequired;
+            ddlScheduleTime.Required = dateRequired;
+
+            string scheduleGuid = GetAttributeValue( AttributeKey.CampusScheduleAttribute );
+            if ( scheduleGuid.IsNullOrWhiteSpace() )
+            {
+                pnlPlannedDate.Visible = true;
+                pnlPlannedSchedule.Visible = false;
+                return;
+            }
+
+            // Make sure the attribute uses the Schedules field type and display the date panel if not
+            var campusScheduleAttribute = AttributeCache.Get( scheduleGuid );
+            if ( campusScheduleAttribute.FieldType.Guid != Rock.SystemGuid.FieldType.SCHEDULES.AsGuidOrNull() )
+            {
+                // If the user has edit permission then display an error message so the configuration can be fixed
+                if ( IsUserAuthorized( Authorization.EDIT ) )
+                {
+                    nbError.Text = "The campus attribute for schedules is not using the field type of 'Schedules'. Please adjust this.";
+                    nbError.Visible = true;
+                }
+
+                // Since the campusScheduleAttribute is not correct just display the date panel
+                pnlPlannedDate.Visible = true;
+                pnlPlannedSchedule.Visible = false;
+                return;
+            }
+
+            // If there are multiple campuses and the campus picker is not visible then just display the date panel
+            if ( CampusCache.All( false ).Count > 1 )
+            {
+                if ( !GetAttributeValue( AttributeKey.ShowCampus ).AsBoolean() )
+                {
+                    // If the user has edit permission then display an error message so the configuration can be fixed
+                    if ( IsUserAuthorized( Authorization.EDIT ) )
+                    {
+                        nbError.Text = "In order to show campus schedules the campus has to be shown so it can be selected. Change the this block's 'Show Campus' attribute to 'Yes'.";
+                        nbError.Visible = true;
+                    }
+
+                    // Since the campus is not available for the campusScheduleAttribute just display the date panel
+                    pnlPlannedDate.Visible = true;
+                    pnlPlannedSchedule.Visible = false;
+                    return;
+                }
+            }
+
+            // Display the schedule panel if there are multiple campuses and the campus picker is shown or if there is a single campus
+            pnlPlannedDate.Visible = false;
+            pnlPlannedSchedule.Visible = true;
+        }
+
+        /// <summary>
+        /// Populates ddlScheduleDate with a set of dates for the campus schedules and the configured number of days. The display is formatted but the value is unformated so it can easily be used to get schedules that match it.
+        /// </summary>
+        private void SetScheduleDateControl()
+        {
+            ddlScheduleDate.Items.Clear();
+            ddlScheduleTime.Items.Clear();
+
+            if ( !pnlPlannedSchedule.Visible || cpCampus.SelectedValue.IsNullOrWhiteSpace() )
+            {
+                return;
+            }
+
+            OccurrenceSchedules = new List<OccurrenceSchedule>();
+            var campusScheduleAttributeKey = AttributeCache.Get( GetAttributeValue( AttributeKey.CampusScheduleAttribute ) ).Key;
+            var campusScheduleAttributeValue = CampusCache.Get( cpCampus.SelectedCampusId.Value )?.GetAttributeValue( campusScheduleAttributeKey );
+            var schedules = campusScheduleAttributeValue.Split( ',' ).Select( g => new ScheduleService( _rockContext ).Get( g.AsGuid() ) );
+            int daysAhead = GetAttributeValue( AttributeKey.ScheduledDaysAhead ).AsIntegerOrNull() ?? 28;
+            HashSet<DateTime> scheduleDates = new HashSet<DateTime>();
+
+            foreach ( var schedule in schedules )
+            {
+                var occurrences = schedule.GetICalOccurrences( RockDateTime.Today, RockDateTime.Today.AddDays( daysAhead ), null ).ToList();
+                foreach ( var occurrence in occurrences )
+                {
+                    OccurrenceSchedules.Add( new OccurrenceSchedule { IcalOccurrenceDateTime = occurrence.Period.StartTime.Value, ScheduleGuid = schedule.Guid } );
+                    scheduleDates.Add( occurrence.Period.StartTime.Date );
+                }
+            }
+
+            var sortedScheduleDates = scheduleDates.ToList();
+            sortedScheduleDates.Sort();
+
+            if ( !ddlScheduleDate.Required )
+            {
+                ddlScheduleDate.Items.Add( new ListItem() );
+            }
+
+            foreach ( var sortedScheduleDate in sortedScheduleDates )
+            {
+                ddlScheduleDate.Items.Add( new ListItem( sortedScheduleDate.ToString( "dddd, MM/dd" ), sortedScheduleDate.ToString() ) );
+            }
+
+            if ( ddlScheduleDate.Required )
+            {
+                // A default date/time will already be chosen if it's required so don't wait for an event to load the occurence times.
+                SetScheduleTimeControl();
+            }
+        }
+
+        /// <summary>
+        /// Populates ddlScheduleTime with a set of schedule times for the selected date. The Time is shown but the value is the schedule guid.
+        /// </summary>
+        private void SetScheduleTimeControl()
+        {
+            ddlScheduleTime.Items.Clear();
+
+            if ( GetAttributeValue( AttributeKey.PlannedVisitDate ) != "Required" )
+            {
+                ddlScheduleTime.Items.Add( new ListItem() );
+            }
+
+            var scheduleOccurrencesForDate = OccurrenceSchedules.Where( o => o.IcalOccurrenceDateTime.Date == ddlScheduleDate.SelectedValue.AsDateTime() ).ToList();
+            scheduleOccurrencesForDate.Sort( ( a, b ) => a.IcalOccurrenceDateTime.CompareTo( b.IcalOccurrenceDateTime ) );
+
+            foreach ( var scheduleOccurrenceForDate in scheduleOccurrencesForDate )
+            {
+                ddlScheduleTime.Items.Add( new ListItem( scheduleOccurrenceForDate.IcalOccurrenceDateTime.ToString( "h:mm tt" ), scheduleOccurrenceForDate.ScheduleGuid.ToString() ) );
+            }
+        }
+
+
 
         /// <summary>
         /// Sets the current family values.
@@ -1222,41 +1475,35 @@ ORDER BY [Text]";
             // Set First Adult's Values
             hfAdultGuid1.Value = adult1 != null ? adult1.Id.ToString() : string.Empty;
 
-            lFirstName1.Visible = adult1 != null;
             tbFirstName1.Visible = adult1 == null;
-            lFirstName1.Text = adult1 != null ? adult1.NickName : String.Empty;
             tbFirstName1.Text = adult1 != null ? adult1.NickName : String.Empty;
 
-            lLastName1.Visible = adult1 != null;
             tbLastName1.Visible = adult1 == null;
-            lLastName1.Text = adult1 != null ? adult1.LastName : String.Empty;
             tbLastName1.Text = adult1 != null ? adult1.LastName : String.Empty;
 
-            dvpSuffix1.SetValue( adult1 != null ? adult1.SuffixValueId : (int?)null );
+            dvpSuffix1.SetValue( adult1 != null ? adult1.SuffixValueId : ( int? ) null );
             ddlGender1.SetValue( adult1 != null ? adult1.Gender.ConvertToInt() : 0 );
-            dpBirthDate1.SelectedDate = ( adult1 != null ? adult1.BirthDate : (DateTime?)null );
-            dvpMaritalStatus1.SetValue( adult1 != null ? adult1.MaritalStatusValueId : (int?)null );
+            bpBirthDate1.SelectedDate = ( adult1 != null ? adult1.BirthDate : ( DateTime? ) null );
+            dvpMaritalStatus1.SetValue( adult1 != null ? adult1.MaritalStatusValueId : ( int? ) null );
             tbEmail1.Text = ( adult1 != null ? adult1.Email : string.Empty );
+            rblCommunicationPreference1.SelectedValue = ( adult1 != null ? adult1.CommunicationPreference : CommunicationType.Email ).ConvertToInt().ToString();
             SetPhoneNumber( adult1, pnMobilePhone1 );
 
             // Set Second Adult's Values
             hfAdultGuid2.Value = adult2 != null ? adult2.Guid.ToString() : string.Empty;
 
-            lFirstName2.Visible = adult2 != null;
             tbFirstName2.Visible = adult2 == null;
-            lFirstName2.Text = adult2 != null ? adult2.NickName : String.Empty;
             tbFirstName2.Text = adult2 != null ? adult2.NickName : String.Empty;
 
-            lLastName2.Visible = adult2 != null;
             tbLastName2.Visible = adult2 == null;
-            lLastName2.Text = adult2 != null ? adult2.LastName : String.Empty;
             tbLastName2.Text = adult2 != null ? adult2.LastName : String.Empty;
 
-            dvpSuffix2.SetValue( adult2 != null ? adult2.SuffixValueId : (int?)null );
+            dvpSuffix2.SetValue( adult2 != null ? adult2.SuffixValueId : ( int? ) null );
             ddlGender2.SetValue( adult2 != null ? adult2.Gender.ConvertToInt() : 0 );
-            dpBirthDate2.SelectedDate = ( adult2 != null ? adult2.BirthDate : (DateTime?)null );
-            dvpMaritalStatus2.SetValue( adult2 != null ? adult2.MaritalStatusValueId : (int?)null );
+            bpBirthDate2.SelectedDate = ( adult2 != null ? adult2.BirthDate : ( DateTime? ) null );
+            dvpMaritalStatus2.SetValue( adult2 != null ? adult2.MaritalStatusValueId : ( int? ) null );
             tbEmail2.Text = ( adult2 != null ? adult2.Email : string.Empty );
+            rblCommunicationPreference2.SelectedValue = ( adult2 != null ? adult2.CommunicationPreference : CommunicationType.Email ).ConvertToInt().ToString();
             SetPhoneNumber( adult2, pnMobilePhone2 );
 
             Children = new List<PreRegistrationChild>();
@@ -1265,6 +1512,9 @@ ORDER BY [Text]";
             {
                 // Set the campus from the family
                 cpCampus.SetValue( family.CampusId );
+
+                // Need to populate the schedules here if they are visible
+                SetScheduleDateControl();
 
                 // Set the address from the family
                 var homeLocationType = DefinedValueCache.Get( Rock.SystemGuid.DefinedValue.GROUP_LOCATION_TYPE_HOME.AsGuid() );
@@ -1285,7 +1535,7 @@ ORDER BY [Text]";
 
                 // Find all the children in the family
                 var childRoleGuid = Rock.SystemGuid.GroupRole.GROUPROLE_FAMILY_MEMBER_CHILD.AsGuid();
-                foreach( var groupMember in family.Members
+                foreach ( var groupMember in family.Members
                     .Where( m => m.GroupRole.Guid == childRoleGuid )
                     .OrderByDescending( m => m.Person.Age ) )
                 {
@@ -1322,15 +1572,33 @@ ORDER BY [Text]";
             }
             else
             {
-                // Set campus to the default
-                Guid? campusGuid = GetAttributeValue( AttributeKey.DefaultCampus ).AsGuidOrNull();
-                if ( campusGuid.HasValue )
+                // Set campus id from page parameter or from default if page parameter is null or invalid.
+                var campusGuid = PageParameter( PageParameterKey.CampusGuid ).AsGuidOrNull();
+                var campusId = PageParameter( PageParameterKey.CampusId ).AsIntegerOrNull();
+
+                CampusCache initialCampus = null;
+
+                if ( campusGuid != null )
                 {
-                    var defaultCampus = CampusCache.Get( campusGuid.Value );
-                    if ( defaultCampus != null )
+                    initialCampus = CampusCache.Get( campusGuid.Value );
+                }
+                else if ( campusId != null )
+                {
+                    initialCampus = CampusCache.Get( campusId.Value );
+                }
+
+                if ( initialCampus == null )
+                {
+                    campusGuid = GetAttributeValue( AttributeKey.DefaultCampus ).AsGuidOrNull();
+                    if ( campusGuid != null )
                     {
-                        cpCampus.SetValue( defaultCampus.Id );
+                        initialCampus = CampusCache.Get( campusGuid.Value );
                     }
+                }
+
+                if ( initialCampus != null )
+                {
+                    cpCampus.SetValue( initialCampus.Id );
                 }
 
                 // Clear the address
@@ -1387,7 +1655,7 @@ ORDER BY [Text]";
                 adult2.LoadAttributes();
             }
 
-            foreach( var attribute in attributeList )
+            foreach ( var attribute in attributeList )
             {
                 string value1 = adult1 != null ? adult1.GetAttributeValue( attribute.Key ) : string.Empty;
                 var div1 = new HtmlGenericControl( "Div" );
@@ -1487,6 +1755,8 @@ ORDER BY [Text]";
             var requireMobilePhone = GetAttributeValue( AttributeKey.ChildMobilePhone ) == "Required";
             var showEmailAddress = GetAttributeValue( AttributeKey.ChildEmail ) != "Hide";
             var requireEmailAddress = GetAttributeValue( AttributeKey.ChildEmail ) == "Required";
+            var showCommunicationPreference = GetAttributeValue( AttributeKey.ChildDisplayCommunicationPreference ) != "Hide";
+            var columns = GetAttributeValue( AttributeKey.Columns ).AsInteger();
 
             var attributeList = GetCategoryAttributeList( AttributeKey.ChildAttributeCategories );
 
@@ -1515,9 +1785,11 @@ ORDER BY [Text]";
                     childRow.ShowMobilePhone = showMobilePhone;
                     childRow.RequireMobilePhone = requireMobilePhone;
                     childRow.ShowEmailAddress = showEmailAddress;
+                    childRow.ShowCommunicationPreference = showCommunicationPreference;
                     childRow.RequireEmailAddress = requireEmailAddress;
                     childRow.RelationshipTypeList = _relationshipTypes;
                     childRow.AttributeList = attributeList;
+                    childRow.Columns = columns;
 
                     childRow.ValidationGroup = BlockValidationGroup;
 
@@ -1533,6 +1805,7 @@ ORDER BY [Text]";
                         childRow.MobilePhone = child.MobilePhoneNumber;
                         childRow.MobilePhoneCountryCode = child.MobileCountryCode;
                         childRow.EmailAddress = child.EmailAddress;
+                        childRow.CommunicationPreference = child.CommunicationPreference;
 
                         childRow.SetAttributeValues( child );
                     }
@@ -1547,9 +1820,10 @@ ORDER BY [Text]";
             RockTextBox tbLastName,
             DefinedValuePicker dvpSuffix,
             RockDropDownList ddlGender,
-            DatePicker dpBirthDate,
+            BirthdayPicker dpBirthDate,
             DefinedValuePicker dvpMaritalStatus,
             EmailBox tbEmail,
+            RockRadioButtonList rblCommunicationPreference,
             PhoneNumberBox pnMobilePhone,
             DynamicPlaceholder phAttributes )
         {
@@ -1565,6 +1839,7 @@ ORDER BY [Text]";
             var showMaritalStatus = GetAttributeValue( AttributeKey.AdultMaritalStatus ) != "Hide";
             var showEmail = GetAttributeValue( AttributeKey.AdultEmail ) != "Hide";
             var showMobilePhone = GetAttributeValue( AttributeKey.AdultMobilePhone ) != "Hide";
+            var showCommunicationPreference = GetAttributeValue( AttributeKey.AdultDisplayCommunicationPreference ) != "Hide";
             bool autoMatch = GetAttributeValue( AttributeKey.AutoMatch ).AsBoolean();
 
             var personService = new PersonService( _rockContext );
@@ -1592,7 +1867,7 @@ ORDER BY [Text]";
 
                     var personQuery = new PersonService.PersonMatchQuery( tbFirstName.Text.Trim(), tbLastName.Text.Trim(), tbEmail.Text.Trim(), pnMobilePhone.Text.Trim(), gender, birthDate, suffixValueId );
 
-                    
+
                     adult = personService.FindPerson( personQuery, true );
                     if ( adult != null )
                     {
@@ -1613,8 +1888,8 @@ ORDER BY [Text]";
                     adult.FirstName = tbFirstName.Text.FixCase();
                     adult.LastName = tbLastName.Text.FixCase();
                     adult.RecordTypeValueId = recordTypePersonId;
-                    adult.RecordStatusValueId = recordStatusValue != null ? recordStatusValue.Id : (int?)null;
-                    adult.ConnectionStatusValueId = connectionStatusValue != null ? connectionStatusValue.Id : (int?)null;
+                    adult.RecordStatusValueId = recordStatusValue != null ? recordStatusValue.Id : ( int? ) null;
+                    adult.ConnectionStatusValueId = connectionStatusValue != null ? connectionStatusValue.Id : ( int? ) null;
                 }
 
                 // Set the properties from UI
@@ -1662,13 +1937,22 @@ ORDER BY [Text]";
                     }
                 }
 
+                if ( showCommunicationPreference )
+                {
+                    if ( rblCommunicationPreference.SelectedValue.IsNotNullOrWhiteSpace() )
+                    {
+                        adult.CommunicationPreference = ( CommunicationType ) rblCommunicationPreference.SelectedValue.AsInteger();
+                    }
+                }
+
                 // Save the person
                 _rockContext.SaveChanges();
 
                 // Save the mobile phone number
                 if ( showMobilePhone )
                 {
-                    SavePhoneNumber( adult.Id, pnMobilePhone );
+                    var isSmsNumber = adult.CommunicationPreference == CommunicationType.SMS;
+                    SavePhoneNumber( adult.Id, pnMobilePhone, isSmsNumber );
                 }
 
                 // Save any attribute values
@@ -1714,7 +1998,7 @@ ORDER BY [Text]";
         {
             Children = new List<PreRegistrationChild>();
 
-            foreach( var childRow in prChildren.ChildRows )
+            foreach ( var childRow in prChildren.ChildRows )
             {
                 var person = new Person();
                 person.Id = childRow.PersonId;
@@ -1733,6 +2017,7 @@ ORDER BY [Text]";
                 child.MobilePhoneNumber = childRow.MobilePhone;
                 child.MobileCountryCode = childRow.MobilePhoneCountryCode;
                 child.EmailAddress = childRow.EmailAddress;
+                child.CommunicationPreference = childRow.CommunicationPreference;
 
                 child.RelationshipType = childRow.RelationshipType;
 
@@ -1799,6 +2084,30 @@ ORDER BY [Text]";
         /// <returns></returns>
         private bool ValidateInfo()
         {
+            if ( tbRockFullName.Text.IsNotNullOrWhiteSpace() )
+            {
+                /* 03/22/2021 MDP
+
+                see https://app.asana.com/0/1121505495628584/1200018171012738/f on why this is done
+
+                */
+
+                nbRockFullName.Visible = true;
+                nbRockFullName.NotificationBoxType = NotificationBoxType.Validation;
+                nbRockFullName.Text = "Invalid Form Value";
+                return false;
+            }
+
+            // First, verify that the page controls are valid using built-in validators.
+            // If validation fails, exit and allow the controls to display the messages they have generated.
+            Page.Validate();
+
+            if ( !Page.IsValid )
+            {
+                return false;
+            }
+
+            // Next, perform custom validation that is specific to this action.
             var errorMessages = new List<string>();
 
             if ( tbFirstName1.Text.IsNullOrWhiteSpace() && tbFirstName2.Text.IsNullOrWhiteSpace() )
@@ -1810,17 +2119,46 @@ ORDER BY [Text]";
                 ( tbFirstName1.Text.IsNotNullOrWhiteSpace() && tbLastName1.Text.IsNullOrWhiteSpace() ) ||
                 ( tbLastName1.Text.IsNullOrWhiteSpace() && tbLastName1.Text.IsNotNullOrWhiteSpace() ) ||
                 ( tbFirstName2.Text.IsNotNullOrWhiteSpace() && tbLastName2.Text.IsNullOrWhiteSpace() ) ||
-                ( tbLastName2.Text.IsNullOrWhiteSpace() && tbLastName2.Text.IsNotNullOrWhiteSpace() ) 
+                ( tbLastName2.Text.IsNullOrWhiteSpace() && tbLastName2.Text.IsNotNullOrWhiteSpace() )
             )
             {
                 errorMessages.Add( "A First and Last name is required for each person." );
             }
 
             ValidateRequiredField( AttributeKey.AdultGender, "Gender is required for each adult.", ddlGender1.SelectedValueAsEnumOrNull<Gender>() != null, ddlGender2.SelectedValueAsEnumOrNull<Gender>() != null, errorMessages );
-            ValidateRequiredField( AttributeKey.AdultBirthdate, "Birthdate is required for each adult.", dpBirthDate1.SelectedDate != null, dpBirthDate2.SelectedDate != null, errorMessages );
+            ValidateRequiredField( AttributeKey.AdultBirthdate, "Birthdate is required for each adult.", bpBirthDate1.SelectedDate != null, bpBirthDate2.SelectedDate != null, errorMessages );
             ValidateRequiredField( AttributeKey.AdultEmail, "Email is required for each adult.", tbEmail1.Text.IsNotNullOrWhiteSpace(), tbEmail2.Text.IsNotNullOrWhiteSpace(), errorMessages );
             //ValidateRequiredField( AttributeKey.AdultMOBILE_KEY, "A valid Mobile Phone is required for each adult.", pnMobilePhone1.IsValid, pnMobilePhone2.IsValid, errorMessages );
             bool isPhoneValid = ValidateRequiredField( AttributeKey.AdultMobilePhone, string.Empty, pnMobilePhone1.IsValid, pnMobilePhone2.IsValid, errorMessages );
+
+            var smsCommunicationType = CommunicationType.SMS.ConvertToInt().ToString();
+            var communicationPreference1IsValid = rblCommunicationPreference1.SelectedValue != smsCommunicationType
+                || ( rblCommunicationPreference1.SelectedValue == smsCommunicationType
+                        && ( !pnMobilePhone1.Visible
+                        || pnMobilePhone1.Number.IsNotNullOrWhiteSpace() ) );
+
+            var communicationPreference2IsValid = rblCommunicationPreference2.SelectedValue != smsCommunicationType
+                || ( rblCommunicationPreference2.SelectedValue == smsCommunicationType
+                        && ( !pnMobilePhone2.Visible
+                        || pnMobilePhone2.Number.IsNotNullOrWhiteSpace() ) );
+
+            ValidateRequiredField( AttributeKey.AdultDisplayCommunicationPreference,
+                "SMS Number is required if SMS communication preference is selected.",
+                communicationPreference1IsValid,
+                communicationPreference2IsValid,
+                errorMessages );
+
+            foreach ( var childRow in prChildren.ChildRows )
+            {
+                if ( childRow.IsValid == false )
+                {
+                    if ( !childRow.ValidationErrors.Any() )
+                    {
+                        return false;
+                    }
+                    errorMessages.AddRange( childRow.ValidationErrors );
+                }
+            }
 
             if ( errorMessages.Any() )
             {
@@ -1831,16 +2169,7 @@ ORDER BY [Text]";
                 return false;
             }
 
-            foreach( var childRow in prChildren.ChildRows )
-            {
-                if( childRow.IsValid == false )
-                {
-                    // Don't need to add to the error messages here.
-                    return false;
-                }
-            }
-
-            if (!isPhoneValid)
+            if ( !isPhoneValid )
             {
                 return false;
             }
@@ -1938,7 +2267,7 @@ ORDER BY [Text]";
 
             // Check to see if we've already created a family with someone who has same last name
             string key = lastName.ToLower();
-            int? newFamilyId = newFamilyIds.ContainsKey( key ) ? newFamilyIds[key] : (int?)null;
+            int? newFamilyId = newFamilyIds.ContainsKey( key ) ? newFamilyIds[key] : ( int? ) null;
 
             // If not, create a new family
             if ( !newFamilyId.HasValue )
@@ -2016,9 +2345,9 @@ ORDER BY [Text]";
         /// </summary>
         /// <param name="personId">The person identifier.</param>
         /// <param name="pnb">The PNB.</param>
-        private void SavePhoneNumber( int personId, PhoneNumberBox pnb )
+        private void SavePhoneNumber( int personId, PhoneNumberBox pnb, bool isSmsNumber )
         {
-            SavePhoneNumber( personId, pnb.Number, pnb.CountryCode );
+            SavePhoneNumber( personId, pnb.Number, pnb.CountryCode, isSmsNumber );
         }
 
         /// <summary>
@@ -2027,7 +2356,7 @@ ORDER BY [Text]";
         /// <param name="personId">The person identifier.</param>
         /// <param name="number">The number.</param>
         /// <param name="countryCode">The country code.</param>
-        private void SavePhoneNumber( int personId, string number, string countryCode )
+        private void SavePhoneNumber( int personId, string number, string countryCode, bool isSmsNumber )
         {
 
             string phone = PhoneNumber.CleanNumber( number );
@@ -2053,6 +2382,11 @@ ORDER BY [Text]";
 
                         phoneNumber.PersonId = personId;
                         phoneNumber.NumberTypeValueId = phType.Id;
+
+                        if ( isSmsNumber )
+                        {
+                            phoneNumber.IsMessagingEnabled = true;
+                        }
                     }
 
                     phoneNumber.CountryCode = PhoneNumber.CleanNumber( countryCode );
@@ -2071,8 +2405,23 @@ ORDER BY [Text]";
         }
 
         #endregion
-    }
 
+        protected void cpCampus_SelectedIndexChanged( object sender, EventArgs e )
+        {
+            SetScheduleDateControl();
+        }
+        protected void ddlScheduleDate_SelectedIndexChanged( object sender, EventArgs e )
+        {
+            SetScheduleTimeControl();
+        }
+
+        [Serializable]
+        protected class OccurrenceSchedule
+        {
+            public DateTime IcalOccurrenceDateTime { get; set; }
+            public Guid ScheduleGuid { get; set; }
+        }
+    }
 }
 
 

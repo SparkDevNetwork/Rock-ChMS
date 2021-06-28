@@ -2,13 +2,12 @@
 
 <style>
     .badge-legend.expand-on-hover .badge {
-        transition-duration: 200ms;
-        border-radius: 12px;
         width: auto;
         padding: 5px 0 0 24px;
         font-weight: normal;
         max-width: 24px;
         overflow: hidden;
+        transition: all 250ms ease-in-out 25ms;
     }
 
     .badge-legend.expand-on-hover .badge:hover {
@@ -18,8 +17,8 @@
 
     .list-as-blocks ul li .follow-toggle {
         position: absolute;
-        border: none;
-        background: none;
+        border: 0;
+        background: transparent;
         min-height: 0;
         top: 0;
         height: 35px;
@@ -27,8 +26,16 @@
         right: 15px; /* padding of the list-as-block li */
     }
 
+    .list-as-blocks ul li .follow-toggle:hover {
+        background: transparent;
+    }
+
+    .list-as-blocks ul li .follow-toggle:hover i {
+        color: #626262;
+    }
+
     .list-as-blocks ul li .follow-toggle i {
-        font-size: 20px;
+        font-size: 16px;
     }
 </style>
 
@@ -37,23 +44,20 @@
         <div class="panel panel-block">
             <div class="panel-heading">
                 <h1 class="panel-title">
-                    <i class='fa fa-plug'></i>
+                    <i class="fa fa-plug"></i>
                     Connections
                 </h1>
-                <div class="pull-right">
-                    <div class="pull-left">
-                        <Rock:Switch ID="tglMyActiveOpportunities" runat="server" OnCheckedChanged="tglMyActiveOpportunities_CheckedChanged" AutoPostBack="true" />
-                    </div>
-                    <span class="padding-r-lg">My Active Opportunities</span>
+                <div class="panel-labels d-flex align-items-center">
+                    <asp:Literal ID="lStatusBarContent" runat="server" />
+
                     <asp:LinkButton ID="lbConnectionTypes" runat="server" CssClass="btn btn-xs btn-square btn-default pull-right" OnClick="lbConnectionTypes_Click" CausesValidation="false"> <i title="Options" class="fa fa-gear"></i></asp:LinkButton>
                 </div>
             </div>
 
             <div class="panel-body">
-                <div class="text-right">
-                    <asp:Literal ID="lStatusBarContent" runat="server" />
+                <div class="small text-right">
+                    <Rock:Switch ID="tglMyActiveOpportunities" runat="server" OnCheckedChanged="tglMyActiveOpportunities_CheckedChanged" AutoPostBack="true" Text="My Active Opportunities" />
                 </div>
-
                 <Rock:NotificationBox ID="nbNoOpportunities" runat="server" NotificationBoxType="Info" CssClass="margin-t-md" Text="There are no current connection requests." />
 
                 <asp:Panel ID="pnlFavorites" runat="server">
@@ -82,10 +86,10 @@
 
                 <asp:Repeater ID="rptConnnectionTypes" runat="server" OnItemDataBound="rptConnnectionTypes_ItemDataBound">
                     <ItemTemplate>
-                        <h4>
+                        <h5>
                             <%# Eval("IconMarkup") %>
                             <%# Eval("Name") %>
-                        </h4>
+                        </h5>
                         <div class="list-as-blocks clearfix margin-b-lg">
                             <ul>
                                 <asp:Repeater ID="rptConnectionOpportunities" runat="server" OnItemCommand="rptConnectionOpportunities_ItemCommand">

@@ -15,18 +15,21 @@
 // </copyright>
 //
 
-using MassTransit;
-using Rock.Bus.Consumer;
-using Rock.Bus.Message;
-using Rock.Bus.Queue;
-using Rock.Bus.Statistics;
-using Rock.Bus.Transport;
-using Rock.Model;
 using System;
 using System.Configuration;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
+using MassTransit;
+using Rock.Bus.Consumer;
+using Rock.Bus.Faults;
+using Rock.Bus.Message;
+using Rock.Bus.Queue;
+using Rock.Bus.Statistics;
+using Rock.Bus.Transport;
+using Rock.Data;
+using Rock.Logging;
+using Rock.Model;
 
 namespace Rock.Bus
 {
@@ -39,6 +42,11 @@ namespace Rock.Bus
         /// The stat observer
         /// </summary>
         private static StatObserver _statObserver = new StatObserver();
+
+        /// <summary>
+        /// The receive fault observer
+        /// </summary>
+        private static ReceiveFaultObserver _receiveFaultObserver = new ReceiveFaultObserver();
 
         /// <summary>
         /// Is the bus started?
@@ -99,25 +107,32 @@ namespace Rock.Bus
         private static string _nodeName;
 
         /// <summary>
+        /// Gets a value indicating whether this instance is using the in memory transport.
+        /// </summary>
+        /// <value>
+        ///   <c>true</c> if this instance is in memory transport; otherwise, <c>false</c>.
+        /// </value>
+        public static bool IsInMemoryTransport => _transportComponent is InMemory;
+
+        /// <summary>
         /// Starts this bus.
         /// </summary>
         public static async Task StartAsync()
         {
             var components = TransportContainer.Instance.Components.Select( c => c.Value.Value );
             var inMemoryTransport = components.FirstOrDefault( c => c is InMemory );
+            var activeNonInMemoryTransports = components.Where( c => c != inMemoryTransport && c.IsActive );
 
-            // If the in-memory transport is active, then it will be the transport. Admins will need to
-            // explicitly deactivate in-memory for another transport to work. This is to ensure Rock
-            // instances without explicit config (most) will function with the in-memory transport.
-            if ( inMemoryTransport.IsActive )
+            // If something besides in-memory transport is active, then it will be the transport.
+            if ( activeNonInMemoryTransports.Any() )
             {
-                _transportComponent = inMemoryTransport;
+                _transportComponent = activeNonInMemoryTransports.First();
             }
             else
             {
-                // If there is no active transport, in-memory is used anyway. Effectively, in-memory cannot
+                // If there is no active transport, in-memory is used. Effectively, in-memory cannot
                 // be deactivated because it would cause Rock to not function.
-                _transportComponent = components.FirstOrDefault( c => c.IsActive ) ?? inMemoryTransport;
+                _transportComponent = inMemoryTransport;
             }
 
             try
@@ -126,7 +141,7 @@ namespace Rock.Bus
             }
             catch ( Exception e )
             {
-                // An error occured with the other transport so try one more time with in-memory to see if Rock
+                // An error occured with the chosen transport. Try one more time with in-memory to see if Rock
                 // can still start to allow UI based configuration
                 if ( _transportComponent == inMemoryTransport )
                 {
@@ -143,6 +158,16 @@ namespace Rock.Bus
 
                 // Log that the original transport did not work
                 ExceptionLogService.LogException( new Exception( $"Could not start the message bus transport: {originalTransport.GetType().Name}", e ) );
+            }
+
+            if ( _transportComponent == inMemoryTransport && !inMemoryTransport.IsActive )
+            {
+                // Set the in memory transport as active for the UI since it is being used
+                using ( var rockContext = new RockContext() )
+                {
+                    inMemoryTransport.SetAttributeValue( InMemory.BaseAttributeKey.Active, true.ToString() );
+                    inMemoryTransport.SaveAttributeValue( InMemory.BaseAttributeKey.Active, rockContext );
+                }
             }
         }
 
@@ -214,6 +239,9 @@ namespace Rock.Bus
         public static async Task SendAsync<TQueue>( ICommandMessage<TQueue> message, Type messageType )
             where TQueue : ISendCommandQueue, new()
         {
+
+            RockLogger.Log.Debug( RockLogDomains.Core, "Send Message Async: {@message} Message Type: {1}", message, messageType );
+
             if ( !IsReady() )
             {
                 ExceptionLogService.LogException( $"A message was sent before the message bus was ready: {RockMessage.GetLogString( message )}" );
@@ -243,6 +271,7 @@ namespace Rock.Bus
 
             _bus = _transportComponent.GetBusControl( RockConsumer.ConfigureRockConsumers );
             _bus.ConnectConsumeObserver( _statObserver );
+            _bus.ConnectReceiveObserver( _receiveFaultObserver );
 
             // Allow the bus to try to connect for some seconds at most
             var cancelToken = new CancellationTokenSource();

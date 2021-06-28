@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Net.Mail;
+using System.Text.RegularExpressions;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using Moq;
 using Moq.Protected;
@@ -580,6 +581,150 @@ namespace Rock.Tests.Integration.Communications
         }
 
         [TestMethod]
+        [DataRow( false, false, false )]
+        [DataRow( false, true, true )]
+        [DataRow( true, false, true )]
+        [DataRow( true, true, true )]
+        public void SendRockMessageShouldSetCssInlinedEnabledCorrectly( bool mediumCssInline, bool originalCssInline, bool expectedCssInline )
+        {
+            var expectedEmail = "test@test.com";
+            var globalAttributes = GlobalAttributesCache.Get();
+            globalAttributes.SetValue( "OrganizationEmail", expectedEmail, false, null );
+
+            var actualPerson = new Person
+            {
+                Email = "test@test.com",
+                FirstName = "Test",
+                LastName = "User"
+            };
+
+            var originalHtmlMessage = @"<html>
+	                            <body>
+		                            <style>
+		                              .component-text td {
+			                              color: #0a0a0a;
+			                              font-family: Helvetica, Arial, sans-serif;
+			                              font-size: 16px;
+			                              font-weight: normal;
+			                              line-height: 1.3;
+		                              }
+		                            </style>
+		                            <div class=""structure-dropzone"">
+			                            <div class=""dropzone"">
+				                            <table class=""component component-text selected"">
+					                            <tbody>
+						                            <tr>
+							                            <td>
+								                            <h1>Title</h1><p> Can't wait to see what you have to say!</p>
+							                            </td>
+						                            </tr>
+					                            </tbody>
+				                            </table>
+			                            </div>
+		                            </div>
+	                            </body>
+                            </html>";
+            var actualEmailMessage = new RockEmailMessage()
+            {
+                FromEmail = expectedEmail,
+                FromName = "Test Name",
+                AppRoot = "test/approot",
+                BCCEmails = new List<string> { "bcc1@test.com", "bcc2@test.com" },
+                CCEmails = new List<string> { "cc1@test.com", "cc2@test.com" },
+                CssInliningEnabled = originalCssInline,
+                CurrentPerson = actualPerson,
+                EnabledLavaCommands = "RockEntity",
+                Message = originalHtmlMessage,
+                MessageMetaData = new Dictionary<string, string> { { "test", "test1" } },
+                PlainTextMessage = "Text Message",
+                ReplyToEmail = "replyto@email.com",
+                Subject = "Test Subject",
+            };
+            actualEmailMessage.AddRecipient( new RockEmailMessageRecipient( actualPerson, new Dictionary<string, object>() ) );
+
+            var expectedHtmlMessage = originalHtmlMessage;
+
+            if ( expectedCssInline )
+            {
+                expectedHtmlMessage = @"<html><head></head><body>
+		                            <style>
+		                              .component-text td {
+			                              color: #0a0a0a;
+			                              font-family: Helvetica, Arial, sans-serif;
+			                              font-size: 16px;
+			                              font-weight: normal;
+			                              line-height: 1.3;
+		                              }
+		                            </style>
+		                            <div class=""structure-dropzone"">
+			                            <div class=""dropzone"">
+				                            <table class=""component component-text selected"">
+					                            <tbody>
+						                            <tr>
+							                            <td style=""color: #0a0a0a;font-family: Helvetica, Arial, sans-serif;font-size: 16px;font-weight: normal;line-height: 1.3"">
+								                            <h1>Title</h1><p> Can't wait to see what you have to say!</p>
+							                            </td>
+						                            </tr>
+					                            </tbody>
+				                            </table>
+			                            </div>
+		                            </div>
+                            </body></html>";
+            }
+
+            var expectedEmailMessage = new RockEmailMessage()
+            {
+                FromEmail = expectedEmail,
+                FromName = "Test Name",
+                AppRoot = "test/approot",
+                BCCEmails = new List<string> { "bcc1@test.com", "bcc2@test.com" },
+                CCEmails = new List<string> { "cc1@test.com", "cc2@test.com" },
+                CssInliningEnabled = expectedCssInline,
+                CurrentPerson = actualPerson,
+                EnabledLavaCommands = "RockEntity",
+                Message = Regex.Replace( expectedHtmlMessage, @"\s+", "" ),
+                MessageMetaData = new Dictionary<string, string> { { "test", "test1" } },
+                PlainTextMessage = "Text Message",
+                ReplyToEmail = "replyto@email.com",
+                Subject = "Test Subject",
+            };
+            expectedEmailMessage.AddRecipient( new RockEmailMessageRecipient( actualPerson, new Dictionary<string, object>() ) );
+
+            var emailSendResponse = new EmailSendResponse
+            {
+                Status = Rock.Model.CommunicationRecipientStatus.Delivered,
+                StatusNote = "Email Sent."
+            };
+
+            var emailTransport = new Mock<EmailTransportComponent>()
+            {
+                CallBase = true
+            };
+
+            emailTransport
+                .Protected()
+                .Setup<EmailSendResponse>( "SendEmail", ItExpr.IsAny<RockEmailMessage>() )
+                .Returns( emailSendResponse )
+                .Verifiable();
+
+            emailTransport
+                .Object
+                .Send( actualEmailMessage, 0, new Dictionary<string, string> { { "CSSInliningEnabled", mediumCssInline.ToString() } }, out var errorMessages );
+
+            Assert.That.IsEmpty( errorMessages );
+
+            emailTransport
+                .Protected()
+                .Verify( "SendEmail",
+                    Times.Once(),
+                    ItExpr.Is<RockEmailMessage>( rem =>
+                        rem.CssInliningEnabled == expectedEmailMessage.CssInliningEnabled &&
+                        Regex.Replace( rem.Message, @"\s+", "" ) == expectedEmailMessage.Message
+                    )
+                );
+        }
+
+        [TestMethod]
         public void SendRockMessageShouldHandleAttachmentsCorrectly()
         {
             var binaryFiles = AddBinaryFiles();
@@ -665,7 +810,274 @@ namespace Rock.Tests.Integration.Communications
                 );
         }
 
+        [TestMethod]
+        public void SendRockMessageShouldHaveCorrectCreateCommunicationsRecordFlag()
+        {
+            AddSafeDomains();
 
+            var expectedFromEmail = "test@org.com";
+            var expectedFromName = "Test Name";
+
+            var globalAttributes = GlobalAttributesCache.Get();
+            globalAttributes.SetValue( "OrganizationEmail", "test@organization.com", false, null );
+
+            var actualEmail = new RockEmailMessage()
+            {
+                FromEmail = expectedFromEmail,
+                FromName = expectedFromName,
+                CreateCommunicationRecord = false,
+            };
+
+            actualEmail.AddRecipient( new RockEmailMessageRecipient( new Person
+            {
+                Email = "test@test.com",
+                FirstName = "Test",
+                LastName = "User"
+            }, new Dictionary<string, object>() ) );
+
+            var expectedEmail = new RockEmailMessage()
+            {
+                FromName = expectedFromName,
+                FromEmail = expectedFromEmail,
+                CreateCommunicationRecord = false,
+            };
+
+            var emailSendResponse = new EmailSendResponse
+            {
+                Status = Rock.Model.CommunicationRecipientStatus.Delivered,
+                StatusNote = "Email Sent."
+            };
+
+            var emailTransport = new Mock<EmailTransportComponent>()
+            {
+                CallBase = true
+            };
+
+            emailTransport
+                .Protected()
+                .Setup<EmailSendResponse>( "SendEmail", ItExpr.IsAny<RockEmailMessage>() )
+                .Returns( emailSendResponse )
+                .Verifiable();
+
+            emailTransport
+                .Object
+                .Send( actualEmail, 0, new Dictionary<string, string>(), out var errorMessages );
+
+            Assert.That.AreEqual( 0, errorMessages.Count, errorMessages.JoinStrings( ", " ) );
+
+            emailTransport
+                .Protected()
+                .Verify( "SendEmail",
+                    Times.Once(),
+                    ItExpr.Is<RockEmailMessage>( rem =>
+                        rem.FromEmail == expectedEmail.FromEmail &&
+                        rem.FromName == expectedEmail.FromName &&
+                        rem.CreateCommunicationRecord == expectedEmail.CreateCommunicationRecord
+                    )
+                );
+        }
+
+        [TestMethod]
+        public void SendRockMessageShouldHaveCorrectSendSeperatelyToEachRecipientFlag()
+        {
+            AddSafeDomains();
+
+            var expectedFromEmail = "test@org.com";
+            var expectedFromName = "Test Name";
+
+            var globalAttributes = GlobalAttributesCache.Get();
+            globalAttributes.SetValue( "OrganizationEmail", "test@organization.com", false, null );
+
+            var actualEmail = new RockEmailMessage()
+            {
+                FromEmail = expectedFromEmail,
+                FromName = expectedFromName,
+                SendSeperatelyToEachRecipient = false,
+            };
+
+            actualEmail.AddRecipient( new RockEmailMessageRecipient( new Person
+            {
+                Email = "test@test.com",
+                FirstName = "Test",
+                LastName = "User"
+            }, new Dictionary<string, object>() ) );
+
+            var expectedEmail = new RockEmailMessage()
+            {
+                FromName = expectedFromName,
+                FromEmail = expectedFromEmail,
+                SendSeperatelyToEachRecipient = false,
+            };
+
+            var emailSendResponse = new EmailSendResponse
+            {
+                Status = Rock.Model.CommunicationRecipientStatus.Delivered,
+                StatusNote = "Email Sent."
+            };
+
+            var emailTransport = new Mock<EmailTransportComponent>()
+            {
+                CallBase = true
+            };
+
+            emailTransport
+                .Protected()
+                .Setup<EmailSendResponse>( "SendEmail", ItExpr.IsAny<RockEmailMessage>() )
+                .Returns( emailSendResponse )
+                .Verifiable();
+
+            emailTransport
+                .Object
+                .Send( actualEmail, 0, new Dictionary<string, string>(), out var errorMessages );
+
+            Assert.That.AreEqual( 0, errorMessages.Count, errorMessages.JoinStrings( ", " ) );
+
+            emailTransport
+                .Protected()
+                .Verify( "SendEmail",
+                    Times.Once(),
+                    ItExpr.Is<RockEmailMessage>( rem =>
+                        rem.FromEmail == expectedEmail.FromEmail &&
+                        rem.FromName == expectedEmail.FromName &&
+                        rem.SendSeperatelyToEachRecipient == expectedEmail.SendSeperatelyToEachRecipient
+                    )
+                );
+        }
+
+        [TestMethod]
+        public void SendRockMessageShouldHaveCorrectThemeRootProperty()
+        {
+            AddSafeDomains();
+
+            var expectedFromEmail = "test@org.com";
+            var expectedFromName = "Test Name";
+
+            var globalAttributes = GlobalAttributesCache.Get();
+            globalAttributes.SetValue( "OrganizationEmail", "test@organization.com", false, null );
+
+            var actualEmail = new RockEmailMessage()
+            {
+                FromEmail = expectedFromEmail,
+                FromName = expectedFromName,
+                ThemeRoot = "/test/",
+            };
+
+            actualEmail.AddRecipient( new RockEmailMessageRecipient( new Person
+            {
+                Email = "test@test.com",
+                FirstName = "Test",
+                LastName = "User"
+            }, new Dictionary<string, object>() ) );
+
+            var expectedEmail = new RockEmailMessage()
+            {
+                FromName = expectedFromName,
+                FromEmail = expectedFromEmail,
+                ThemeRoot = "/test/",
+            };
+
+            var emailSendResponse = new EmailSendResponse
+            {
+                Status = Rock.Model.CommunicationRecipientStatus.Delivered,
+                StatusNote = "Email Sent."
+            };
+
+            var emailTransport = new Mock<EmailTransportComponent>()
+            {
+                CallBase = true
+            };
+
+            emailTransport
+                .Protected()
+                .Setup<EmailSendResponse>( "SendEmail", ItExpr.IsAny<RockEmailMessage>() )
+                .Returns( emailSendResponse )
+                .Verifiable();
+
+            emailTransport
+                .Object
+                .Send( actualEmail, 0, new Dictionary<string, string>(), out var errorMessages );
+
+            Assert.That.AreEqual( 0, errorMessages.Count, errorMessages.JoinStrings( ", " ) );
+
+            emailTransport
+                .Protected()
+                .Verify( "SendEmail",
+                    Times.Once(),
+                    ItExpr.Is<RockEmailMessage>( rem =>
+                        rem.FromEmail == expectedEmail.FromEmail &&
+                        rem.FromName == expectedEmail.FromName &&
+                        rem.ThemeRoot == expectedEmail.ThemeRoot
+                    )
+                );
+        }
+
+        [TestMethod]
+        public void SendRockMessageShouldHaveCorrectMergeFieldReplacement()
+        {
+            AddSafeDomains();
+
+            var expectedFromEmail = "test@org.com";
+            var expectedFromName = "Test Name";
+
+            var globalAttributes = GlobalAttributesCache.Get();
+            globalAttributes.SetValue( "OrganizationEmail", "test@organization.com", false, null );
+
+            var actualEmail = new RockEmailMessage()
+            {
+                FromEmail = expectedFromEmail,
+                FromName = expectedFromName,
+                Message = "{{ TestKey }}",
+                AdditionalMergeFields = { { "TestKey", "Test Value" } },
+            };
+
+            actualEmail.AddRecipient( new RockEmailMessageRecipient( new Person
+            {
+                Email = "test@test.com",
+                FirstName = "Test",
+                LastName = "User"
+            }, new Dictionary<string, object>() ) );
+
+            var expectedEmail = new RockEmailMessage()
+            {
+                FromName = expectedFromName,
+                FromEmail = expectedFromEmail,
+                Message = "Test Value"
+            };
+
+            var emailSendResponse = new EmailSendResponse
+            {
+                Status = Rock.Model.CommunicationRecipientStatus.Delivered,
+                StatusNote = "Email Sent."
+            };
+
+            var emailTransport = new Mock<EmailTransportComponent>()
+            {
+                CallBase = true
+            };
+
+            emailTransport
+                .Protected()
+                .Setup<EmailSendResponse>( "SendEmail", ItExpr.IsAny<RockEmailMessage>() )
+                .Returns( emailSendResponse )
+                .Verifiable();
+
+            emailTransport
+                .Object
+                .Send( actualEmail, 0, new Dictionary<string, string>(), out var errorMessages );
+
+            Assert.That.AreEqual( 0, errorMessages.Count, errorMessages.JoinStrings( ", " ) );
+
+            emailTransport
+                .Protected()
+                .Verify( "SendEmail",
+                    Times.Once(),
+                    ItExpr.Is<RockEmailMessage>( rem =>
+                        rem.FromEmail == expectedEmail.FromEmail &&
+                        rem.FromName == expectedEmail.FromName &&
+                        rem.Message == expectedEmail.Message
+                    )
+                );
+        }
         #endregion
 
         #region Rock Communications Test
@@ -1048,7 +1460,7 @@ namespace Rock.Tests.Integration.Communications
             {
                 FromEmail = expectedEmail,
                 FromName = "Test Name",
-                AppRoot = "test/approot/",
+                AppRoot = "test/approot",
                 Attachments = new List<BinaryFile> { new BinaryFile { FileName = "test.txt" } },
                 BCCEmails = new List<string> { "bcc1@test.com", "bcc2@test.com" },
                 CCEmails = new List<string> { "cc1@test.com", "cc2@test.com" },
@@ -1160,6 +1572,123 @@ namespace Rock.Tests.Integration.Communications
                     )
                 );
         }
+
+        [TestMethod]
+        [DataRow(false, false, false)]
+        [DataRow(false, true, true)]
+        [DataRow(true, false, true)]
+        [DataRow(true, true, true)]
+        public void SendCommunicationShouldSetCssInliningCorrectly(bool mediumCssInline, bool templateCssInline, bool expectedCssInline)
+        {
+            var expectedEmail = "test@test.com";
+            var globalAttributes = GlobalAttributesCache.Get();
+            globalAttributes.SetValue( "OrganizationEmail", expectedEmail, false, null );
+            globalAttributes.SetValue( "PublicApplicationRoot", "test/approot", false, null );
+
+            var originalHtmlMessage = @"<html>
+	                            <body>
+		                            <style>
+		                              .component-text td {
+			                              color: #0a0a0a;
+			                              font-family: Helvetica, Arial, sans-serif;
+			                              font-size: 16px;
+			                              font-weight: normal;
+			                              line-height: 1.3;
+		                              }
+		                            </style>
+		                            <div class=""structure-dropzone"">
+			                            <div class=""dropzone"">
+				                            <table class=""component component-text selected"">
+					                            <tbody>
+						                            <tr>
+							                            <td>
+								                            <h1>Title</h1><p> Can't wait to see what you have to say!</p>
+							                            </td>
+						                            </tr>
+					                            </tbody>
+				                            </table>
+			                            </div>
+		                            </div>
+	                            </body>
+                            </html>";
+
+            var actualCommunication = CreateCommunication( "Test Name", expectedEmail, cssInliningEnabled: templateCssInline, htmlMessage: originalHtmlMessage );
+
+            var expectedHtmlMessage = originalHtmlMessage;
+
+            if ( expectedCssInline )
+            {
+                expectedHtmlMessage = @"<html><head></head><body>
+		                            <style>
+		                              .component-text td {
+			                              color: #0a0a0a;
+			                              font-family: Helvetica, Arial, sans-serif;
+			                              font-size: 16px;
+			                              font-weight: normal;
+			                              line-height: 1.3;
+		                              }
+		                            </style>
+		                            <div class=""structure-dropzone"">
+			                            <div class=""dropzone"">
+				                            <table class=""component component-text selected"">
+					                            <tbody>
+						                            <tr>
+							                            <td style=""color: #0a0a0a;font-family: Helvetica, Arial, sans-serif;font-size: 16px;font-weight: normal;line-height: 1.3"">
+								                            <h1>Title</h1><p> Can't wait to see what you have to say!</p>
+							                            </td>
+						                            </tr>
+					                            </tbody>
+				                            </table>
+			                            </div>
+		                            </div>
+                            </body></html>";
+            }
+            var expectedEmailMessage = new RockEmailMessage()
+            {
+                FromEmail = expectedEmail,
+                FromName = "Test Name",
+                AppRoot = "test/approot",
+                Attachments = new List<BinaryFile> { new BinaryFile { FileName = "test.txt" } },
+                BCCEmails = new List<string> { "bcc1@test.com", "bcc2@test.com" },
+                CCEmails = new List<string> { "cc1@test.com", "cc2@test.com" },
+                CssInliningEnabled = expectedCssInline,
+                EnabledLavaCommands = "RockEntity",
+                Message = Regex.Replace( expectedHtmlMessage, @"\s+", "" ),
+                MessageMetaData = new Dictionary<string, string> { { "test", "test1" } },
+                PlainTextMessage = "Text Message",
+                ReplyToEmail = "replyto@email.com",
+                Subject = "Test Subject",
+            };
+
+            var emailSendResponse = new EmailSendResponse
+            {
+                Status = Rock.Model.CommunicationRecipientStatus.Delivered,
+                StatusNote = "Email Sent."
+            };
+
+            var emailTransport = new Mock<EmailTransportComponent>()
+            {
+                CallBase = true
+            };
+
+            emailTransport
+                .Protected()
+                .Setup<EmailSendResponse>( "SendEmail", ItExpr.IsAny<RockEmailMessage>() )
+                .Returns( emailSendResponse )
+                .Verifiable();
+
+            emailTransport
+                .Object
+                .Send( actualCommunication, 37, new Dictionary<string, string> { { "DefaultPlainText", "Text Message" }, { "CSSInliningEnabled", mediumCssInline.ToString() } } );
+
+            emailTransport
+                .Protected()
+                .Verify( "SendEmail",
+                    Times.Once(),
+                    ItExpr.Is<RockEmailMessage>( rem => rem.CssInliningEnabled == expectedEmailMessage.CssInliningEnabled &&
+                        Regex.Replace( rem.Message, @"\s+", "" ) == expectedEmailMessage.Message )
+                );
+        }
         #endregion
 
         private void AddSafeDomains()
@@ -1196,7 +1725,9 @@ namespace Rock.Tests.Integration.Communications
         private Rock.Model.Communication CreateCommunication( string expectedFromName,
             string expectedFromEmail = "info@test.com",
             string toEmailAddress = "test@test.com",
-            List<BinaryFile> attachments = null )
+            List<BinaryFile> attachments = null,
+            bool cssInliningEnabled = true,
+            string htmlMessage = "HTML Message" )
         {
             var actualPerson = new Person
             {
@@ -1218,10 +1749,10 @@ namespace Rock.Tests.Integration.Communications
             actualCommunication.CommunicationTemplate = new CommunicationTemplate
             {
                 Name = Guid.NewGuid().ToString(),
-                CssInliningEnabled = true
+                CssInliningEnabled = cssInliningEnabled
             };
             actualCommunication.EnabledLavaCommands = "RockEntity";
-            actualCommunication.Message = "HTML Message";
+            actualCommunication.Message = htmlMessage;
             actualCommunication.AdditionalLavaFields = new Dictionary<string, object> { { "test", "test1" } };
             actualCommunication.ReplyToEmail = "replyto@email.com";
             actualCommunication.Subject = "Test Subject";

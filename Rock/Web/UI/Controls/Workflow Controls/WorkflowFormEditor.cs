@@ -41,9 +41,12 @@ namespace Rock.Web.UI.Controls
         private WorkflowFormActionList _falActions;
         private RockDropDownList _ddlActionAttribute;
 
+        private ModalDialog _mdFieldVisibilityRules;
+
         private static class ViewStateKey
         {
             public const string ValidationGroup = "ValidationGroup";
+            public const string EditingAttributeRowGuid = "EditingAttributeRowGuid";
         }
 
         #region PersonEntry related
@@ -100,6 +103,25 @@ namespace Rock.Web.UI.Controls
         }
 
         /// <summary>
+        /// Gets or sets the editing attribute row unique identifier.
+        /// </summary>
+        /// <value>
+        /// The editing attribute row unique identifier.
+        /// </value>
+        private string EditingAttributeRowGuid
+        {
+            get
+            {
+                return ViewState[ViewStateKey.EditingAttributeRowGuid] as string;
+            }
+
+            set
+            {
+                ViewState[ViewStateKey.EditingAttributeRowGuid] = value;
+            }
+        }
+
+        /// <summary>
         /// Gets or sets the form.
         /// </summary>
         /// <value>
@@ -152,7 +174,7 @@ namespace Rock.Web.UI.Controls
             foreach ( var row in AttributeRows )
             {
                 var formAttribute = new WorkflowActionFormAttribute();
-                formAttribute.Attribute = new Rock.Model.Attribute { Guid = row.AttributeGuid, Name = row.AttributeName };
+                formAttribute.Attribute = row.Attribute;
                 formAttribute.Guid = row.Guid;
                 formAttribute.Order = row.Order;
                 formAttribute.IsVisible = row.IsVisible;
@@ -161,6 +183,7 @@ namespace Rock.Web.UI.Controls
                 formAttribute.HideLabel = row.HideLabel;
                 formAttribute.PreHtml = row.PreHtml;
                 formAttribute.PostHtml = row.PostHtml;
+                formAttribute.FieldVisibilityRules = row.VisibilityRules;
                 form.FormAttributes.Add( formAttribute );
             }
 
@@ -258,6 +281,7 @@ namespace Rock.Web.UI.Controls
                 var row = new WorkflowFormAttributeRow();
                 row.AttributeGuid = formAttribute.Attribute.Guid;
                 row.AttributeName = formAttribute.Attribute.Name;
+                row.Attribute = formAttribute.Attribute;
                 row.Guid = formAttribute.Guid;
                 row.IsVisible = formAttribute.IsVisible;
                 row.IsEditable = !formAttribute.IsReadOnly;
@@ -265,6 +289,8 @@ namespace Rock.Web.UI.Controls
                 row.HideLabel = formAttribute.HideLabel;
                 row.PreHtml = formAttribute.PreHtml;
                 row.PostHtml = formAttribute.PostHtml;
+                row.VisibilityRules = formAttribute.FieldVisibilityRules;
+                row.FilterClick += filterClick;
                 Controls.Add( row );
             }
 
@@ -279,6 +305,33 @@ namespace Rock.Web.UI.Controls
                     li.Selected = workflowActionForm.ActionAttributeGuid.HasValue && workflowActionForm.ActionAttributeGuid.Value.ToString() == li.Value;
                     _ddlActionAttribute.Items.Add( li );
                 }
+            }
+        }
+
+        /// <summary>
+        /// Method that will be called when the row's filter button is clicked.
+        /// </summary>
+        /// <param name="sender">The sender.</param>
+        /// <param name="e">The <see cref="WorkflowFormAttributeRow.FilterEventArgs"/> instance containing the event data.</param>
+        private void filterClick( object sender, WorkflowFormAttributeRow.FilterEventArgs e )
+        {
+            var fvre = _mdFieldVisibilityRules.FindControl( "fvreWorkflowFields" ) as FieldVisibilityRulesEditor;
+            var wfar = e.WorkflowFormAttributeRow;
+            if ( fvre != null && wfar != null )
+            {
+                EditingAttributeRowGuid = wfar.Guid.ToString();
+
+                fvre.ValidationGroup = "FieldFilter";
+                fvre.FieldName = wfar.AttributeName;
+                fvre.ComparableFields = AttributeRows
+                    .Where( ar => ar.IsEditable && ar.IsVisible && ar.AttributeGuid != wfar.AttributeGuid )
+                    .ToDictionary( ar => ar.AttributeGuid, ar => new FieldVisibilityRuleField
+                    {
+                        Guid = ar.AttributeGuid,
+                        Attribute = ar.Attribute
+                    } );
+                fvre.SetFieldVisibilityRules( wfar.VisibilityRules );
+                _mdFieldVisibilityRules.Show();
             }
         }
 
@@ -305,6 +358,7 @@ namespace Rock.Web.UI.Controls
             target.PersonEntryAutofillCurrentPerson = source.PersonEntryAutofillCurrentPerson;
             target.PersonEntryHideIfCurrentPersonKnown = source.PersonEntryHideIfCurrentPersonKnown;
             target.PersonEntrySpouseEntryOption = source.PersonEntrySpouseEntryOption;
+            target.PersonEntryGenderEntryOption = source.PersonEntryGenderEntryOption;
             target.PersonEntryEmailEntryOption = source.PersonEntryEmailEntryOption;
             target.PersonEntryMobilePhoneEntryOption = source.PersonEntryMobilePhoneEntryOption;
             target.PersonEntryBirthdateEntryOption = source.PersonEntryBirthdateEntryOption;
@@ -724,7 +778,7 @@ namespace Rock.Web.UI.Controls
             pnlPersonEntryRow2Col2.Controls.Add( _ddlPersonEntryEmailEntryOption );
             pnlPersonEntryRow2Col3.Controls.Add( _ddlPersonEntryMobilePhoneEntryOption );
             pnlPersonEntryRow2Col4.Controls.Add( _ddlPersonEntryBirthdateEntryOption );
-            
+
             /* Person Entry - Row 3*/
             Panel pnlPersonEntryRow3 = new Panel
             {
@@ -767,7 +821,7 @@ namespace Rock.Web.UI.Controls
             pnlPersonEntryRow3Col2.Controls.Add( _ddlPersonEntryMaritalStatusEntryOption );
             pnlPersonEntryRow3Col3.Controls.Add( _tbPersonEntrySpouseLabel );
             pnlPersonEntryRow3Col4.Controls.Add( _dvpPersonEntryConnectionStatus );
-            
+
             /* Person Entry - Row 4*/
             Panel pnlPersonEntryRow4 = new Panel
             {
@@ -854,6 +908,61 @@ namespace Rock.Web.UI.Controls
             };
 
             this.Controls.Add( _pnlWorkflowAttributes );
+
+            /* Workflow Attributes Filter Modal */
+            _mdFieldVisibilityRules = new ModalDialog
+            {
+                ID = nameof( _mdFieldVisibilityRules ),
+                Title = "Conditional Display Logic"
+            };
+
+            _mdFieldVisibilityRules.SaveClick += _mdFieldVisibilityRules_SaveClick;
+            var vsFieldVisibilityRules = new ValidationSummary
+            {
+                ID = "vsFieldVisibilityRules",
+                HeaderText = "Please correct the following:",
+                CssClass = "alert alert-validation",
+                ValidationGroup = "FieldFilter"
+            };
+
+            _mdFieldVisibilityRules.Content.Controls.Add( vsFieldVisibilityRules );
+
+            var fvreWorkflowFields = new FieldVisibilityRulesEditor
+            {
+                ID = "fvreWorkflowFields"
+            };
+
+            _mdFieldVisibilityRules.Content.Controls.Add( fvreWorkflowFields );
+            Controls.Add( _mdFieldVisibilityRules );
+        }
+
+        /// <summary>
+        /// Handles the SaveClick event of the _mdFieldVisibilityRules control.
+        /// </summary>
+        /// <param name="sender">The source of the event.</param>
+        /// <param name="e">The <see cref="EventArgs"/> instance containing the event data.</param>
+        private void _mdFieldVisibilityRules_SaveClick( object sender, EventArgs e )
+        {
+            var attributeRowGuid = EditingAttributeRowGuid.AsGuidOrNull();
+            if ( attributeRowGuid == null )
+            {
+                return;
+            }
+
+            var fvre = _mdFieldVisibilityRules.FindControl( "fvreWorkflowFields" ) as FieldVisibilityRulesEditor;
+            if ( fvre == null )
+            {
+                return;
+            }
+
+            var attributeRow = AttributeRows.Where( ar => ar.Guid == attributeRowGuid.Value ).FirstOrDefault();
+            if ( attributeRow == null )
+            {
+                return;
+            }
+
+            attributeRow.VisibilityRules = fvre.GetFieldVisibilityRules();
+            _mdFieldVisibilityRules.Hide();
         }
 
         /// <summary>
@@ -958,9 +1067,10 @@ namespace Rock.Web.UI.Controls
                 writer.RenderEndTag();
 
                 writer.AddAttribute( HtmlTextWriterAttribute.Scope, "col" );
+                writer.AddAttribute( HtmlTextWriterAttribute.Class, "px-0" );
                 writer.RenderBeginTag( HtmlTextWriterTag.Th );
 
-                writer.AddAttribute( HtmlTextWriterAttribute.Class, "row" );
+                writer.AddAttribute( HtmlTextWriterAttribute.Class, "row no-gutters d-flex align-items-end text-xs" );
                 writer.RenderBeginTag( HtmlTextWriterTag.Div );
 
                 writer.AddAttribute( HtmlTextWriterAttribute.Class, "col-xs-3" );
@@ -971,37 +1081,42 @@ namespace Rock.Web.UI.Controls
                 writer.AddAttribute( HtmlTextWriterAttribute.Class, "col-xs-9" );
                 writer.RenderBeginTag( HtmlTextWriterTag.Div );
 
-                writer.AddAttribute( HtmlTextWriterAttribute.Class, "row" );
+                writer.AddAttribute( HtmlTextWriterAttribute.Class, "d-flex align-items-end" );
                 writer.RenderBeginTag( HtmlTextWriterTag.Div );
 
-                writer.AddAttribute( HtmlTextWriterAttribute.Class, "col-xs-2" );
+                writer.AddAttribute( HtmlTextWriterAttribute.Class, "flex-eq text-truncate text-wrap text-center" );
                 writer.RenderBeginTag( HtmlTextWriterTag.Div );
                 writer.Write( "Visible" );
                 writer.RenderEndTag();
 
-                writer.AddAttribute( HtmlTextWriterAttribute.Class, "col-xs-2" );
+                writer.AddAttribute( HtmlTextWriterAttribute.Class, "flex-eq text-truncate text-wrap text-center" );
                 writer.RenderBeginTag( HtmlTextWriterTag.Div );
                 writer.Write( "Editable" );
                 writer.RenderEndTag();
 
-                writer.AddAttribute( HtmlTextWriterAttribute.Class, "col-xs-2" );
+                writer.AddAttribute( HtmlTextWriterAttribute.Class, "flex-eq text-truncate text-wrap text-center" );
                 writer.RenderBeginTag( HtmlTextWriterTag.Div );
                 writer.Write( "Required" );
                 writer.RenderEndTag();
 
-                writer.AddAttribute( HtmlTextWriterAttribute.Class, "col-xs-2" );
+                writer.AddAttribute( HtmlTextWriterAttribute.Class, "flex-eq text-truncate text-wrap text-center" );
                 writer.RenderBeginTag( HtmlTextWriterTag.Div );
                 writer.Write( "Hide Label" );
                 writer.RenderEndTag();
 
-                writer.AddAttribute( HtmlTextWriterAttribute.Class, "col-xs-2" );
+                writer.AddAttribute( HtmlTextWriterAttribute.Class, "flex-eq text-truncate text-wrap text-center" );
                 writer.RenderBeginTag( HtmlTextWriterTag.Div );
                 writer.Write( "Pre-HTML" );
                 writer.RenderEndTag();
 
-                writer.AddAttribute( HtmlTextWriterAttribute.Class, "col-xs-2" );
+                writer.AddAttribute( HtmlTextWriterAttribute.Class, "flex-eq text-truncate text-wrap text-center" );
                 writer.RenderBeginTag( HtmlTextWriterTag.Div );
                 writer.Write( "Post-HTML" );
+                writer.RenderEndTag();
+
+                writer.AddAttribute( HtmlTextWriterAttribute.Class, "flex-eq text-truncate text-wrap text-center" );
+                writer.RenderBeginTag( HtmlTextWriterTag.Div );
+                writer.Write( "Logic" );
                 writer.RenderEndTag();
 
                 writer.RenderEndTag();      // row
@@ -1047,6 +1162,8 @@ namespace Rock.Web.UI.Controls
             writer.RenderEndTag();
 
             writer.RenderEndTag();  // row
+
+            _mdFieldVisibilityRules.RenderControl( writer );
         }
 
         /// <summary>
