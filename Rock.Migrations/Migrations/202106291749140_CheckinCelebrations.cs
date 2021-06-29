@@ -1,4 +1,4 @@
-// <copyright>
+﻿// <copyright>
 // Copyright by the Spark Development Network
 //
 // Licensed under the Rock Community License (the "License");
@@ -32,9 +32,6 @@ namespace Rock.Migrations
             AddColumn("dbo.AchievementType", "IsPublic", c => c.Boolean(nullable: false));
             AddColumn("dbo.AchievementType", "ImageBinaryFileId", c => c.Int());
             AddColumn("dbo.AchievementType", "CustomSummaryLavaTemplate", c => c.String());
-            AddColumn("dbo.RegistrationInstance", "TimeoutIsEnabled", c => c.Boolean(nullable: false));
-            AddColumn("dbo.RegistrationInstance", "TimeoutLengthMinutes", c => c.Int());
-            AddColumn("dbo.RegistrationInstance", "TimeoutThreshold", c => c.Int());
             CreateIndex("dbo.AchievementType", "ImageBinaryFileId");
             AddForeignKey("dbo.AchievementType", "ImageBinaryFileId", "dbo.BinaryFile", "Id");
         }
@@ -46,9 +43,6 @@ namespace Rock.Migrations
         {
             DropForeignKey("dbo.AchievementType", "ImageBinaryFileId", "dbo.BinaryFile");
             DropIndex("dbo.AchievementType", new[] { "ImageBinaryFileId" });
-            DropColumn("dbo.RegistrationInstance", "TimeoutThreshold");
-            DropColumn("dbo.RegistrationInstance", "TimeoutLengthMinutes");
-            DropColumn("dbo.RegistrationInstance", "TimeoutIsEnabled");
             DropColumn("dbo.AchievementType", "CustomSummaryLavaTemplate");
             DropColumn("dbo.AchievementType", "ImageBinaryFileId");
             DropColumn("dbo.AchievementType", "IsPublic");
