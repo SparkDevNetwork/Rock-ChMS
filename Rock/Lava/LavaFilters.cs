@@ -25,7 +25,7 @@ using System.Dynamic;
 using System.Globalization;
 using System.IO;
 using System.Linq;
-using System.Linq.Dynamic;
+using System.Linq.Dynamic.Core;
 using System.Reflection;
 using System.Runtime.InteropServices;
 using System.Text;
@@ -37,7 +37,6 @@ using Humanizer.Localisation;
 using Ical.Net;
 using Ical.Net.DataTypes;
 using ImageResizer;
-using Newtonsoft.Json;
 using Rock;
 using Rock.Attribute;
 using Rock.Data;
@@ -53,8 +52,12 @@ using Calendar = Ical.Net.Calendar;
 namespace Rock.Lava
 {
     /// <summary>
-    /// Defines the filter methods available for use with the Lava library.
+    /// Defines filter methods available for use with the Lava library.
     /// </summary>
+    /// <remarks>
+    /// Filters defined in this class should be moved to the TemplateFilters class once they are confirmed to operate correctly
+    /// in both the Rock Web and Rock Mobile applications.
+    /// </remarks>
     public static class LavaFilters
     {
         static Random _randomNumberGenerator = new Random();
@@ -90,21 +93,9 @@ namespace Rock.Lava
         /// <param name="input">The input.</param>
         /// <param name="successText">The success text.</param>
         /// <param name="fallbackText">The fallback text.</param>
-        /// <returns></returns>
-        public static string WithFallback( object input, string successText, string fallbackText )
-        {
-            return WithFallback( input, successText, fallbackText, "prepend" );
-        }
-
-        /// <summary>
-        /// Withes the fallback.
-        /// </summary>
-        /// <param name="input">The input.</param>
-        /// <param name="successText">The success text.</param>
-        /// <param name="fallbackText">The fallback text.</param>
         /// <param name="appendOrder">The append order.</param>
         /// <returns></returns>
-        public static string WithFallback( object input, string successText, string fallbackText, string appendOrder )
+        public static string WithFallback( object input, string successText, string fallbackText, string appendOrder = "prepend" )
         {
             if ( input == null )
             {
@@ -391,16 +382,6 @@ namespace Rock.Lava
         }
 
         /// <summary>
-        /// convert a integer to a string
-        /// </summary>
-        /// <param name="input"></param>
-        /// <returns></returns>
-        public static string ToString( int input )
-        {
-            return input.ToString();
-        }
-
-        /// <summary>
         /// singularize string
         /// </summary>
         /// <param name="input"></param>
@@ -433,7 +414,7 @@ namespace Rock.Lava
         {
             return input == null
                 ? input
-                : input.Titleize();
+                : input.ApplyCase( LetterCasing.Title );
         }
 
         /// <summary>
@@ -955,92 +936,6 @@ namespace Rock.Lava
             return match.Success ? match.Value : null;
         }
 
-        /// <summary>
-        /// Returns matched RegEx list of strings from inputted string
-        /// </summary>
-        /// <param name="input">The input.</param>
-        /// <param name="expression">The regex expression.</param>
-        /// <returns></returns>
-        public static List<string> RegExMatchValues( string input, string expression )
-        {
-            return RegExMatchValues( input, expression, options: null );
-        }
-
-        /// <summary>
-        /// Returns matched RegEx list of strings from inputted string
-        /// </summary>
-        /// <param name="input">The input.</param>
-        /// <param name="expression">The regex expression.</param>
-        /// <param name="options">Option flags that affect the match type. [m=multiline, i=ignore case]</param>
-        /// <returns></returns>
-        public static List<string> RegExMatchValues( string input, string expression, string options )
-        {
-            if ( input == null )
-            {
-                return null;
-            }
-
-            RegexOptions regexOptions = RegexOptions.None;
-            var inputString = input.ToString();
-
-            options = options ?? string.Empty;
-
-            if ( options.Contains( 'm' ) )
-            {
-                regexOptions |= RegexOptions.Multiline;
-            }
-
-            if ( options.Contains( 'i' ) )
-            {
-                regexOptions |= RegexOptions.IgnoreCase;
-            }
-
-            var regex = new Regex( expression, regexOptions );
-
-            var matches = regex.Matches( input );
-
-            // Flatten all matches to single list
-            var captured = matches
-                .Cast<Match>()
-                .Where( m => m.Success == true )
-                .SelectMany( o =>
-                    o.Groups.Cast<Capture>()
-                        .Select( c => c.Value ) );
-
-            return captured.ToList();
-        }
-
-        /// <summary>
-        /// Run RegEx replacing on a string.
-        /// </summary>
-        /// <param name="input">The lava source to process.</param>
-        /// <param name="pattern">The regex pattern to use when matching.</param>
-        /// <param name="replacement">The string to use when doing replacement.</param>
-        /// <param name="options">The regex options to modify the matching.</param>
-        /// <example><![CDATA[
-        /// {{ 'The Rock is awesome.' | RegExReplace:'the rock','Rock','i' }}
-        /// {{ 'Hello Ted, how are you?' | RegExReplace:'[Hh]ello (\w+)','Greetings $1' }}
-        /// ]]></example>
-        public static object RegExReplace( object input, object pattern, object replacement, string options = null )
-        {
-            RegexOptions regexOptions = RegexOptions.None;
-            var inputString = input.ToString();
-
-            options = options ?? string.Empty;
-
-            if ( options.Contains( 'm' ) )
-            {
-                regexOptions |= RegexOptions.Multiline;
-            }
-
-            if ( options.Contains( 'i' ) )
-            {
-                regexOptions |= RegexOptions.IgnoreCase;
-            }
-
-            return Regex.Replace( inputString, pattern.ToString(), replacement.ToString(), regexOptions );
-        }
-
         #endregion
 
         /// <summary>
@@ -1169,68 +1064,56 @@ namespace Rock.Lava
         /// <param name="input"></param>
         /// <param name="format"></param>
         /// <returns></returns>
-        public static string Date( object input, string format )
+        public static string Date( object input, string format = null)
         {
             if ( input == null )
             {
                 return null;
             }
 
-            if ( input.ToString() == "Now" )
+            // If input is "now", use the current system date/time as the input value.
+            if ( input.ToString().ToLower() == "now" )
             {
-                input = RockDateTime.Now.ToString( "yyyy-MM-dd HH:mm:ss.fff", CultureInfo.InvariantCulture );
+                input = RockDateTime.Now;
             }
 
             if ( string.IsNullOrWhiteSpace( format ) )
             {
-                return input.ToString();
+                format = "g";
             }
-
-            // if format string is one character add a space since a format string can't be a single character http://msdn.microsoft.com/en-us/library/8kb3ddd4.aspx#UsingSingleSpecifiers
-            if ( format.Length == 1 )
+            // Consider special 'Standard Date' and 'Standard Time' formats.
+            else if ( format == "sd" )
+            {
+                format = "d";
+            }
+            else if ( format == "st" )
+            {
+                format = "t";
+            }
+            // If the format string is a single character, add a space to produce a valid custom format string.
+            // (refer http://msdn.microsoft.com/en-us/library/8kb3ddd4.aspx#UsingSingleSpecifiers)
+            else if ( format.Length == 1 )
             {
                 format = " " + format;
             }
 
-            var inputDateTime = input.ToString().AsDateTime();
+            // If the object is a DateTimeOffset, translate it to local server time to ensure that the offset is accounted for in the output.
+            if ( input is DateTimeOffset inputDateTimeOffset )
+            {
+                return inputDateTimeOffset.ToLocalTime().ToString( format ).Trim();
+            }
 
-            // Check for invalid date
+            // Convert the input to a valid DateTime if possible.
+            var inputDateTime = input is DateTime time ? time : input.ToString().AsDateTime();
+
             if ( !inputDateTime.HasValue )
             {
+                // Not a valid date, so return the input unformatted.
                 return input.ToString().Trim();
-            }
-
-            // Consider special 'Standard Date' format
-            if ( format == "sd" )
-            {
-                return inputDateTime.Value.ToShortDateString();
-            }
-
-            // Consider special 'Standard Time' format
-            if ( format == "st" )
-            {
-                return inputDateTime.Value.ToShortTimeString();
             }
 
             return inputDateTime.Value.ToString( format ).Trim();
         }
-
-
-        /// <summary>
-        /// Current datetime.
-        /// </summary>
-        /// <param name="input">The input.</param>
-        /// <returns></returns>
-        public static DateTime? Date( string input )
-        {
-            if ( input != "Now" )
-            {
-                return null;
-            }
-
-            return RockDateTime.Now;
-        }
-
 
         /// <summary>
         /// Sundays the date.
@@ -1266,17 +1149,6 @@ namespace Rock.Lava
             {
                 return null;
             }
-        }
-
-        /// <summary>
-        /// Returns the occurrence Dates from an iCal string or list.
-        /// </summary>
-        /// <param name="input">The input is either an iCal string or a list of iCal strings.</param>
-        /// <param name="option">The quantity option (either an integer or "all").</param>
-        /// <returns>a list of datetimes</returns>
-        public static List<DateTime> DatesFromICal( object input, object option = null )
-        {
-            return DatesFromICal( input, option, endDateTimeOption: null );
         }
 
         /// <summary>
@@ -1436,6 +1308,8 @@ namespace Rock.Lava
             DateTime dtInput;
             DateTime dtCompare;
 
+            input = GetDateFromObject( input, null );
+
             if ( input != null && input is DateTime )
             {
                 dtInput = ( DateTime ) input;
@@ -1463,7 +1337,7 @@ namespace Rock.Lava
         /// <returns></returns>
         public static string DaysFromNow( object input )
         {
-            DateTime dtInputDate = GetDateFromObject( input ).Date;
+            DateTime dtInputDate = GetDateFromObject( input, DateTime.MinValue ).Value; //.Date;
             DateTime dtCompareDate = RockDateTime.Now.Date;
 
             int daysDiff = ( dtInputDate - dtCompareDate ).Days;
@@ -1566,62 +1440,31 @@ namespace Rock.Lava
         }
 
         /// <summary>
-        /// takes two datetimes and humanizes the difference like '1 day'. Supports 'Now' as end date
-        /// </summary>
-        /// <param name="sStartDate">The s start date.</param>
-        /// <param name="sEndDate">The s end date.</param>
-        /// <param name="precision">The precision.</param>
-        /// <returns></returns>
-        public static string HumanizeTimeSpan( object sStartDate, object sEndDate, object precision )
-        {
-            if ( precision is String )
-            {
-                return HumanizeTimeSpan( sStartDate, sEndDate, precision.ToString(), "min" );
-            }
-
-            int precisionUnit = 1;
-
-            if ( precision is int )
-            {
-                precisionUnit = ( int ) precision;
-            }
-
-            DateTime startDate = GetDateFromObject( sStartDate );
-            DateTime endDate = GetDateFromObject( sEndDate );
-
-            if ( startDate != DateTime.MinValue && endDate != DateTime.MinValue )
-            {
-                TimeSpan difference = endDate - startDate;
-                return difference.Humanize( precisionUnit );
-            }
-            else
-            {
-                return "Could not parse one or more of the dates provided into a valid DateTime";
-            }
-        }
-
-        /// <summary>
         /// Humanizes the time span.
         /// </summary>
         /// <param name="sStartDate">The s start date.</param>
         /// <param name="sEndDate">The s end date.</param>
-        /// <param name="unit">The minimum unit.</param>
+        /// <param name="unitOrPrecision">The minimum unit.</param>
         /// <param name="direction">The direction.</param>
         /// <returns></returns>
-        public static string HumanizeTimeSpan( object sStartDate, object sEndDate, string unit = "Day", string direction = "min" )
+        public static string HumanizeTimeSpan( object sStartDate, object sEndDate, object unitOrPrecision = null, string direction = "min" )
         {
-            if ( unit != null
-                 && unit.AsIntegerOrNull() != null )
+            if ( unitOrPrecision == null )
             {
-                return HumanizeTimeSpan( sStartDate, sEndDate, unit.AsInteger() );
+                unitOrPrecision = "Day";
             }
 
-            DateTime startDate = GetDateFromObject( sStartDate );
-            DateTime endDate = GetDateFromObject( sEndDate );
+            if ( unitOrPrecision.ToString().AsIntegerOrNull() != null )
+            {
+                return HumanizeTimeSpanWithPrecision( sStartDate, sEndDate, unitOrPrecision.ToString().AsInteger() );
+            }
+
+            DateTime startDate = GetDateFromObject( sStartDate, DateTime.MinValue ).Value;
+            DateTime endDate = GetDateFromObject( sEndDate, DateTime.MinValue ).Value;
 
             TimeUnit unitValue = TimeUnit.Day;
 
-            switch ( unit )
+            switch ( unitOrPrecision.ToString() )
             {
                 case "Year":
                     unitValue = TimeUnit.Year;
@@ -1666,13 +1509,43 @@ namespace Rock.Lava
         }
 
         /// <summary>
-        /// Gets the date from object.
+        /// takes two datetimes and humanizes the difference like '1 day'. Supports 'Now' as end date
+        /// </summary>
+        /// <param name="sStartDate">The s start date.</param>
+        /// <param name="sEndDate">The s end date.</param>
+        /// <param name="precision">The precision.</param>
+        /// <returns></returns>
+        private static string HumanizeTimeSpanWithPrecision( object sStartDate, object sEndDate, object precision )
+        {
+            int precisionUnit = 1;
+
+            if ( precision is int )
+            {
+                precisionUnit = (int)precision;
+            }
+
+            DateTime startDate = GetDateFromObject( sStartDate, DateTime.MinValue ).Value;
+            DateTime endDate = GetDateFromObject( sEndDate, DateTime.MinValue ).Value;
+
+            if ( startDate != DateTime.MinValue && endDate != DateTime.MinValue )
+            {
+                TimeSpan difference = endDate - startDate;
+                return difference.Humanize( precisionUnit );
+            }
+            else
+            {
+                return "Could not parse one or more of the dates provided into a valid DateTime";
+            }
+        }
+        /// <summary>
+        /// Gets a date from object.
         /// </summary>
         /// <param name="date">The date.</param>
+        /// <param name="defaultValue"></param>
         /// <returns></returns>
-        private static DateTime GetDateFromObject( object date )
+        private static DateTime? GetDateFromObject( object date, DateTime? defaultValue )
         {
-            DateTime oDateTime = DateTime.MinValue;
+            DateTime oDateTime;
 
             if ( date is String )
             {
@@ -1696,8 +1569,13 @@ namespace Rock.Lava
             {
                 return ( DateTime ) date;
             }
+            else if ( date is DateTimeOffset inputDateTimeOffset )
+            {
+                // If the object is a DateTimeOffset, translate it to local server time to ensure that the offset is accounted for in the output.
+                return inputDateTimeOffset.ToLocalTime().DateTime;
+            }
 
-            return DateTime.MinValue;
+            return defaultValue;
         }
 
         /// <summary>
@@ -1709,8 +1587,8 @@ namespace Rock.Lava
         /// <returns></returns>
         public static Int64? DateDiff( object sStartDate, object sEndDate, string unit )
         {
-            DateTime startDate = GetDateFromObject( sStartDate );
-            DateTime endDate = GetDateFromObject( sEndDate );
+            DateTime startDate = GetDateFromObject( sStartDate, DateTime.MinValue ).Value;
+            DateTime endDate = GetDateFromObject( sEndDate, DateTime.MinValue ).Value;
 
             if ( startDate != DateTime.MinValue && endDate != DateTime.MinValue )
             {
@@ -1766,31 +1644,14 @@ namespace Rock.Lava
         /// <returns></returns>
         public static DateTime? ToMidnight( object input )
         {
-            if ( input == null )
+            var inputDate = GetDateFromObject( input, null );
+
+            if ( inputDate == null )
             {
                 return null;
             }
 
-            if ( input is DateTime )
-            {
-                return ( ( DateTime ) input ).Date;
-            }
-
-            if ( input.ToString() == "Now" )
-            {
-                return RockDateTime.Now.Date;
-            }
-            else
-            {
-                DateTime date;
-
-                if ( DateTime.TryParse( input.ToString(), out date ) )
-                {
-                    return date.Date;
-                }
-            }
-
-            return null;
+            return inputDate.Value.Date;
         }
 
         /// <summary>
@@ -1878,28 +1739,19 @@ namespace Rock.Lava
         /// <returns></returns>
         public static int? DaysUntil( object input )
         {
-            DateTime date;
-
             if ( input == null )
             {
                 return null;
             }
 
-            if ( input is DateTime )
-            {
-                date = ( DateTime ) input;
-            }
-            else
-            {
-                DateTime.TryParse( input.ToString(), out date );
-            }
+            var date = GetDateFromObject( input, null );
 
             if ( date == null )
             {
                 return null;
             }
 
-            return ( date - RockDateTime.Now ).Days;
+            return ( date.Value - RockDateTime.Now ).Days;
         }
 
         /// <summary>
@@ -2223,6 +2075,12 @@ namespace Rock.Lava
             {
                 return "Could not convert input to number";
             }
+        }
+
+        /// <inheritdoc cref="Rock.Lava.Filters.TemplateFilters.RandomNumber(object)"/>
+        public static int RandomNumber( object input )
+        {
+            return Rock.Lava.Filters.TemplateFilters.RandomNumber( input );
         }
 
         #endregion Number Filters
@@ -2972,7 +2830,15 @@ namespace Rock.Lava
                 return null;
             }
 
-            return Person.GetFamilySalutation( person, includeChildren, includeInactive, useFormalNames, finalfinalSeparator, separator );
+            var args = new Person.CalculateFamilySalutationArgs( includeChildren )
+            {
+                IncludeInactive = includeInactive,
+                UseFormalNames = useFormalNames,
+                FinalSeparator = finalfinalSeparator,
+                Separator = separator
+            };
+
+            return Person.CalculateFamilySalutation( person, args );
         }
 
         /// <summary>
@@ -3023,77 +2889,6 @@ namespace Rock.Lava
         /// See http://www.rockrms.com/lava/person#ZebraPhoto for details.
         /// </summary>
         /// <param name="context">The context.</param>
-        /// <param name="input">The input.</param>
-        /// <returns>
-        /// A ZPL field containing the photo data with a label of LOGO (^FS ~DYE:{fileName},P,P,{contentLength},,{zplImageData} ^FD").
-        /// </returns>
-        public static string ZebraPhoto( ILavaRenderContext context, object input )
-        {
-            return ZebraPhoto( context, input, "395" );
-        }
-        /// <summary>
-        /// Gets the profile photo for a person object in a string that zebra printers can use.
-        /// If the person has no photo, a default silhouette photo (adult/child, male/female)
-        /// photo is used.
-        /// See http://www.rockrms.com/lava/person#ZebraPhoto for details.
-        /// </summary>
-        /// <param name="context">The context.</param>
-        /// <param name="input">The input, which is the person.</param>
-        /// <param name="size">The size.</param>
-        /// <returns>
-        /// A ZPL field containing the photo data with a label of LOGO (^FS ~DYE:{fileName},P,P,{contentLength},,{zplImageData} ^FD").
-        /// </returns>
-        public static string ZebraPhoto( ILavaRenderContext context, object input, string size )
-        {
-            return ZebraPhoto( context, input, size, 1.0, 1.0 );
-        }
-
-        /// <summary>
-        /// Gets the profile photo for a person object in a string that zebra printers can use.
-        /// If the person has no photo, a default silhouette photo (adult/child, male/female)
-        /// photo is used.
-        /// See http://www.rockrms.com/lava/person#ZebraPhoto for details.
-        /// </summary>
-        /// <param name="context">The context.</param>
-        /// <param name="input">The input.</param>
-        /// <param name="size">The size.</param>
-        /// <param name="brightness">The brightness.</param>
-        /// <param name="contrast">The contrast.</param>
-        /// <returns>
-        /// A ZPL field containing the photo data with a label of LOGO (^FS ~DYE:{fileName},P,P,{contentLength},,{zplImageData} ^FD").
-        /// </returns>
-        public static string ZebraPhoto( ILavaRenderContext context, object input, string size, double brightness, double contrast )
-        {
-            return ZebraPhoto( context, input, size, brightness, contrast, "LOGO" );
-        }
-
-        /// <summary>
-        /// Gets the profile photo for a person object in a string that zebra printers can use.
-        /// If the person has no photo, a default silhouette photo (adult/child, male/female)
-        /// photo is used.
-        /// See http://www.rockrms.com/lava/person#ZebraPhoto for details.
-        /// </summary>
-        /// <param name="context">The context.</param>
-        /// <param name="input">The input, which is the person.</param>
-        /// <param name="size">The size.</param>
-        /// <param name="brightness">The brightness adjustment (-1.0 to 1.0).</param>
-        /// <param name="contrast">The contrast adjustment (-1.0 to 1.0).</param>
-        /// <param name="fileName">Name of the file.</param>
-        /// <returns>
-        /// A ZPL field containing the photo data with a label of LOGO (^FS ~DYE:{fileName},P,P,{contentLength},,{zplImageData} ^FD").
-        /// </returns>
-        public static string ZebraPhoto( ILavaRenderContext context, object input, string size, double brightness, double contrast, string fileName )
-        {
-            return ZebraPhoto( context, input, size, brightness, contrast, fileName, 0 );
-        }
-
-        /// <summary>
-        /// Gets the profile photo for a person object in a string that zebra printers can use.
-        /// If the person has no photo, a default silhouette photo (adult/child, male/female)
-        /// photo is used.
-        /// See http://www.rockrms.com/lava/person#ZebraPhoto for details.
-        /// </summary>
-        /// <param name="context">The context.</param>
         /// <param name="input">The input, which is the person.</param>
         /// <param name="size">The size.</param>
         /// <param name="brightness">The brightness adjustment (-1.0 to 1.0).</param>
@@ -3103,7 +2898,7 @@ namespace Rock.Lava
         /// <returns>
         /// A ZPL field containing the photo data with a label of LOGO (^FS ~DYE:{fileName},P,P,{contentLength},,{zplImageData} ^FD").
         /// </returns>
-        public static string ZebraPhoto( ILavaRenderContext context, object input, string size, double brightness, double contrast, string fileName, int rotationDegree )
+        public static string ZebraPhoto( ILavaRenderContext context, object input, string size = "395", double brightness = 1.0, double contrast = 1.0, string fileName = "LOGO", int rotationDegree = 0 )
         {
             var person = GetPerson( input );
             try
@@ -3326,35 +3121,10 @@ namespace Rock.Lava
         /// <param name="context">The context.</param>
         /// <param name="input">The input.</param>
         /// <param name="groupTypeId">The group type identifier.</param>
-        /// <returns></returns>
-        public static List<Rock.Model.GroupMember> Groups( ILavaRenderContext context, object input, string groupTypeId )
-        {
-            return Groups( context, input, groupTypeId, "Active", "Active" );
-        }
-
-        /// <summary>
-        /// Groupses the specified context.
-        /// </summary>
-        /// <param name="context">The context.</param>
-        /// <param name="input">The input.</param>
-        /// <param name="groupTypeId">The group type identifier.</param>
-        /// <param name="status">The status.</param>
-        /// <returns></returns>
-        public static List<Rock.Model.GroupMember> Groups( ILavaRenderContext context, object input, string groupTypeId, string status )
-        {
-            return Groups( context, input, groupTypeId, status, "Active" );
-        }
-
-        /// <summary>
-        /// Gets the groups of selected type that person is a member of
-        /// </summary>
-        /// <param name="context">The context.</param>
-        /// <param name="input">The input.</param>
-        /// <param name="groupTypeId">The group type identifier.</param>
         /// <param name="memberStatus">The member status.</param>
         /// <param name="groupStatus">The group status.</param>
         /// <returns></returns>
-        public static List<Rock.Model.GroupMember> Groups( ILavaRenderContext context, object input, string groupTypeId, string memberStatus, string groupStatus )
+        public static List<Rock.Model.GroupMember> Groups( ILavaRenderContext context, object input, string groupTypeId, string memberStatus = "Active", string groupStatus = "Active" )
         {
             var person = GetPerson( input );
             int? numericalGroupTypeId = groupTypeId.AsIntegerOrNull();
@@ -3960,7 +3730,9 @@ namespace Rock.Lava
                 input = "~/Themes/" + theme + ( input.Length > 2 ? input.Substring( 2 ) : string.Empty );
             }
 
-            return page.ResolveUrl( input );
+            var url = page.ResolveUrl( input );
+
+            return url;
         }
 
         /// <summary>
@@ -4125,7 +3897,7 @@ namespace Rock.Lava
         /// <returns></returns>
         public static string ToJSON( object input )
         {
-            return input.ToJson( Formatting.Indented, ignoreErrors: true );
+            return input.ToJson( indentOutput: true, ignoreErrors: true );
         }
 
         /// <summary>
@@ -4526,26 +4298,19 @@ namespace Rock.Lava
         /// <summary>
         /// Set the page and browser title
         /// </summary>
-        /// <param name="input">The input.</param>
-        /// <returns></returns>
-        public static string SetPageTitle( string input )
-        {
-            return SetPageTitle( input, "All" );
-        }
-
-        /// <summary>
-        /// adds a link tag to the head of the document
-        /// </summary>
         /// <param name="input">The input to use for the href of the tag.</param>
         /// <param name="titleLocation">The title location. "BrowserTitle", "PageTitle" or "All"</param>
         /// <returns></returns>
-        public static string SetPageTitle( string input, string titleLocation )
+        public static string SetPageTitle( string input, string titleLocation = "All" )
         {
             RockPage page = HttpContext.Current.Handler as RockPage;
 
             if ( page != null )
             {
-
+                if ( string.IsNullOrWhiteSpace( titleLocation ) )
+                {
+                    titleLocation = "All";
+                }
 
                 if ( titleLocation.Equals( "BrowserTitle", StringComparison.InvariantCultureIgnoreCase ) || titleLocation.Equals( "All", StringComparison.InvariantCultureIgnoreCase ) )
                 {
@@ -4928,6 +4693,15 @@ namespace Rock.Lava
                 result.Add( "Key", key.GetValue( input, null ).ToString() );
                 result.Add( "Value", value.GetValue( input, null ) );
             }
+            else if ( input is List<object> keyValueList )
+            {
+                // If the input value is a list of two items, assume it is a key/value pair.
+                if ( keyValueList.Count == 2 )
+                {
+                    result.Add( "Key", keyValueList[0].ToStringOrDefault( string.Empty ) );
+                    result.Add( "Value", keyValueList[1] );
+                }
+            }
 
             return result;
         }
@@ -5211,6 +4985,10 @@ namespace Rock.Lava
             {
                 return Rock.Utility.Settings.RockInstanceConfig.AspNetVersion;
             }
+            else if ( valueName == "lavaengine" )
+            {
+                return Rock.Utility.Settings.RockInstanceConfig.LavaEngineName;
+            }
 
             return $"Configuration setting \"{ input }\" is not available.";
         }
@@ -5279,9 +5057,10 @@ namespace Rock.Lava
         /// <returns></returns>
         public static object Where( object input, string filter, object filterValue = null, string comparisonType = null )
         {
-            if ( filter != null && filterValue != null )
+            if ( filter != null
+                 && filterValue != null )
             {
-                return WhereInternal( input, filter, filterValue, comparisonType ?? "equal" );
+                return WhereInternal( input, filter, filterValue, comparisonType );
             }
             else
             {
@@ -5299,71 +5078,67 @@ namespace Rock.Lava
         /// <returns></returns>
         private static object WhereInternal( object input, string filterKey, object filterValue, string comparisonType )
         {
-            if ( input == null )
+            if ( input == null || !( input is IEnumerable ) )
             {
                 return input;
             }
 
-            if ( input is IEnumerable )
+            comparisonType = ( comparisonType ?? "equal" ).ToLower();
+            comparisonType = ( comparisonType == "equal" || comparisonType == "notequal" ) ? comparisonType : "equal";
+
+            var result = new List<object>();
+
+            foreach ( var value in ( (IEnumerable)input ) )
             {
-                var result = new List<object>();
+                ILavaDataDictionary lavaObject = null;
 
-                var engine = LavaEngine.CurrentEngine;
-
-                foreach ( var value in ( (IEnumerable)input ) )
+                if ( value is ILavaDataDictionarySource lavaSource )
                 {
-                    ILavaDataDictionary lavaObject = null;
-
-                    if ( value is ILavaDataDictionarySource lavaSource )
-                    {
-                        lavaObject = lavaSource.GetLavaDataDictionary();
-                    }
-                    else if ( value is ILavaDataDictionary )
-                    {
-                        lavaObject = value as ILavaDataDictionary;
-                    }
-
-                    if ( lavaObject != null )
-                    {
-                        if ( lavaObject.ContainsKey( filterKey )
-                                && ( ( comparisonType == "equal" && engine.AreEqualValue( lavaObject.GetValue( filterKey ), filterValue ) )
-                                     || ( comparisonType == "notequal" && engine.AreEqualValue( lavaObject.GetValue( filterKey ), filterValue ) ) ) )
-                        {
-                            result.Add( lavaObject );
-                        }
-                    }
-                    else if ( value is IDictionary<string, object> )
-                    {
-                        var dictionaryObject = value as IDictionary<string, object>;
-                        if ( dictionaryObject.ContainsKey( filterKey )
-                                 && ( (dynamic)dictionaryObject[filterKey] == (dynamic)filterValue && comparisonType == "equal"
-                                        || ( (dynamic)dictionaryObject[filterKey] != (dynamic)filterValue && comparisonType == "notequal" ) ) )
-                        {
-                            result.Add( dictionaryObject );
-                        }
-                    }
-                    else if ( value is object )
-                    {
-                        var propertyValue = value.GetPropertyValue( filterKey );
-
-                        // Allow for null checking as an empty string. Could be differing opinions on this...?!
-                        if ( propertyValue.IsNull() )
-                        {
-                            propertyValue = string.Empty;
-                        }
-
-                        if ( ( propertyValue.Equals( filterValue ) && comparisonType == "equal" )
-                                || ( !propertyValue.Equals( filterValue ) && comparisonType == "notequal" ) )
-                        {
-                            result.Add( value );
-                        }
-                    }
+                    lavaObject = lavaSource.GetLavaDataDictionary();
+                }
+                else if ( value is ILavaDataDictionary )
+                {
+                    lavaObject = value as ILavaDataDictionary;
                 }
 
-                return result;
+                if ( lavaObject != null )
+                {
+                    if ( lavaObject.ContainsKey( filterKey )
+                            && ( ( comparisonType == "equal" && LavaService.AreEqualValue( lavaObject.GetValue( filterKey ), filterValue ) )
+                                 || ( comparisonType == "notequal" && LavaService.AreEqualValue( lavaObject.GetValue( filterKey ), filterValue ) ) ) )
+                    {
+                        result.Add( lavaObject );
+                    }
+                }
+                else if ( value is IDictionary<string, object> )
+                {
+                    var dictionaryObject = value as IDictionary<string, object>;
+                    if ( dictionaryObject.ContainsKey( filterKey )
+                             && ( (dynamic)dictionaryObject[filterKey] == (dynamic)filterValue && comparisonType == "equal"
+                                    || ( (dynamic)dictionaryObject[filterKey] != (dynamic)filterValue && comparisonType == "notequal" ) ) )
+                    {
+                        result.Add( dictionaryObject );
+                    }
+                }
+                else if ( value is object )
+                {
+                    var propertyValue = value.GetPropertyValue( filterKey );
+
+                    // Allow for null checking as an empty string. Could be differing opinions on this...?!
+                    if ( propertyValue.IsNull() )
+                    {
+                        propertyValue = string.Empty;
+                    }
+
+                    if ( ( propertyValue.Equals( filterValue ) && comparisonType == "equal" )
+                            || ( !propertyValue.Equals( filterValue ) && comparisonType == "notequal" ) )
+                    {
+                        result.Add( value );
+                    }
+                }
             }
 
-            return input;
+            return result;
         }
 
         /// <summary>
@@ -5380,16 +5155,24 @@ namespace Rock.Lava
 
                 if ( input is List<object> objectList )
                 {
-                    var itemType = objectList.FirstOrDefault().GetType();
+                    if ( objectList.Any() )
+                    {
+                        var itemType = objectList.FirstOrDefault().GetType();
 
-                    enumerableInput = ConvertListItemsToType( objectList, itemType ) as IEnumerable;
+                        enumerableInput = ConvertListItemsToType( objectList, itemType ) as IEnumerable;
+                    }
+                    else
+                    {
+                        return new List<object>();
+                    }
                 }
                 else
                 {
                     enumerableInput = (IEnumerable)input;
                 }
 
-                return enumerableInput.Where( filter );
+                // The new System.Linq.Dynamic.Core only works on Queryables
+                return enumerableInput.AsQueryable().Where( filter );
             }
 
             return null;
@@ -5468,21 +5251,9 @@ namespace Rock.Lava
         /// <param name="context">The context.</param>
         /// <param name="input">The input.</param>
         /// <param name="attributeKey">The attribute key.</param>
-        /// <returns></returns>
-        public static object SortByAttribute( ILavaRenderContext context, object input, string attributeKey )
-        {
-            return SortByAttribute( context, input, attributeKey, "asc" );
-        }
-
-        /// <summary>
-        /// Sorts the list of items by the specified attribute's value
-        /// </summary>
-        /// <param name="context">The context.</param>
-        /// <param name="input">The input.</param>
-        /// <param name="attributeKey">The attribute key.</param>
         /// <param name="sortOrder">asc or desc for sort order.</param>
         /// <returns></returns>
-        public static object SortByAttribute( ILavaRenderContext context, object input, string attributeKey, string sortOrder )
+        public static object SortByAttribute( ILavaRenderContext context, object input, string attributeKey, string sortOrder = "asc" )
         {
             if ( input is IEnumerable )
             {
@@ -5543,12 +5314,21 @@ namespace Rock.Lava
                 return input;
             }
 
-            if ( !( input is IList ) )
+            IList inputList;
+
+            if ( ( input is IList ) )
+            {
+                inputList = input as IList;
+            }
+            else if ( ( input is IEnumerable ) )
+            {
+                inputList = ( input as IEnumerable ).Cast<object>().ToList();
+            }
+            else
             {
                 return input;
             }
 
-            var inputList = input as IList;
             var indexInt = index.ToString().AsIntegerOrNull();
             if ( !indexInt.HasValue || indexInt.Value < 0 || indexInt.Value >= inputList.Count )
             {
@@ -5575,7 +5355,8 @@ namespace Rock.Lava
                 return input;
             }
 
-            return e.Distinct().Cast<object>().ToList();
+            // The new System.Linq.Dynamic.Core only works on Queryabless
+            return e.AsQueryable().Distinct().Cast<object>().ToList();
         }
 
         /// <summary>
@@ -5962,20 +5743,9 @@ namespace Rock.Lava
         /// </summary>
         /// <param name="context">The context.</param>
         /// <param name="input">The input.</param>
-        /// <returns></returns>
-        public static string Base64Encode( ILavaRenderContext context, object input )
-        {
-            return Base64Encode( context, input, null );
-        }
-
-        /// <summary>
-        /// Base64 encodes a binary file
-        /// </summary>
-        /// <param name="context">The context.</param>
-        /// <param name="input">The input.</param>
         /// <param name="resizeSettings">The resize settings.</param>
         /// <returns></returns>
-        public static string Base64Encode( ILavaRenderContext context, object input, string resizeSettings )
+        public static string Base64Encode( ILavaRenderContext context, object input, string resizeSettings = null )
         {
             BinaryFile binaryFile = null;
 

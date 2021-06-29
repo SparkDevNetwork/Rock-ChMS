@@ -180,6 +180,7 @@ namespace Rock.CheckIn
 
             if ( locationId > 0 )
             {
+                // double check the locationId in the URL is valid for the Campus (just in case it was altered or is no longer valid for the campus)
                 var locationCampusId = NamedLocationCache.Get( locationId ).CampusId;
                 if ( locationCampusId != campus.Id )
                 {
@@ -195,6 +196,16 @@ namespace Rock.CheckIn
             {
                 // If still not defined, check for cookie setting.
                 locationId = CheckinManagerHelper.GetCheckinManagerConfigurationFromCookie().LocationIdFromSelectedCampusId.GetValueOrNull( campus.Id ) ?? 0;
+                
+                if ( locationId > 0 )
+                {
+                    // double check the locationId in the cookie is valid for the Campus (just in case it was altered or is no longer valid for the campus)
+                    var locationCampusId = NamedLocationCache.Get( locationId ).CampusId;
+                    if ( locationCampusId != campus.Id )
+                    {
+                        locationId = 0;
+                    }
+                }
 
                 if ( locationId <= 0 )
                 {
@@ -289,7 +300,7 @@ namespace Rock.CheckIn
         /// <param name="checkinManagerConfiguration">The checkin manager configuration.</param>
         private static void SaveCheckinManagerConfigurationToCookie( CheckinManagerConfiguration checkinManagerConfiguration )
         {
-            var checkinManagerConfigurationJson = checkinManagerConfiguration.ToJson( Newtonsoft.Json.Formatting.None );
+            var checkinManagerConfigurationJson = checkinManagerConfiguration.ToJson( indentOutput: false );
             Rock.Web.UI.RockPage.AddOrUpdateCookie( CheckInManagerCookieKey.CheckinManagerConfiguration, checkinManagerConfigurationJson, RockDateTime.Now.AddYears( 1 ) );
 
             // Also save the Configuration in the Request.Items so that we can grab the configuration from there instead
@@ -416,7 +427,7 @@ namespace Rock.CheckIn
                 If StatusFilter == All, no further filtering is needed.
                 If StatusFilter == Checked-in, only retrieve records that have neither a EndDateTime nor a PresentDateTime value.
                 If StatusFilter == Present, only retrieve records that have a PresentDateTime value but don't have a EndDateTime value.
-                If StatusFilter == Checked-Out, only retrieve records that have an EndDateTime
+                If StatusFilter == Checked-out, only retrieve records that have an EndDateTime
             */
             switch ( rosterStatusFilter )
             {

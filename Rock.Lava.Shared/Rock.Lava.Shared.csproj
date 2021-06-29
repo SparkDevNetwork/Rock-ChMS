@@ -71,7 +71,6 @@
     <Reference Include="System.Numerics" />
     <Reference Include="System.Runtime.Serialization" />
     <Reference Include="System.Security" />
-    <Reference Include="System.Text.Encodings.Web, Version=4.0.5.0, Culture=neutral, PublicKeyToken=cc7b13ffcd2ddd51, processorArchitecture=MSIL" />
     <Reference Include="System.Web" />
     <Reference Include="System.Xml.Linq" />
     <Reference Include="System.Data.DataSetExtensions" />
@@ -85,12 +84,14 @@
     <Compile Include="Core\ILavaSecured.cs" />
     <Compile Include="Core\ILavaDataDictionary.cs" />
     <Compile Include="Core\ILavaDataDictionarySource.cs" />
+    <Compile Include="Core\ILavaShortcodeProvider.cs" />
     <Compile Include="Core\ILavaTemplateCacheService.cs" />
     <Compile Include="Core\IRockLavaElement.cs" />
     <Compile Include="Core\ILavaTag.cs" />
     <Compile Include="Core\ILavaBlock.cs" />
     <Compile Include="Core\LavaDataDictionary.cs" />
     <Compile Include="Core\LavaEngineConfigurationOptions.cs" />
+    <Compile Include="Core\LavaException.cs" />
     <Compile Include="Core\LavaHiddenAttribute.cs" />
     <Compile Include="Core\LavaVisibleAttribute.cs" />
     <Compile Include="Core\LavaRenderParameters.cs" />

@@ -21,6 +21,7 @@ using System.Text;
 using System.Web;
 
 using Rock.Attribute;
+using Rock.Blocks;
 using Rock.Common.Mobile;
 using Rock.Common.Mobile.Enums;
 using Rock.Data;
@@ -352,6 +353,13 @@ namespace Rock.Mobile
             // Run Lava on CSS to enable color utilities
             cssStyles = cssStyles.ResolveMergeFields(Lava.LavaHelper.GetCommonMergeFields(null, null, new Lava.CommonMergeFieldsOptions { GetLegacyGlobalMergeFields = false }));
 
+            // Get the Rock organization time zone. If not found back to the
+            // OS time zone. If not found just use Greenwich.
+            var timeZoneMapping = NodaTime.TimeZones.TzdbDateTimeZoneSource.Default.WindowsMapping.PrimaryMapping;
+            var timeZoneName = timeZoneMapping.GetValueOrNull( RockDateTime.OrgTimeZoneInfo.Id )
+                ?? timeZoneMapping.GetValueOrNull( TimeZoneInfo.Local.Id )
+                ?? "GMT";
+
             //
             // Initialize the base update package settings.
             //
@@ -366,7 +374,8 @@ namespace Rock.Mobile
                 DefinedValues = definedValues,
                 TabsOnBottomOnAndroid = additionalSettings.TabLocation == TabLocation.Bottom,
                 HomepageRoutingLogic = additionalSettings.HomepageRoutingLogic,
-                DoNotEnableNotificationsAtLaunch = !additionalSettings.EnableNotificationsAutomatically
+                DoNotEnableNotificationsAtLaunch = !additionalSettings.EnableNotificationsAutomatically,
+                TimeZone = timeZoneName
             };
 
             //
@@ -430,7 +439,7 @@ namespace Rock.Mobile
 
                     mobileBlockEntity.BlockCache = block;
                     mobileBlockEntity.PageCache = block.Page;
-                    mobileBlockEntity.RequestContext = new Net.RockRequestContext();
+                    mobileBlockEntity.RequestContext = new Net.RockRequestContext( RockClientType.Mobile );
 
                     var attributes = block.Attributes
                         .Select( a => a.Value )
@@ -443,7 +452,7 @@ namespace Rock.Mobile
                         BlockGuid = block.Guid,
                         RequiredAbiVersion = mobileBlockEntity.RequiredMobileAbiVersion,
                         BlockType = mobileBlockEntity.MobileBlockType,
-                        ConfigurationValues = mobileBlockEntity.GetMobileConfigurationValues(),
+                        ConfigurationValues = mobileBlockEntity.GetBlockInitialization( Blocks.RockClientType.Mobile ),
                         Order = block.Order,
                         AttributeValues = GetMobileAttributeValues( block, attributes ),
                         PreXaml = block.PreHtml,
@@ -488,6 +497,14 @@ namespace Rock.Mobile
                         mobileCampus.PostalCode = campus.Location.PostalCode;
                     }
                 }
+
+                // Get the campus time zone, If not found try the Rock
+                // organization time zone. If not found back to the
+                // OS time zone. If not found just use Greenwich.
+                mobileCampus.TimeZone = timeZoneMapping.GetValueOrNull( campus.TimeZoneId ?? string.Empty )
+                    ?? timeZoneMapping.GetValueOrNull( RockDateTime.OrgTimeZoneInfo.Id )
+                    ?? timeZoneMapping.GetValueOrNull( TimeZoneInfo.Local.Id )
+                    ?? "GMT";
 
                 package.Campuses.Add( mobileCampus );
             }

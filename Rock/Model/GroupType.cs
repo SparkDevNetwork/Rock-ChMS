@@ -191,7 +191,7 @@ namespace Rock.Model
         public bool ShowConnectionStatus { get; set; }
 
         /// <summary>
-        /// Gets or sets a value indicating whether to show the Person's martial status as a column in the Group Member Grid
+        /// Gets or sets a value indicating whether to show the Person's marital status as a column in the Group Member Grid
         /// </summary>
         /// <value>
         /// <c>true</c> if [show marital status]; otherwise, <c>false</c>.
@@ -1084,6 +1084,12 @@ namespace Rock.Model
                     if ( string.IsNullOrEmpty( GroupViewLavaTemplate ) )
                     {
                         this.ValidationResults.Add( new ValidationResult( "Lava template for group view is mandatory." ) );
+                        return false;
+                    }
+
+                    if ( this.IsSchedulingEnabled && !Enum.GetValues( typeof( ScheduleType ) ).Cast<ScheduleType>().Where( v => v!=ScheduleType.None && AllowedScheduleTypes.HasFlag( v ) ).Any() )
+                    {
+                        this.ValidationResults.Add( new ValidationResult( "Any Group Schedule Options must be selected if Scheduling is enabled." ) );
                         return false;
                     }
                 }

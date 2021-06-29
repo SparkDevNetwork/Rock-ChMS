@@ -4,6 +4,12 @@ RMDIR "DotLiquid\Obj" /S /Q
 RMDIR "Rock\Bin" /S /Q
 RMDIR "Rock\Obj" /S /Q
 
+RMDIR "org_rocksolidchurch.PageDebug\Bin" /S /Q
+RMDIR "org_rocksolidchurch.PageDebug\Obj" /S /Q
+
+RMDIR "Rock.Blocks\Bin" /S /Q
+RMDIR "Rock.Blocks\Obj" /S /Q
+
 RMDIR "Rock.Checkr\Bin" /S /Q
 RMDIR "Rock.Checkr\Obj" /S /Q
 
@@ -103,6 +109,17 @@ RMDIR "Rock.WebStartup\Obj" /S /Q
 RMDIR "SignNowSDK\Bin" /S /Q
 RMDIR "SignNowSDK\Obj" /S /Q
 
+RMDIR "Applications\Wpf\CheckScannerUtility\Bin" /S /Q
+RMDIR "Applications\Wpf\CheckScannerUtility\Obj" /S /Q
+
+RMDIR "Applications\Wpf\StatementGenerator\Bin" /S /Q
+RMDIR "Applications\Wpf\StatementGenerator\Obj" /S /Q
+
+RMDIR "Applications\Wpf\Rock.Wpf\Bin" /S /Q
+RMDIR "Applications\Wpf\Rock.Wpf\Obj" /S /Q
+
+
+
 REN RockWeb\Bin\Microsoft.CodeDom.Providers.DotNetCompilerPlatform.dll Microsoft.CodeDom.Providers.DotNetCompilerPlatform.bak
 REN RockWeb\Bin\Rock.Common.Mobile.dll Rock.Common.Mobile.bak
 
@@ -113,5 +130,6 @@ DEL "RockWeb\Bin\*.xml"
 REN RockWeb\Bin\Microsoft.CodeDom.Providers.DotNetCompilerPlatform.bak Microsoft.CodeDom.Providers.DotNetCompilerPlatform.dll
 REN RockWeb\Bin\Rock.Common.Mobile.bak Rock.Common.Mobile.dll
 
+RMDIR "Applications\Wpf\packages" /S /Q
 
 FOR /D %%f in (packages\*) DO RMDIR %%f /S /Q

@@ -25,7 +25,7 @@ using System.Dynamic;
 using System.Globalization;
 using System.IO;
 using System.Linq;
-using System.Linq.Dynamic;
+using System.Linq.Dynamic.Core;
 using System.Reflection;
 using System.Runtime.InteropServices;
 using System.Text;
@@ -33,9 +33,8 @@ using System.Text.RegularExpressions;
 using System.Web;
 using System.Web.UI.HtmlControls;
 
-using Ical.Net;
 using Ical.Net.DataTypes;
-using Calendar = Ical.Net.Calendar;
+
 using DotLiquid;
 using DotLiquid.Util;
 using Context = DotLiquid.Context;
@@ -43,11 +42,8 @@ using Condition = DotLiquid.Condition;
 
 using Humanizer;
 using Humanizer.Localisation;
-
 using ImageResizer;
-
 using Newtonsoft.Json;
-
 using Rock;
 using Rock.Attribute;
 using Rock.Data;
@@ -57,7 +53,6 @@ using Rock.Security;
 using Rock.Utility;
 using Rock.Web.Cache;
 using Rock.Web.UI;
-
 using UAParser;
 
 namespace Rock.Lava
@@ -1353,17 +1348,16 @@ namespace Rock.Lava
         /// <returns>a list of datetimes</returns>
         private static List<DateTime> GetOccurrenceDates( string iCalString, int returnCount, bool useEndDateTime = false )
         {
-            var calendar = Calendar.LoadFromStream( new StringReader( iCalString ) ).First() as Calendar;
-            var calendarEvent = calendar.Events[0] as Event;
-
+            var calendarEvent = InetCalendarHelper.CreateCalendarEvent( iCalString );
+            
             if ( !useEndDateTime && calendarEvent.DtStart != null )
             {
-                List<Occurrence> dates = calendar.GetOccurrences( RockDateTime.Now, RockDateTime.Now.AddYears( 1 ) ).Take( returnCount ).ToList();
+                List<Occurrence> dates = InetCalendarHelper.GetOccurrences( iCalString, RockDateTime.Now, RockDateTime.Now.AddYears( 1 ) ).Take( returnCount ).ToList();
                 return dates.Select( d => d.Period.StartTime.Value ).ToList();
             }
             else if ( useEndDateTime && calendarEvent.DtEnd != null )
             {
-                List<Occurrence> dates = calendar.GetOccurrences( RockDateTime.Now, RockDateTime.Now.AddYears( 1 ) ).Take( returnCount ).ToList();
+                List<Occurrence> dates = InetCalendarHelper.GetOccurrences( iCalString, RockDateTime.Now, RockDateTime.Now.AddYears( 1 ) ).Take( returnCount ).ToList();
                 return dates.Select( d => d.Period.EndTime.Value ).ToList();
             }
             else
@@ -1984,7 +1978,7 @@ namespace Rock.Lava
             }
         }
         /// <summary>
-        /// Formats the specified input as currency using the CurrencySymbol from Global Attributes
+        /// Formats the specified input as currency using the Currency Code information from Global Attributes
         /// </summary>
         /// <param name="input">The input.</param>
         /// <returns></returns>
@@ -1995,18 +1989,21 @@ namespace Rock.Lava
                 return null;
             }
 
-            if ( input is string )
-            {
-                // if the input is a string, just append the currency symbol to the front, even if it can't be converted to a number
-                var currencySymbol = GlobalAttributesCache.Value( "CurrencySymbol" );
-                return string.Format( "{0}{1}", currencySymbol, input );
-            }
-            else
+            var inputAsDecimal = input.ToString().AsDecimalOrNull();
+            if(inputAsDecimal != null )
             {
                 // if the input an integer, decimal, double or anything else that can be parsed as a decimal, format that
-                decimal? inputAsDecimal = input.ToString().AsDecimalOrNull();
                 return inputAsDecimal.FormatAsCurrency();
             }
+
+            // if the input is a string, just append the currency symbol to the front, even if it can't be converted to a number
+            var currencyInfo = new RockCurrencyCodeInfo();
+            if ( currencyInfo.SymbolLocation.Equals( "left", StringComparison.OrdinalIgnoreCase ) )
+            {
+                return string.Format( "{0}{1}", currencyInfo.Symbol, input );
+            }
+
+            return string.Format( "{1}{0}", currencyInfo.Symbol, input );
         }
 
         /// <summary>
@@ -2256,9 +2253,17 @@ namespace Rock.Lava
             }
         }
 
+        /// <inheritdoc cref="Rock.Lava.Filters.TemplateFilters.RandomNumber(object)"/>
+        public static int RandomNumber( object input )
+        {
+            return Rock.Lava.Filters.TemplateFilters.RandomNumber( input );
+        }
+
         #endregion Number Filters
 
         #region Attribute Filters
+
+        private const int _maxRecursionDepth = 10;
 
         /// <summary>
         /// DotLiquid Attribute Filter
@@ -2282,7 +2287,7 @@ namespace Rock.Lava
             int? entityId = null;
 
             // If Input is "Global" then look for a global attribute with key
-            if ( input.ToString().Equals( "Global", StringComparison.OrdinalIgnoreCase ) )
+            if ( ( input is string ) && input.ToStringSafe().Equals( "Global", StringComparison.OrdinalIgnoreCase ) )
             {
                 var globalAttributeCache = GlobalAttributesCache.Get();
                 attribute = globalAttributeCache.Attributes
@@ -2302,6 +2307,13 @@ namespace Rock.Lava
                                 mergeFields.Add( keyVal.Key, keyVal.Value );
                             }
                         }
+
+                        // Verify that the recursion depth is not exceeded.
+                        if ( !IncrementRecursionTracker( "internal.AttributeFilterRecursionDepth", mergeFields ) )
+                        {
+                            return "## Lava Error: Recursive reference ##";
+                        }
+
                         rawValue = theValue.ResolveMergeFields( mergeFields );
                     }
                     else
@@ -2314,12 +2326,12 @@ namespace Rock.Lava
             /*
                 04/28/2020 - Shaun
                 The "SystemSetting" filter argument does not retrieve the Attribute from the database
-                or perform any authorization checks.  It simply returns the value of the of the specified
+                or perform any authorization checks.  It simply returns the value of the specified
                 SystemSetting attribute (with any merge fields evaluated).  This is intentional.
             */
 
             // If Input is "SystemSetting" then look for a SystemSetting attribute with key
-            else if ( input.ToString().Equals( "SystemSetting", StringComparison.OrdinalIgnoreCase ) )
+            else if ( ( input is string ) && input.ToStringSafe().Equals( "SystemSetting", StringComparison.OrdinalIgnoreCase ) )
             {
                 string theValue = Rock.Web.SystemSettings.GetValue( attributeKey );
                 if ( theValue.HasMergeFields() )
@@ -2334,6 +2346,12 @@ namespace Rock.Lava
                         }
                     }
 
+                    // Verify that the recursion depth has not been exceeded.
+                    if ( !IncrementRecursionTracker( "internal.AttributeFilterRecursionDepth", mergeFields ) )
+                    {
+                        return "## Lava Error: Recursive reference ##";
+                    }
+
                     rawValue = theValue.ResolveMergeFields( mergeFields );
                 }
                 else
@@ -2343,7 +2361,6 @@ namespace Rock.Lava
 
                 return rawValue;
             }
-
             // If input is an object that has attributes, find its attribute value
             else
             {
@@ -2444,6 +2461,29 @@ namespace Rock.Lava
             }
 
             return string.Empty;
+        }
+
+        /// <summary>
+        /// Increment the specified recursion tracking key in the supplied Lava context
+        /// and verify that the recursion limit has not been exceeded.
+        /// </summary>
+        /// <param name="recursionDepthKey"></param>
+        /// <param name="mergeFields"></param>
+        /// <returns></returns>
+        private static bool IncrementRecursionTracker( string recursionDepthKey, IDictionary<string, object> mergeFields )
+        {
+            int currentRecursionDepth = mergeFields.GetValueOrDefault( recursionDepthKey, 0 ).ToStringSafe().AsInteger();
+
+            currentRecursionDepth++;
+
+            if ( currentRecursionDepth > _maxRecursionDepth )
+            {
+                return false;
+            }
+
+            mergeFields[recursionDepthKey] = currentRecursionDepth.ToString();
+
+            return true;
         }
 
         /// <summary>
@@ -2946,14 +2986,14 @@ namespace Rock.Lava
         }
 
         /// <summary>
-        /// Families the salutation.
+        /// Return's the FamilySalutation for the specified Person
         /// </summary>
         /// <param name="context">The context.</param>
         /// <param name="input">The input.</param>
         /// <param name="includeChildren">if set to <c>true</c> [include children].</param>
         /// <param name="includeInactive">if set to <c>true</c> [include inactive].</param>
         /// <param name="useFormalNames">if set to <c>true</c> [use formal names].</param>
-        /// <param name="finalfinalSeparator">The finalfinal separator.</param>
+        /// <param name="finalfinalSeparator">The final separator.</param>
         /// <param name="separator">The separator.</param>
         /// <returns></returns>
         public static string FamilySalutation( Context context, object input, bool includeChildren = false, bool includeInactive = true, bool useFormalNames = false, string finalfinalSeparator = "&", string separator = "," )
@@ -2965,7 +3005,36 @@ namespace Rock.Lava
                 return null;
             }
 
-            return Person.GetFamilySalutation( person, includeChildren, includeInactive, useFormalNames, finalfinalSeparator, separator );
+            string familySalutation = string.Empty;
+
+            if ( includeInactive == false && useFormalNames == false && finalfinalSeparator == "&" && separator == "," && person.PrimaryFamilyId.HasValue )
+            {
+                // if default parameters are specified, we can get the family salutation from the GroupSalutionField of the person's PrimaryFamily
+                if ( includeChildren )
+                {
+                    familySalutation = person.PrimaryFamily?.GroupSalutationFull;
+                }
+                else
+                {
+                    familySalutation = person.PrimaryFamily?.GroupSalutation;
+                }
+            }
+
+            if ( familySalutation.IsNotNullOrWhiteSpace())
+            {
+                return familySalutation;
+            }
+
+            // if non-default parameters are specified, we'll have to calculate
+            var args = new Person.CalculateFamilySalutationArgs( includeChildren )
+            {
+                IncludeInactive = includeInactive,
+                UseFormalNames = useFormalNames,
+                FinalSeparator = finalfinalSeparator,
+                Separator = separator
+            };
+
+            return Person.CalculateFamilySalutation( person, args );
         }
 
         /// <summary>
@@ -3526,7 +3595,7 @@ namespace Rock.Lava
         }
 
         /// <summary>
-        /// Returnes the nearest group of a specific type.
+        /// Returns the nearest group of a specific type.
         /// </summary>
         /// <param name="context">The context.</param>
         /// <param name="input">The input.</param>
@@ -4111,7 +4180,7 @@ namespace Rock.Lava
         /// <returns></returns>
         public static string ToJSON( object input )
         {
-            return input.ToJson( Formatting.Indented, ignoreErrors: true );
+            return input.ToJson( indentOutput: true, ignoreErrors: true );
         }
 
         /// <summary>
@@ -5197,6 +5266,10 @@ namespace Rock.Lava
             {
                 return Rock.Utility.Settings.RockInstanceConfig.AspNetVersion;
             }
+            else if ( valueName == "lavaengine" )
+            {
+                return Rock.Utility.Settings.RockInstanceConfig.LavaEngineName;
+            }
 
             return $"Configuration setting \"{ input }\" is not available.";
         }
@@ -5299,7 +5372,9 @@ namespace Rock.Lava
             if ( input is IEnumerable )
             {
                 var enumerableInput = ( IEnumerable ) input;
-                return enumerableInput.Where( filter );
+
+                // The new System.Linq.Dynamic.Core only works on Queryables
+                return enumerableInput.AsQueryable().Where( filter );
             }
 
             return null;
@@ -5511,12 +5586,21 @@ namespace Rock.Lava
                 return input;
             }
 
-            if ( !( input is IList ) )
+            IList inputList;
+
+            if ( ( input is IList ) )
+            {
+                inputList = input as IList;
+            }
+            else if ( ( input is IEnumerable ) )
+            {
+                inputList = ( input as IEnumerable ).Cast<object>().ToList();
+            }
+            else
             {
                 return input;
             }
 
-            var inputList = input as IList;
             var indexInt = index.ToString().AsIntegerOrNull();
             if ( !indexInt.HasValue || indexInt.Value < 0 || indexInt.Value >= inputList.Count )
             {
@@ -5543,7 +5627,8 @@ namespace Rock.Lava
                 return input;
             }
 
-            return e.Distinct().Cast<object>().ToList();
+            // The new System.Linq.Dynamic.Core only works on Queryables
+            return e.AsQueryable().Distinct().Cast<object>().ToList();
         }
 
         /// <summary>
@@ -5846,6 +5931,7 @@ namespace Rock.Lava
                 var followed = new FollowingService( rockContext ).Queryable()
                     .Where( f => f.EntityTypeId == followingEntityTypeId && f.EntityId == entity.Id )
                     .Where( f => f.PersonAlias.PersonId == person.Id )
+                    .Where( f => string.IsNullOrEmpty( f.PurposeKey ) )
                     .Any();
 
                 return followed;

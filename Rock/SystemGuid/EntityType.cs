@@ -168,6 +168,11 @@ namespace Rock.SystemGuid
         public const string DEFINED_TYPE = "6028D502-79F4-4A74-9323-525E90F900C7";
 
         /// <summary>
+        /// The guid for Rock.Model.DefinedValue entity
+        /// </summary>
+        public const string DEFINED_VALUE = "53D4BF38-C49E-4A52-8B0E-5E016FB9574E";
+
+        /// <summary>
         /// The guid for the Rock.Model.FinancialAccount entity.
         /// </summary>
         public const string FINANCIAL_ACCOUNT = "798BCE48-6AA7-4983-9214-F9BCEFB4521D";
@@ -327,6 +332,10 @@ namespace Rock.SystemGuid
         /// </summary>
         public const string MOBILE_EVENTS_PRAYER_SESSION_SETUP_BLOCK_TYPE = "51431866-FF92-433C-8B0F-0F6BBAD9BCE7";
 
+        /// <summary>
+        /// The GUID for the entity Rock.Blocks.Types.Mobile.Groups.AddToGroup
+        /// </summary>
+        public const string MOBILE_GROUPS_GROUP_ADD_TO_GROUP = "E0664BDC-9583-44F2-AC8D-23AE48603EAB";
         /// <summary>
         /// The GUID for the entity Rock.Blocks.Types.Mobile.Groups.GroupAttendanceEntry
         /// </summary>

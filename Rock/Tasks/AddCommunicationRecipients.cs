@@ -18,8 +18,6 @@ using System;
 using System.Collections.Generic;
 using System.Data.Entity;
 using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 using Rock.Communication;
 using Rock.Data;
 using Rock.Model;
@@ -58,12 +56,11 @@ namespace Rock.Tasks
                     }
                 }
 
-                Rock.Model.Communication communication;
+                Model.Communication communication;
 
                 if ( message.Recipients?.Any() == true )
                 {
-                    var emailRecipients = message.Recipients.OfType<RockEmailMessageRecipient>().ToList();
-                    communication = new CommunicationService( rockContext ).CreateEmailCommunication( emailRecipients, message.FromName, message.FromAddress, message.ReplyTo, message.Subject, message.HtmlMessage, message.BulkCommunication, message.SendDateTime, message.RecipientStatus, senderPersonAliasId );
+                    communication = new CommunicationService( rockContext ).CreateEmailCommunication( message.Recipients, message.FromName, message.FromAddress, message.ReplyTo, message.Subject, message.HtmlMessage, message.BulkCommunication, message.SendDateTime, message.RecipientStatus, senderPersonAliasId );
 
                     if ( communication != null && communication.Recipients.Count() == 1 && message.RecipientGuid.HasValue )
                     {
@@ -86,7 +83,7 @@ namespace Rock.Tasks
             /// <value>
             /// The rock message recipients.
             /// </value>
-            public List<RockMessageRecipient> Recipients { get; set; }
+            public List<RockEmailMessageRecipient> Recipients { get; set; }
 
             /// <summary>
             /// Gets from PersonId of the person sending the email

@@ -19,8 +19,6 @@ using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 
-using Rock.Common;
-
 namespace Rock.Lava.Filters
 {
     public static partial class TemplateFilters
@@ -126,9 +124,11 @@ namespace Rock.Lava.Filters
                 throw new Exception( "Must provide a property to group by." );
             }
 
-            return e.AsQueryable()
+            var groupedList = e.AsQueryable()
                 .GroupBy( x => x.GetPropertyValue( property ) )
                 .ToDictionary( g => g.Key != null ? g.Key.ToString() : string.Empty, g => (object)g.ToList() );
+
+            return groupedList;
         }
 
         /// <summary>
@@ -219,12 +219,21 @@ namespace Rock.Lava.Filters
                 return input;
             }
 
-            if ( !( input is IList ) )
+            IList inputList;
+
+            if ( ( input is IList ) )
+            {
+                inputList = input as IList;
+            }
+            else if ( ( input is IEnumerable ) )
+            {
+                inputList = ( input as IEnumerable ).Cast<object>().ToList();
+            }
+            else
             {
                 return input;
             }
 
-            var inputList = input as IList;
             var indexInt = index.ToString().AsIntegerOrNull();
             if ( !indexInt.HasValue || indexInt.Value < 0 || indexInt.Value >= inputList.Count )
             {
@@ -274,11 +283,11 @@ namespace Rock.Lava.Filters
             IOrderedQueryable<object> qry;
             if ( orderBy[0].Descending )
             {
-                qry = e.Cast<object>().AsQueryable().OrderByDescending( d => ExtensionMethods.GetPropertyValue( d, orderBy[0].Property ) );
+                qry = e.Cast<object>().AsQueryable().OrderByDescending( d => d.GetPropertyValue( orderBy[0].Property ) );
             }
             else
             {
-                qry = e.Cast<object>().AsQueryable().OrderBy( d => ExtensionMethods.GetPropertyValue( d, orderBy[0].Property ) );
+                qry = e.Cast<object>().AsQueryable().OrderBy( d => d.GetPropertyValue( orderBy[0].Property ) );
             }
 
             //
@@ -290,11 +299,11 @@ namespace Rock.Lava.Filters
 
                 if ( orderBy[i].Descending )
                 {
-                    qry = qry.ThenByDescending( d => ExtensionMethods.GetPropertyValue( d, propertyName ) );
+                    qry = qry.ThenByDescending( d => d.GetPropertyValue( propertyName ) );
                 }
                 else
                 {
-                    qry = qry.ThenBy( d => ExtensionMethods.GetPropertyValue( d, propertyName ) );
+                    qry = qry.ThenBy( d => d.GetPropertyValue( propertyName ) );
                 }
             }
 

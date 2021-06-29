@@ -31,12 +31,16 @@ using System.Web.UI.HtmlControls;
 using System.Web.UI.WebControls;
 
 using Rock.Attribute;
+using Rock.Blocks;
 using Rock.Data;
+using Rock.Lava;
 using Rock.Model;
+using Rock.Net;
 using Rock.Security;
 using Rock.Tasks;
 using Rock.Transactions;
 using Rock.Utility;
+using Rock.ViewModel;
 using Rock.Web.Cache;
 using Rock.Web.UI.Controls;
 using static Rock.Security.Authorization;
@@ -67,6 +71,17 @@ namespace Rock.Web.UI
         private double _duration = 0;
 
         private PageStatePersister _PageStatePersister = null;
+
+        /// <summary>
+        /// Will be <c>true</c> if the page has anything on it that requires
+        /// Obsidian libraries to be loaded.
+        /// </summary>
+        private bool _pageNeedsObsidian = false;
+
+        private readonly string _obsidianPageTimingControlId = "lObsidianPageTimings";
+        private readonly List<DebugTimingViewModel> _debugTimingViewModels = new List<DebugTimingViewModel>();
+        private Stopwatch _onLoadStopwatch = null;
+
         #endregion
 
         #region Protected Variables
@@ -665,9 +680,9 @@ namespace Rock.Web.UI
             {
                 _tsDuration = RockDateTime.Now.Subtract( ( DateTime ) Context.Items["Request_Start_Time"] );
                 _previousTiming = _tsDuration.TotalMilliseconds;
+                _pageNeedsObsidian = true;
             }
 
-            var slDebugTimings = new StringBuilder();
             var stopwatchInitEvents = Stopwatch.StartNew();
 
             bool canAdministratePage = false;
@@ -676,7 +691,7 @@ namespace Rock.Web.UI
             if ( _showDebugTimings )
             {
                 stopwatchInitEvents.Stop();
-                slDebugTimings.Append( GetDebugTimingOutput( "Start Initialization", stopwatchInitEvents.Elapsed.TotalMilliseconds, 0, true ) );
+                _debugTimingViewModels.Add( GetDebugTimingOutput( "Server Start Initialization", stopwatchInitEvents.Elapsed.TotalMilliseconds, 0, true ) );
                 stopwatchInitEvents.Restart();
             }
 
@@ -703,7 +718,7 @@ namespace Rock.Web.UI
             _scriptManager.Scripts.Add( new ScriptReference( "~/Scripts/Bundles/RockUi" ) );
             _scriptManager.Scripts.Add( new ScriptReference( "~/Scripts/Bundles/RockValidation" ) );
 
-            /*  
+            /*
                 2/16/2021 - JME
                 The code below provides the opportunity for an external system to disable
                 partial postbacks. This was put in place to allow dynamic language translation
@@ -731,7 +746,7 @@ namespace Rock.Web.UI
             if ( _showDebugTimings )
             {
                 stopwatchInitEvents.Stop();
-                slDebugTimings.Append( GetDebugTimingOutput( "Check For Logout", stopwatchInitEvents.Elapsed.TotalMilliseconds, 1 ) );
+                _debugTimingViewModels.Add( GetDebugTimingOutput( "Check For Logout", stopwatchInitEvents.Elapsed.TotalMilliseconds, 1 ) );
                 stopwatchInitEvents.Restart();
             }
 
@@ -789,7 +804,7 @@ namespace Rock.Web.UI
             if ( _showDebugTimings )
             {
                 stopwatchInitEvents.Stop();
-                slDebugTimings.Append( GetDebugTimingOutput( "Create Rock Context", stopwatchInitEvents.Elapsed.TotalMilliseconds, 1 ) );
+                _debugTimingViewModels.Add( GetDebugTimingOutput( "Create Rock Context", stopwatchInitEvents.Elapsed.TotalMilliseconds, 1 ) );
                 stopwatchInitEvents.Restart();
             }
 
@@ -807,7 +822,7 @@ namespace Rock.Web.UI
             if ( _showDebugTimings )
             {
                 stopwatchInitEvents.Stop();
-                slDebugTimings.Append( GetDebugTimingOutput( "Get Current User", stopwatchInitEvents.Elapsed.TotalMilliseconds, 1 ) );
+                _debugTimingViewModels.Add( GetDebugTimingOutput( "Get Current User", stopwatchInitEvents.Elapsed.TotalMilliseconds, 1 ) );
                 stopwatchInitEvents.Restart();
             }
 
@@ -843,7 +858,7 @@ namespace Rock.Web.UI
                 if ( _showDebugTimings )
                 {
                     stopwatchInitEvents.Stop();
-                    slDebugTimings.Append( GetDebugTimingOutput( "Get Current Person", stopwatchInitEvents.Elapsed.TotalMilliseconds, 1 ) );
+                    _debugTimingViewModels.Add( GetDebugTimingOutput( "Get Current Person", stopwatchInitEvents.Elapsed.TotalMilliseconds, 1 ) );
                     stopwatchInitEvents.Restart();
                 }
 
@@ -931,7 +946,7 @@ namespace Rock.Web.UI
                 if ( _showDebugTimings )
                 {
                     stopwatchInitEvents.Stop();
-                    slDebugTimings.Append( GetDebugTimingOutput( "Is Current Person Authorized", stopwatchInitEvents.Elapsed.TotalMilliseconds, 1 ) );
+                    _debugTimingViewModels.Add( GetDebugTimingOutput( "Is Current Person Authorized", stopwatchInitEvents.Elapsed.TotalMilliseconds, 1 ) );
                     stopwatchInitEvents.Restart();
                 }
 
@@ -1015,7 +1030,7 @@ namespace Rock.Web.UI
                         if ( _showDebugTimings )
                         {
                             stopwatchInitEvents.Stop();
-                            slDebugTimings.Append( GetDebugTimingOutput( "Set Page Context(s)", stopwatchInitEvents.Elapsed.TotalMilliseconds, 1 ) );
+                            _debugTimingViewModels.Add( GetDebugTimingOutput( "Set Page Context(s)", stopwatchInitEvents.Elapsed.TotalMilliseconds, 1 ) );
                             stopwatchInitEvents.Restart();
                         }
 
@@ -1073,7 +1088,7 @@ namespace Rock.Web.UI
                         if ( _showDebugTimings )
                         {
                             stopwatchInitEvents.Stop();
-                            slDebugTimings.Append( GetDebugTimingOutput( "Check Page Contexts", stopwatchInitEvents.Elapsed.TotalMilliseconds, 1 ) );
+                            _debugTimingViewModels.Add( GetDebugTimingOutput( "Check Page Contexts", stopwatchInitEvents.Elapsed.TotalMilliseconds, 1 ) );
                             stopwatchInitEvents.Restart();
                         }
 
@@ -1107,7 +1122,7 @@ namespace Rock.Web.UI
                     if ( _showDebugTimings )
                     {
                         stopwatchInitEvents.Stop();
-                        slDebugTimings.Append( GetDebugTimingOutput( "Can Administrate Page", stopwatchInitEvents.Elapsed.TotalMilliseconds, 1 ) );
+                        _debugTimingViewModels.Add( GetDebugTimingOutput( "Can Administrate Page", stopwatchInitEvents.Elapsed.TotalMilliseconds, 1 ) );
                         stopwatchInitEvents.Restart();
                     }
 
@@ -1115,15 +1130,14 @@ namespace Rock.Web.UI
                     Page.Trace.Warn( "Creating JS objects" );
                     if ( !ClientScript.IsStartupScriptRegistered( "rock-js-object" ) )
                     {
-                        string script = string.Format( @"
-    Rock.settings.initialize({{
-        siteId: {0},
-        layoutId: {1},
-        pageId: {2},
-        layout: '{3}',
-        baseUrl: '{4}'
-    }});",
-                            _pageCache.Layout.SiteId, _pageCache.LayoutId, _pageCache.Id, _pageCache.Layout.FileName, ResolveUrl( "~" ) );
+                        var script = $@"
+Rock.settings.initialize({{
+    siteId: {_pageCache.Layout.SiteId},
+    layoutId: {_pageCache.LayoutId},
+    pageId: {_pageCache.Id},
+    layout: '{_pageCache.Layout.FileName}',
+    baseUrl: '{ResolveUrl( "~" )}'
+}});";
 
                         ClientScript.RegisterStartupScript( this.Page.GetType(), "rock-js-object", script, true );
                     }
@@ -1163,7 +1177,7 @@ namespace Rock.Web.UI
                     if ( _showDebugTimings )
                     {
                         stopwatchInitEvents.Stop();
-                        slDebugTimings.Append( GetDebugTimingOutput( "Block OnInit", stopwatchInitEvents.Elapsed.TotalMilliseconds, 1, true ) );
+                        _debugTimingViewModels.Add( GetDebugTimingOutput( "Server Block OnInit", stopwatchInitEvents.Elapsed.TotalMilliseconds, 1, true ) );
                         stopwatchInitEvents.Restart();
                     }
 
@@ -1226,8 +1240,12 @@ namespace Rock.Web.UI
                                     {
                                         var blockEntity = Activator.CreateInstance( block.BlockType.EntityType.GetEntityType() );
 
-                                        if ( blockEntity is Rock.Blocks.IRockBlockType rockBlockEntity )
+                                        if ( blockEntity is IRockBlockType rockBlockEntity )
                                         {
+                                            var clientType = rockBlockEntity.GetRockClientType();
+                                            rockBlockEntity.RequestContext = new RockRequestContext( Request, clientType );
+                                            rockBlockEntity.RequestContext.AddContextEntitiesForPage( _pageCache );
+
                                             var wrapper = new RockBlockTypeWrapper
                                             {
                                                 Page = this,
@@ -1239,6 +1257,11 @@ namespace Rock.Web.UI
 
                                             control = wrapper;
                                             control.ClientIDMode = ClientIDMode.AutoID;
+                                        }
+
+                                        if ( blockEntity is IObsidianBlockType )
+                                        {
+                                            _pageNeedsObsidian = true;
                                         }
                                     }
 
@@ -1309,8 +1332,52 @@ namespace Rock.Web.UI
                             {
 
                                 stopwatchBlockInit.Stop();
-                                slDebugTimings.Append( GetDebugTimingOutput( block.Name, stopwatchBlockInit.Elapsed.TotalMilliseconds, 2, false, $"({block.BlockType})" ) );
+                                _debugTimingViewModels.Add( GetDebugTimingOutput( block.Name, stopwatchBlockInit.Elapsed.TotalMilliseconds, 2, false, $"({block.BlockType})" ) );
                             }
+                        }
+                    }
+
+                    if ( _pageNeedsObsidian )
+                    {
+                        _scriptManager.Scripts.Add( new ScriptReference( "~/Scripts/Bundles/Obsidian" ) );
+
+                        Page.Trace.Warn( "Initializing Obsidian" );
+                        if ( !ClientScript.IsStartupScriptRegistered( "rock-obsidian-systemjs-map" ) )
+                        {
+                            var script = $@"
+<script type=""systemjs-importmap"">
+{{
+    ""imports"": {{
+        ""vue"": ""/ObsidianJs/SystemJsVendor/Vue/vue.js"",
+        ""vuex"": ""/ObsidianJs/SystemJsVendor/Vuex/index.js"",
+        ""vee-validate"": ""/ObsidianJs/SystemJsVendor/VeeValidate/vee-validate.js"",
+        ""axios"": ""/ObsidianJs/SystemJsVendor/Axios/index.js"",
+        ""mitt"": ""/ObsidianJs/SystemJsVendor/Mitt/index.js""
+    }}
+}}
+</script>";
+
+                            ClientScript.RegisterStartupScript( this.Page.GetType(), "rock-obsidian-systemjs-map", script, false );
+                        }
+
+                        if ( !ClientScript.IsStartupScriptRegistered( "rock-obsidian-init" ) )
+                        {
+                            var script = $@"
+Obsidian.whenReady(() => {{
+    System.import('/Obsidian/Index.js').then(indexModule => {{
+        indexModule.initializePage({{
+            executionStartTime: new Date(),
+            pageId: {_pageCache.Id},
+            pageGuid: '{_pageCache.Guid}',
+            pageParameters: {PageParameters().ToJson()},
+            currentPerson: {( CurrentPerson == null ? "null" : CurrentPerson.ToViewModel( CurrentPerson ).ToJson() )},
+            contextEntities: {GetContextViewModels().ToJson()},
+            loginUrlWithReturnUrl: '{GetLoginUrlWithReturnUrl()}'
+        }});
+    }});
+}});";
+
+                            ClientScript.RegisterStartupScript( this.Page.GetType(), "rock-obsidian-init", script, true );
                         }
                     }
 
@@ -1538,19 +1605,42 @@ namespace Rock.Web.UI
                 if ( _showDebugTimings )
                 {
                     stopwatchInitEvents.Stop();
-                    slDebugTimings.Append( GetDebugTimingOutput( "Complete Initialization", stopwatchInitEvents.Elapsed.TotalMilliseconds, 0, true ) );
-                    slDebugTimings.Append( GetDebugTimingOutput( "Block OnLoad", stopwatchInitEvents.Elapsed.TotalMilliseconds, 0, true ) );
+                    _debugTimingViewModels.Add( GetDebugTimingOutput( "Server Complete Initialization", stopwatchInitEvents.Elapsed.TotalMilliseconds, 0, true ) );
+                    _debugTimingViewModels.Add( GetDebugTimingOutput( "Server Block OnLoad", stopwatchInitEvents.Elapsed.TotalMilliseconds, 0, true ) );
                     stopwatchInitEvents.Restart();
                 }
 
                 if ( _showDebugTimings && canAdministratePage )
                 {
-                    slDebugTimings.Append( "<script>$(document).ready(function(){if($('#lblShowDebugTimings').length){var t=$('#lblShowDebugTimings').data('pointintimems'),a=0;$('#lblShowDebugTimings .debug-chart-bar').each(function(i){var n=$(this).data('start-location'),s=$(this).data('duration');n=Math.max(a,n),a=n+s;var h=Math.max(100-100*(n/t+s/t),0);$(this).css('right',h+'%').css('width',s/t*100+'%').attr('title','Started at '+n+' ms / Duration '+s+' ms')})}});</script>" );
-
-                    Page.Form.Controls.Add( new Label
+                    Page.Trace.Warn( "Initializing Obsidian Page Timings" );
+                    Page.Form.Controls.Add( new Literal
                     {
-                        ID = "lblShowDebugTimings",
-                        Text = string.Format( "<style>.debug-timestamp{{text-align:right;}}.debug-waterfall{{width: 40%;position:relative;vertical-align:middle !important;padding:0 !important;}}.debug-chart-bar{{ position:absolute;display:block;min-width:1px;height:1.125em;background:#009ce3;margin-top: -0.5625em; }}</style><table class='table table-bordered table-striped debug-timings' style='width:100%; margin-bottom: 48px;'><thead><tr><th class='debug-timestamp'>Timestamp</th><th>Event</th><th class='debug-timestamp'>Duration</th><th class='debug-waterfall'>Waterfall</th></tr></thead><tbody>{0}", slDebugTimings.ToString() )
+                        ID = _obsidianPageTimingControlId,
+                        Text = $@"
+<span>
+    <style>
+        .debug-timestamp {{
+            text-align: right;
+        }}
+
+        .debug-waterfall {{
+            width: 40%;
+            position: relative;
+            vertical-align: middle !important;
+            padding: 0 !important;
+        }}
+
+        .debug-chart-bar {{
+            position: absolute;
+            display: block;
+            min-width: 1px;
+            height: 1.125em;
+            background: #009ce3;
+            margin-top: -0.5625em;
+        }}
+    </style>
+    <div id=""{_obsidianPageTimingControlId}""></div>
+</span>"
                     } );
                 }
             }
@@ -1585,19 +1675,23 @@ namespace Rock.Web.UI
             {
                 _tsDuration = RockDateTime.Now.Subtract( ( DateTime ) Context.Items["Request_Start_Time"] );
 
-                var lblShowDebugTimings = this.Page.Form.Controls.OfType<Label>().Where( a => a.ID == "lblShowDebugTimings" ).FirstOrDefault();
-                if ( lblShowDebugTimings != null )
-                {
-                    var previousPointInTimeMS = lblShowDebugTimings.Attributes["data-PointInTimeMS"]?.AsDoubleOrNull();
-                    if ( previousPointInTimeMS.HasValue )
+                if ( _pageNeedsObsidian )
+                { 
+                    Page.Trace.Warn( "Finalizing Obsidian Page Timings" );
+                    if ( !ClientScript.IsStartupScriptRegistered( "rock-obsidian-page-timings" ) )
                     {
-                        var lastDurationMS = Math.Round( _tsDuration.TotalMilliseconds - previousPointInTimeMS.Value, 2 );
-                        lblShowDebugTimings.Text = lblShowDebugTimings.Text.ReplaceLastOccurrence( "<span data-duration-replace/>", $"{lastDurationMS} ms" );
-                        lblShowDebugTimings.Text = lblShowDebugTimings.Text.ReplaceLastOccurrence( "data-duration=''", $"data-duration='{lastDurationMS}'" );
+                        var script = $@"
+Obsidian.whenReady(() => {{
+    System.import('/Obsidian/Index.js').then(indexModule => {{
+        indexModule.initializePageTimings({{
+            elementId: '{_obsidianPageTimingControlId}',
+            debugTimingViewModels: { _debugTimingViewModels.ToJson() }
+        }});
+    }});
+}});";
+
+                        ClientScript.RegisterStartupScript( this.Page.GetType(), "rock-obsidian-page-timings", script, true );
                     }
-
-
-                    lblShowDebugTimings.Text += "</table>";
                 }
             }
         }
@@ -1735,7 +1829,7 @@ namespace Rock.Web.UI
         /// <param name="e">The <see cref="T:System.EventArgs"/> object that contains the event data.</param>
         protected override void OnLoad( EventArgs e )
         {
-            Stopwatch onLoadStopwatch = Stopwatch.StartNew();
+            _onLoadStopwatch = Stopwatch.StartNew();
 
             base.OnLoad( e );
 
@@ -1744,14 +1838,14 @@ namespace Rock.Web.UI
             try
             {
                 bool showDebugTimings = this.PageParameter( "ShowDebugTimings" ).AsBoolean();
-                if ( showDebugTimings && onLoadStopwatch.Elapsed.TotalMilliseconds > 500 )
+                if ( showDebugTimings && _onLoadStopwatch.Elapsed.TotalMilliseconds > 500 )
                 {
                     if ( _pageCache.IsAuthorized( Authorization.ADMINISTRATE, CurrentPerson ) )
                     {
                         Page.Form.Controls.Add( new Literal
                         {
 
-                            Text = string.Format( "OnLoad [{0} ms]", onLoadStopwatch.Elapsed.TotalMilliseconds )
+                            Text = string.Format( "OnLoad [{0} ms]", _onLoadStopwatch.Elapsed.TotalMilliseconds )
                         } );
                     }
                 }
@@ -1830,8 +1924,9 @@ Sys.Application.add_load(function () {
         #endregion
 
         #region Private Methods
+
         /// <summary>
-        /// Gets the debug timing string to write out.
+        /// Gets the debug timing view model.
         /// </summary>
         /// <param name="eventTitle">The event title.</param>
         /// <param name="stepDuration">Duration of the step.</param>
@@ -1839,45 +1934,52 @@ Sys.Application.add_load(function () {
         /// <param name="boldTitle">if set to <c>true</c> [bold title].</param>
         /// <param name="subtitle">The subtitle.</param>
         /// <returns></returns>
-        private string GetDebugTimingOutput( string eventTitle, double stepDuration, int indentLevel = 0, bool boldTitle = false, string subtitle = "" )
+        private DebugTimingViewModel GetDebugTimingOutput( string eventTitle, double stepDuration, int indentLevel = 0, bool boldTitle = false, string subtitle = "" )
         {
-            var indentPaddingAmount = indentLevel * 24;
-
-            var titleStyle = string.Empty;
-
-            if ( indentPaddingAmount != 0 )
-            {
-                titleStyle = $"padding-left: {indentPaddingAmount}px;";
-            }
-
-            if ( boldTitle )
-            {
-                eventTitle = $"<strong>{eventTitle}</strong>";
-            }
-
-            if ( subtitle.IsNotNullOrWhiteSpace() )
-            {
-                eventTitle += $" <small><span style='color:#A4A4A4'>{subtitle}</span></small>";
-            }
-
             _tsDuration = RockDateTime.Now.Subtract( ( DateTime ) Context.Items["Request_Start_Time"] );
             _duration = Math.Round( stepDuration, 2 );
 
-            var output = string.Format( "<tr><td class='debug-timestamp'>{1:#,0.00} ms</td><td style='{2}'>{3}</td><td class='debug-timestamp'>{0} ms</td><td class='debug-waterfall'><span class='debug-chart-bar' data-start-location='{1}' data-duration='{0}'></td></tr>\n",
-                _duration,                          // 0
-                Math.Round( _previousTiming, 2 ),   // 1
-                titleStyle,                         // 2
-                eventTitle                          // 3
-                );
-            ;
+            var viewModel = new DebugTimingViewModel {
+                TimestampMs = _previousTiming,
+                DurationMs = _duration,
+                Title = eventTitle,
+                SubTitle = subtitle,
+                IsTitleBold = boldTitle,
+                IndentLevel = indentLevel
+            };
 
             _previousTiming += _duration;
 
-            return output;
+            return viewModel;
         }
         #endregion
 
         #region Public Methods
+
+        /// <summary>
+        /// Reports the debug timing.
+        /// </summary>
+        /// <param name="eventTitle">The event title.</param>
+        /// <param name="subtitle">The subtitle.</param>
+        /// <returns></returns>
+        internal void ReportOnLoadDebugTiming( string eventTitle, string subtitle = "" )
+        {
+            if ( !_showDebugTimings || _onLoadStopwatch == null )
+            {
+                return;
+            }
+
+            _onLoadStopwatch.Stop();
+
+            if ( !subtitle.IsNullOrWhiteSpace() && !subtitle.StartsWith( ")" ) )
+            {
+                subtitle = $"({subtitle})";
+            }
+
+            var duration = _onLoadStopwatch.Elapsed.TotalMilliseconds;
+            _debugTimingViewModels.Add( GetDebugTimingOutput( eventTitle, duration, 1, false, subtitle ) );
+            _onLoadStopwatch.Restart();
+        }
 
         /// <summary>
         /// Sets the page.
@@ -2135,8 +2237,18 @@ Sys.Application.add_load(function () {
             string virtualPath = this.ResolveRockUrl( url );
             if ( Context.Request != null && Context.Request.Url != null )
             {
+                /*
+                     4/30/2021 - NA
+
+                     Due to the interaction between Rock 2-3 Step Payment Gateways and a possible CDN,
+                     the URL that is returned needs to be the proxy safe one, not the one that the
+                     CDN uses (such as Origin)
+
+                     Reason: CDN and Payment Gateways
+                */
+
                 string protocol = WebRequestHelper.IsSecureConnection( Context ) ? "https" : Context.Request.Url.Scheme;
-                return string.Format( "{0}://{1}{2}", protocol, Context.Request.Url.Authority, virtualPath );
+                return string.Format( "{0}://{1}{2}", protocol, Context.Request.UrlProxySafe().Authority, virtualPath );
             }
 
             return GlobalAttributesCache.Get().GetValue( "PublicApplicationRoot" ) + virtualPath.RemoveLeadingForwardslash();
@@ -2158,6 +2270,64 @@ Sys.Application.add_load(function () {
             }
 
             return resolvedUrl;
+        }
+
+        /// <summary>
+        /// Gets the login URL with return URL.
+        /// </summary>
+        /// <returns></returns>
+        public string GetLoginUrlWithReturnUrl()
+        {
+            return Site.GetLoginUrlWithReturnUrl();
+        }
+
+        /// <summary>
+        /// Gets the context view models.
+        /// </summary>
+        /// <returns></returns>
+        internal Dictionary<string, IViewModel> GetContextViewModels()
+        {
+            var contextEntities = GetContextEntities();
+            var viewModels = new Dictionary<string, IViewModel>();
+
+            foreach ( var kvp in contextEntities )
+            {
+                var entity = kvp.Value;
+                var viewModel = ViewModelHelper.GetViewModel( entity, CurrentPerson, false );
+
+                if ( viewModel != null )
+                {
+                    viewModels[kvp.Key] = viewModel;
+                }
+            }
+
+            return viewModels;
+        }
+
+        /// <summary>
+        /// Gets the context entities.
+        /// </summary>
+        /// <returns></returns>
+        internal Dictionary<string, IEntity> GetContextEntities()
+        {
+            var contextEntities = new Dictionary<string, IEntity>();
+
+            foreach ( var contextEntityType in GetContextEntityTypes() )
+            {
+                var contextEntity = GetCurrentContext( contextEntityType );
+
+                if ( contextEntity != null && LavaHelper.IsLavaDataObject( contextEntity ) )
+                {
+                    var type = Type.GetType( contextEntityType.AssemblyName ?? contextEntityType.Name );
+
+                    if ( type != null )
+                    {
+                        contextEntities.Add( type.Name, contextEntity );
+                    }
+                }
+            }
+
+            return contextEntities;
         }
 
         /// <summary>
@@ -2446,7 +2616,8 @@ Sys.Application.add_load(function () {
             {
                 SameSiteCookieSetting sameSiteCookieSetting = GlobalAttributesCache.Get().GetValue( "core_SameSiteCookieSetting" ).ConvertToEnumOrNull<SameSiteCookieSetting>() ?? SameSiteCookieSetting.Lax;
 
-                string sameSiteCookieValue = ";SameSite=" + sameSiteCookieSetting;
+                // For browsers to recognize SameSite=none the Secure tag is required, but it doesn't hurt to add it for all samesite settings.
+                string sameSiteCookieValue = ";SameSite=" + sameSiteCookieSetting + ";Secure";
                 cookie.Path += sameSiteCookieValue;
             }
 
@@ -3633,5 +3804,57 @@ Sys.Application.add_load(function () {
 
     #endregion
 
+    /// <summary>
+    /// Debug Timing
+    /// </summary>
+    public sealed class DebugTimingViewModel {
+        /// <summary>
+        /// Gets or sets the timestamp milliseconds.
+        /// </summary>
+        /// <value>
+        /// The timestamp.
+        /// </value>
+        public double TimestampMs { get; set; }
+
+        /// <summary>
+        /// Gets or sets the event title.
+        /// </summary>
+        /// <value>
+        /// The event HTML.
+        /// </value>
+        public string Title { get; set; }
+
+        /// <summary>
+        /// Gets or sets the sub title.
+        /// </summary>
+        /// <value>
+        /// The sub title.
+        /// </value>
+        public string SubTitle { get; set; }
+
+        /// <summary>
+        /// Gets or sets the indent level.
+        /// </summary>
+        /// <value>
+        /// The indent level.
+        /// </value>
+        public int IndentLevel { get; set; }
+
+        /// <summary>
+        /// Gets or sets the duration ms.
+        /// </summary>
+        /// <value>
+        /// The duration ms.
+        /// </value>
+        public double DurationMs { get; set; }
+
+        /// <summary>
+        /// Gets or sets a value indicating whether this instance is title bold.
+        /// </summary>
+        /// <value>
+        ///   <c>true</c> if this instance is title bold; otherwise, <c>false</c>.
+        /// </value>
+        public bool IsTitleBold { get; set; }
+    }
 }
 

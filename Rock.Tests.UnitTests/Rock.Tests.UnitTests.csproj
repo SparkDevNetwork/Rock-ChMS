@@ -91,9 +91,9 @@
       <Link>AssemblySharedInfo.cs</Link>
     </Compile>
     <Compile Include="Properties\AssemblyInfo.cs" />
-    <Compile Include="Rock\Lava\Filters\MiscellaneousFilterTests.cs" />
     <Compile Include="Rock\Lava\LiquidKeywordTests.cs" />
     <Compile Include="Rock\Lava\LavaHelperTests.cs" />
+    <Compile Include="Rock\Lava\ContainerVariableTests.cs" />
     <Compile Include="Rock\Lava\RockFiltersTests.cs" />
     <Compile Include="Rock\Lava\Filters\CollectionFilterTests.cs" />
     <Compile Include="Rock\Lava\Filters\ColorFilterTests.cs" />
@@ -107,12 +107,14 @@
     <Compile Include="Rock\Lava\DynamicObjectTests.cs" />
     <Compile Include="Rock\Lava\LavaUnitTestHelper.cs" />
     <Compile Include="Rock\Lava\LavaTypeAttributesTests.cs" />
+    <Compile Include="Rock\Security\EncryptionTests.cs" />
     <Compile Include="Rock\UnitTestInitializer.cs" />
     <Compile Include="Rock\Utilities\DateTimeAssert.cs" />
     <Compile Include="Rock\Lava\Filters\TestPerson.cs" />
     <Compile Include="Rock\Model\BlockTests.cs" />
     <Compile Include="Rock\Model\BlockTypeTests.cs" />
     <Compile Include="Rock\Model\CommunicationTemplateTests.cs" />
+    <Compile Include="Rock\Model\FinancialTransactionExtensionMethodTests.cs" />
     <Compile Include="Rock\Model\ScheduleTests.cs" />
     <Compile Include="Rock\Model\StreakTypeServiceTests.cs" />
     <Compile Include="Rock\Model\ScheduleCheckInTests.cs" />
@@ -149,6 +151,10 @@
     <ProjectReference Include="..\DotLiquid\DotLiquid.csproj">
       <Project>{00EDCB8D-EF33-459C-AD62-02876BD24DFF}</Project>
       <Name>DotLiquid</Name>
+    </ProjectReference>
+    <ProjectReference Include="..\Rock.Common\Rock.Common.csproj">
+      <Project>{13568622-324e-4493-b605-c9896e725d30}</Project>
+      <Name>Rock.Common</Name>
     </ProjectReference>
     <ProjectReference Include="..\Rock.Lava.Shared\Rock.Lava.Shared.csproj">
       <Project>{8820cd93-70ee-496d-b17b-0c4c68dd4957}</Project>
