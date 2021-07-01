@@ -19,8 +19,10 @@ using System.Collections.Generic;
 using System.ComponentModel;
 using System.ComponentModel.Composition;
 using System.Data.Entity;
+using System.Diagnostics;
 using System.Linq;
 using System.Web;
+
 using Rock.Attribute;
 using Rock.CheckIn;
 using Rock.Data;
@@ -53,6 +55,7 @@ namespace Rock.Workflow.Action.CheckIn
         /// <exception cref="System.NotImplementedException"></exception>
         public override bool Execute( RockContext rockContext, Model.WorkflowAction action, Object entity, out List<string> errorMessages )
         {
+            Stopwatch stopwatchSaveAttendance = Stopwatch.StartNew();
             var checkInState = GetCheckInState( entity, out errorMessages );
             if ( checkInState == null )
             {
@@ -165,7 +168,6 @@ namespace Rock.Workflow.Action.CheckIn
 
                                                 // Now add it to the check-in state message list for others to see.
                                                 checkInState.Messages.Add( message );
-                                                continue;
                                             }
                                             else
                                             {
@@ -229,7 +231,7 @@ namespace Rock.Workflow.Action.CheckIn
                                         marked as present). In this case, the same 'Present..' rules apply, but we might need to go so far
                                         as to null-out the previously set 'Present..' property values, hence the conditional operators below.
                                     */
-                                    attendance.PresentDateTime = enablePresence ? (DateTime?)null : startDateTime;
+                                    attendance.PresentDateTime = enablePresence ? ( DateTime? ) null : startDateTime;
                                     attendance.PresentByPersonAliasId = enablePresence ? null : checkInState.CheckIn.CheckedInByPersonAliasId;
 
                                     KioskLocationAttendance.AddAttendance( attendance );
@@ -252,13 +254,48 @@ namespace Rock.Workflow.Action.CheckIn
 
             if ( checkInState.CheckInType.AchievementTypes.Any() )
             {
-                foreach ( var attendanceRecord in attendanceRecords )
+                var achievementAttemptService = new AchievementAttemptService( rockContext );
+                Dictionary<int, AchievementAttempt[]> inProgressAchievementAttemptsPriorToSaveChangesByPersonId = new Dictionary<int, AchievementAttempt[]>();
+                var configuredAchievementTypeIds = checkInState.CheckInType.AchievementTypes.Select( a => Id ).ToList();
+
+                foreach ( var attendance in attendanceRecords.Where( a => a.PersonAliasId.HasValue ) )
                 {
-                    StreakTypeService.HandleAttendanceRecord( attendanceRecord );
+                    var attendancePersonAlias = attendance.PersonAlias ?? new PersonAliasService( rockContext ).Get( attendance.PersonAliasId.Value );
+                    var personId = attendancePersonAlias?.PersonId ?? 0;
+                    var personInProgressAchievementAttemptsPriorToSaveChanges = achievementAttemptService
+                        .QueryByPersonId( personId  )
+                        .Where( a => configuredAchievementTypeIds.Contains( a.AchievementTypeId ) && !a.IsSuccessful )
+                        .AsNoTracking()
+                        .ToArray();
+
+
+                    inProgressAchievementAttemptsPriorToSaveChangesByPersonId.AddOrIgnore( personId, personInProgressAchievementAttemptsPriorToSaveChanges );
                 }
 
+                var inProgressAchievementIdsPriorToSaveChanges = inProgressAchievementAttemptsPriorToSaveChangesByPersonId.SelectMany( a => a.Value.Select(x => x.Id )).ToArray();
+
                 SaveChangesResult saveChangesResult = rockContext.SaveChanges( new SaveChangesArgs { IsAchievementsEnabled = true } );
-                checkInState.CheckIn.UpdatedAchievementAttempts = saveChangesResult.AchievementAttempts.ToArray();
+
+                var updatedAchievementAttempts = saveChangesResult.AchievementAttempts.Where( a => configuredAchievementTypeIds.Contains( a.AchievementTypeId ) );
+                var justCompletedAchievementAttemptsIds = updatedAchievementAttempts
+                    .Where( a => a.IsSuccessful && inProgressAchievementIdsPriorToSaveChanges.Contains( a.Id ) )
+                    .Select( a => a.Id ).ToArray();
+
+                var inProgressAchievementAttemptsByPersonId = inProgressAchievementAttemptsPriorToSaveChangesByPersonId.Select( a => new
+                {
+                    PersonId = a.Key,
+                    InProgressAchievementAttempts = a.Value.Where( x => !justCompletedAchievementAttemptsIds.Contains( x.Id ) ).ToArray()
+                } ).ToDictionary( k => k.PersonId, v => v.InProgressAchievementAttempts );
+
+                checkInState.CheckIn.InProgressAchievementAttemptsByPersonId = inProgressAchievementAttemptsByPersonId;
+
+                var justCompletedAchievementAttemptsByPersonId = inProgressAchievementAttemptsPriorToSaveChangesByPersonId.Select( a => new
+                {
+                    PersonId = a.Key,
+                    JustCompletedAchievementAttempts = a.Value.Where( x => justCompletedAchievementAttemptsIds.Contains( x.Id ) ).ToArray()
+                } ).ToDictionary( k => k.PersonId, v => v.JustCompletedAchievementAttempts );
+
+                checkInState.CheckIn.JustCompletedAchievementAttemptsByPersonId = justCompletedAchievementAttemptsByPersonId;
             }
             else
             {
@@ -269,6 +306,8 @@ namespace Rock.Workflow.Action.CheckIn
             family.AttendanceIds = attendanceRecords.Select( a => a.Id ).ToList();
             family.AttendanceCheckinSessionGuid = attendanceCheckInSession.Guid;
             attendanceRecords = null;
+
+            Debug.WriteLine( $"{stopwatchSaveAttendance.Elapsed.TotalMilliseconds}ms  SaveAttendance" );
 
             return true;
         }

@@ -12,29 +12,26 @@
         <div class="checkin-body">
             <div class="checkin-scroll-panel">
                 <div class="scroller">
-                    <asp:Literal ID="lCheckinResultsHtml" runat="server" />
+                    <%-- <asp:Literal ID="lCheckinResultsHtml" runat="server" /> --%>
                     <asp:Literal ID="lCheckinQRCodeHtml" runat="server" />
 
-                    <asp:Panel ID="pnlAchievements" runat="server" Visible="false">
-                        <asp:Panel ID="pnlAchievementSuccess" runat="server" CssClass="row">
-                            <asp:Repeater ID="rptAchievementsSuccess" runat="server" OnItemDataBound="rptAchievementsSuccess_ItemDataBound">
-                                <ItemTemplate>
-                                    <asp:Literal ID="lAchievementSuccessHtml" runat="server" />
-                                </ItemTemplate>
-                            </asp:Repeater>
-                        </asp:Panel>
-
-                        <asp:Panel ID="pnlAchievementProgress" runat="server" CssClass="row">
-                            <asp:Repeater ID="rptAchievementProgress" runat="server" OnItemDataBound="rptAchievementProgress_ItemDataBound">
-                                <ItemTemplate>
-                                    <div class="md-col-3">
-                                        <asp:Literal ID="lAchievementProgressHtml" runat="server" />
-                                    </div>
-                                </ItemTemplate>
-                            </asp:Repeater>
-                        </asp:Panel>
+                    <asp:Panel ID="pnlAchievementSuccess" runat="server" CssClass="row" Visible="false">
+                        <asp:Repeater ID="rptAchievementsSuccess" runat="server" OnItemDataBound="rptAchievementsSuccess_ItemDataBound">
+                            <ItemTemplate>
+                                <asp:Literal ID="lAchievementSuccessHtml" runat="server" />
+                            </ItemTemplate>
+                        </asp:Repeater>
                     </asp:Panel>
 
+                    <asp:Panel ID="pnlCheckinResults" runat="server" Visible="true">
+                        <asp:Repeater ID="rptCheckinResults" runat="server" OnItemDataBound="rptCheckinResults_ItemDataBound">
+                            <ItemTemplate>
+                                <div class="md-col-3">
+                                    <asp:Literal ID="lCheckinResultHtml" runat="server" />
+                                </div>
+                            </ItemTemplate>
+                        </asp:Repeater>
+                    </asp:Panel>
                 </div>
             </div>
         </div>

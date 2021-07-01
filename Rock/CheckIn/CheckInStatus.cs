@@ -158,11 +158,19 @@ namespace Rock.CheckIn
         }
 
         /// <summary>
-        /// Achievement Attempt results that are a result of this checkin.
+        /// Achievement Attempts (for each Person) that are still in progress after this checkin.
         /// </summary>
         /// <value>
-        /// The updated achievement attempts.
+        /// The in progress achievement attempts.
         /// </value>
-        public AchievementAttempt[] UpdatedAchievementAttempts { get; internal set; }
+        public Dictionary<int, AchievementAttempt[]> InProgressAchievementAttemptsByPersonId { get; internal set; }
+
+        /// <summary>
+        /// Achievement Attempts (for each Person) that became complete as a result of this checkin.
+        /// </summary>
+        /// <value>
+        /// The complete achievement attempts.
+        /// </value>
+        public Dictionary<int, AchievementAttempt[]> JustCompletedAchievementAttemptsByPersonId { get; internal set; }
     }
 }

@@ -21,10 +21,12 @@ using System.Data.Entity;
 using System.Linq;
 using System.Net;
 using System.Net.Sockets;
+using System.Text;
 using System.Text.RegularExpressions;
 using System.Web;
 using System.Web.UI;
 using System.Web.UI.HtmlControls;
+using System.Web.UI.WebControls;
 
 using Rock;
 using Rock.Attribute;
@@ -144,6 +146,10 @@ namespace RockWeb.Blocks.CheckIn
             /// The detail message.
             /// </value>
             public string DetailMessage { get; internal set; }
+
+            public AchievementAttempt[] InProgressAchievementAttempts { get; internal set; }
+
+            public AchievementAttempt[] JustCompletedAchievementAttempts { get; internal set; }
         }
 
         /// <summary>
@@ -172,7 +178,10 @@ namespace RockWeb.Blocks.CheckIn
 
                         List<CheckinResult> checkinResultList = new List<CheckinResult>();
 
-                        // Print the labels
+                        var inProgressAchievementAttemptsByPersonId = CurrentCheckInState.CheckIn.InProgressAchievementAttemptsByPersonId;
+                        var justCompletedAchievementAttemptsByPersonId = CurrentCheckInState.CheckIn.JustCompletedAchievementAttemptsByPersonId;
+
+                        // Populate Checkin Results and label data
                         foreach ( var family in CurrentCheckInState.CheckIn.Families.Where( f => f.Selected ) )
                         {
                             lbAnother.Visible =
@@ -196,6 +205,8 @@ namespace RockWeb.Blocks.CheckIn
                                                 checkinResult.Location = location.Location;
                                                 checkinResult.Schedule = schedule;
                                                 checkinResult.DetailMessage = detailMessage;
+                                                checkinResult.InProgressAchievementAttempts = inProgressAchievementAttemptsByPersonId.GetValueOrNull( person.Person.Id );
+                                                checkinResult.JustCompletedAchievementAttempts = justCompletedAchievementAttemptsByPersonId.GetValueOrNull( person.Person.Id );
                                                 checkinResultList.Add( checkinResult );
                                             }
                                         }
@@ -260,8 +271,8 @@ namespace RockWeb.Blocks.CheckIn
                             }
                         }
 
-                        var successLavaTemplate = CurrentCheckInState.CheckInType.SuccessLavaTemplate;
-                        lCheckinResultsHtml.Text = successLavaTemplate.ResolveMergeFields( mergeFields );
+                        //var successLavaTemplate = CurrentCheckInState.CheckInType.SuccessLavaTemplate;
+                        //lCheckinResultsHtml.Text = successLavaTemplate.ResolveMergeFields( mergeFields );
 
                         if ( LocalDeviceConfig.GenerateQRCodeForAttendanceSessions )
                         {
@@ -292,7 +303,7 @@ namespace RockWeb.Blocks.CheckIn
                             lCheckinQRCodeHtml.Text = string.Format( "<div class='qr-code-container text-center'><img class='img-responsive qr-code' src='{0}' alt='Check-in QR Code' width='500' height='500'></div>", GetAttendanceSessionsQrCodeImageUrl( attendanceSessionGuidsCookie ) );
                         }
 
-                        RenderAchievements( checkinResultList );
+                        RenderCheckinResults( checkinResultList );
 
                     }
                     catch ( Exception ex )
@@ -303,85 +314,81 @@ namespace RockWeb.Blocks.CheckIn
             }
         }
 
-        private void RenderAchievements( List<CheckinResult> checkinResultList )
+        /// <summary>
+        /// Renders the checkin results and any achievements and celebrations
+        /// </summary>
+        /// <param name="checkinResultList">The checkin result list.</param>
+        private void RenderCheckinResults( List<CheckinResult> checkinResultList )
         {
-            var checkInState = CurrentCheckInState;
-            pnlAchievements.Visible = false;
-            pnlAchievementSuccess.Visible = false;
-            pnlAchievementProgress.Visible = false;
-            if ( !checkInState.CheckInType.AchievementTypes.Any() )
+            List<PersonJustCompletedAchievementAttempt> personJustCompletedAchievementAttempts = new List<PersonJustCompletedAchievementAttempt>();
+
+            foreach ( var checkinResult in checkinResultList )
             {
-
-                return;
-            }
-
-            var configuredAchievementTypes = checkInState.CheckInType.AchievementTypes.Select( a => AchievementTypeCache.Get( a ) ).Where( a => a != null ).ToList();
-
-            var updatedAchievements = checkInState.CheckIn.UpdatedAchievementAttempts.Where( a => configuredAchievementTypes.Any( x => x.Id == a.AchievementTypeId ) );
-            var successfulAchievements = updatedAchievements.Where( a => a.IsSuccessful ).ToList();
-            var checkedInPersonList = checkinResultList.Select( a => a.Person?.Person ).Where( a => a != null ).ToList();
-
-            var personIds = checkedInPersonList.Select( a => a.Id ).ToArray();
-
-            var rockContext = new RockContext();
-
-            var configuredAchievementTypeIds = configuredAchievementTypes.Select( a => a.Id ).ToList();
-            var updatedAchievementIds = updatedAchievements.Select( a => a.Id ).ToList();
-
-            var achievementAttemptService = new AchievementAttemptService( rockContext );
-
-            // TODO, how to exactly determine which ones to show as new, in progress, etc
-            Dictionary<Person, List<AchievementAttempt>> personInProgressAchievements = new Dictionary<Person, List<AchievementAttempt>>();
-
-            // ?? Dictionary<Person, List<AchievementAttempt>> personUpdatedAchievements = new Dictionary<Person, List<AchievementAttempt>>();
-
-            Dictionary<Person, List<AchievementAttempt>> personUpdatedSuccessAchievements = new Dictionary<Person, List<AchievementAttempt>>();
-            foreach ( var person in checkedInPersonList )
-            {
-                var achievementAttemptQueryForPerson = achievementAttemptService.QueryByPersonId( person.Id )
-                    .Where( a => configuredAchievementTypeIds.Contains( a.AchievementTypeId ) )
-                    .Where( a => a.IsClosed == false && a.IsSuccessful == false );
-
-                var achievementAttemptsForPerson = achievementAttemptQueryForPerson.ToList();
-                if ( achievementAttemptQueryForPerson.Any() )
+                foreach ( var achievementAttempt in checkinResult.JustCompletedAchievementAttempts )
                 {
-                    personInProgressAchievements.AddOrReplace( person, achievementAttemptQueryForPerson.AsNoTracking().ToList() );
-                }
-
-                var updatedAchievementByPerson = achievementAttemptService.QueryByPersonId( person.Id ).Where( a => updatedAchievementIds.Contains( a.Id ) ).ToList();
-
-                if ( updatedAchievementByPerson.Any() )
-                {
-                    personUpdatedSuccessAchievements.AddOrReplace( person, updatedAchievementByPerson.Where( a => a.IsSuccessful ).ToList() );
+                    personJustCompletedAchievementAttempts.Add( new PersonJustCompletedAchievementAttempt( checkinResult.Person.Person, achievementAttempt ) );
                 }
             }
 
-            if ( personUpdatedSuccessAchievements.Any() )
+            if ( personJustCompletedAchievementAttempts.Any() )
             {
-                pnlAchievementSuccess.Visible = false;
-
-                // todo, flatten this out to person+attempt instead of person+attempts?
-                rptAchievementsSuccess.DataSource = personUpdatedSuccessAchievements;
+                pnlAchievementSuccess.Visible = true;
+                rptAchievementsSuccess.DataSource = personJustCompletedAchievementAttempts;
                 rptAchievementsSuccess.DataBind();
             }
 
-            if ( personInProgressAchievements.Any() )
+            pnlCheckinResults.Visible = true;
+            rptCheckinResults.DataSource = checkinResultList;
+        }
+
+        private class PersonJustCompletedAchievementAttempt
+        {
+            public PersonJustCompletedAchievementAttempt( Person person, AchievementAttempt achievementAttempt )
             {
-                pnlAchievementProgress.Visible = true;
-                // todo, flatten this out to person+attempt instead of person+attempts?
-                rptAchievementProgress.DataSource = personInProgressAchievements;
+                Person = person;
+                AchievementAttempt = achievementAttempt;
             }
 
+            public Person Person { get; }
+            public AchievementAttempt AchievementAttempt { get; }
         }
 
         protected void rptAchievementsSuccess_ItemDataBound( object sender, System.Web.UI.WebControls.RepeaterItemEventArgs e )
         {
-            // todo
+            var personJustCompletedAchievementAttempt = e.Item.DataItem as PersonJustCompletedAchievementAttempt;
+            if ( personJustCompletedAchievementAttempt == null )
+            {
+                return;
+            }
+
+            AchievementTypeCache achievementTypeCache = AchievementTypeCache.Get( personJustCompletedAchievementAttempt.AchievementAttempt.AchievementTypeId );
+            var summaryTemplate = achievementTypeCache.CustomSummaryLavaTemplate;
+            var lAchievementSuccessHtml = e.Item.FindControl( "lAchievementSuccessHtml" ) as Literal;
+            
+            if (summaryTemplate.IsNotNullOrWhiteSpace())
+            {
+                var mergeFields = new Dictionary<string, object>();
+                mergeFields.Add( "Person", personJustCompletedAchievementAttempt.Person );
+                mergeFields.Add( "Achievement", personJustCompletedAchievementAttempt.AchievementAttempt );
+                lAchievementSuccessHtml.Text = summaryTemplate.ResolveMergeFields( mergeFields );
+            }
+            else
+            {
+                StringBuilder stringBuilder = new StringBuilder();
+                // TODO
+            }
         }
 
-        protected void rptAchievementProgress_ItemDataBound( object sender, System.Web.UI.WebControls.RepeaterItemEventArgs e )
+        protected void rptCheckinResults_ItemDataBound( object sender, System.Web.UI.WebControls.RepeaterItemEventArgs e )
         {
-            // todo
+            var checkinResult = e.Item.DataItem as CheckinResult;
+            if ( checkinResult == null )
+            {
+                return;
+            }
+
+            var lCheckinResultHtml = e.Item.FindControl( "lCheckinResultHtml" ) as Literal;
+            // TODO
         }
 
         /// <summary>
@@ -504,6 +511,6 @@ namespace RockWeb.Blocks.CheckIn
         }
 
 
-       
+
     }
 }
