@@ -19,7 +19,9 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
 using System.Runtime.Serialization;
+
 using Rock.Achievement;
+using Rock.Achievement.Component;
 using Rock.Data;
 using Rock.Model;
 
@@ -256,7 +258,7 @@ namespace Rock.Web.Cache
         /// </summary>
         /// <param name="key">The key.</param>
         /// <returns></returns>
-        public string GetComponentConfigValue(string key)
+        public string GetComponentConfigValue( string key )
         {
             return ComponentConfig.GetValueOrNull( key );
         }
@@ -321,7 +323,8 @@ namespace Rock.Web.Cache
                 .Where( at =>
                     at.SourceEntityTypeId == sourceEntityTypeCache.Id &&
                     at.IsActive )
-                .Where( at => {
+                .Where( at =>
+                {
                     var component = at.AchievementComponent;
                     return component.ShouldProcess( at, sourceEntity );
                 } )
@@ -366,6 +369,53 @@ namespace Rock.Web.Cache
             }
 
             return updatedAttempts.Values.ToList();
+        }
+
+        /// <summary>
+        /// Gets the progress count based on <see cref="AchievementAttempt.Progress" />
+        /// and <see cref="NumberToAchieve"/> or <see cref="NumberToAccumulate"/>
+        /// </summary>
+        /// <param name="achievementAttempt">The achievement attempt.</param>
+        /// <returns></returns>
+        public int? GetProgressCount( AchievementAttempt achievementAttempt )
+        {
+            var targetCount = NumberToAchieve ?? NumberToAccumulate;
+            if ( targetCount.HasValue )
+            {
+                var progressCount = Decimal.Multiply( achievementAttempt.Progress, targetCount.Value );
+                return ( int ) Math.Round( progressCount, 0 );
+            }
+
+            return null;
+        }
+
+        /// <summary>
+        /// If this is a Streak based achievement, returns the number of achieve
+        /// </summary>
+        /// <value>
+        /// The number to achieve.
+        /// </value>
+        public int? NumberToAchieve
+        {
+            get
+            {
+                return this.GetAttributeValue( StreakAchievement.AttributeKey.NumberToAchieve ).AsIntegerOrNull();
+            }
+        }
+
+        /// <summary>
+        /// If this is based on an accumulative achievement, return the NumberTo Accumulate.
+        /// Gets the number to accumulate.
+        /// </summary>
+        /// <value>
+        /// The number to accumulate.
+        /// </value>
+        public int? NumberToAccumulate
+        {
+            get
+            {
+                return this.GetAttributeValue( AccumulativeAchievement.AttributeKey.NumberToAccumulate ).AsIntegerOrNull();
+            }
         }
 
         /// <summary>

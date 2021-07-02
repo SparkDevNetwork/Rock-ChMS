@@ -256,7 +256,7 @@ namespace Rock.Workflow.Action.CheckIn
             {
                 var achievementAttemptService = new AchievementAttemptService( rockContext );
                 Dictionary<int, AchievementAttempt[]> inProgressAchievementAttemptsPriorToSaveChangesByPersonId = new Dictionary<int, AchievementAttempt[]>();
-                var configuredAchievementTypeIds = checkInState.CheckInType.AchievementTypes.Select( a => Id ).ToList();
+                var configuredAchievementTypeIds = checkInState.CheckInType.AchievementTypes.Select( a => a.Id ).ToList();
 
                 foreach ( var attendance in attendanceRecords.Where( a => a.PersonAliasId.HasValue ) )
                 {

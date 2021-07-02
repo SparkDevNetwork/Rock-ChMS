@@ -29,6 +29,7 @@ using System.Web.UI.HtmlControls;
 using System.Web.UI.WebControls;
 
 using Rock;
+using Rock.Achievement;
 using Rock.Attribute;
 using Rock.CheckIn;
 using Rock.Data;
@@ -147,8 +148,20 @@ namespace RockWeb.Blocks.CheckIn
             /// </value>
             public string DetailMessage { get; internal set; }
 
+            /// <summary>
+            /// Gets the in progress achievement attempts.
+            /// </summary>
+            /// <value>
+            /// The in progress achievement attempts.
+            /// </value>
             public AchievementAttempt[] InProgressAchievementAttempts { get; internal set; }
 
+            /// <summary>
+            /// Gets the just completed achievement attempts.
+            /// </summary>
+            /// <value>
+            /// The just completed achievement attempts.
+            /// </value>
             public AchievementAttempt[] JustCompletedAchievementAttempts { get; internal set; }
         }
 
@@ -170,141 +183,7 @@ namespace RockWeb.Blocks.CheckIn
                 {
                     try
                     {
-                        lTitle.Text = GetAttributeValue( AttributeKey.Title );
-                        string detailMsg = GetAttributeValue( AttributeKey.DetailMessage );
-
-                        var printFromClient = new List<CheckInLabel>();
-                        var printFromServer = new List<CheckInLabel>();
-
-                        List<CheckinResult> checkinResultList = new List<CheckinResult>();
-
-                        var inProgressAchievementAttemptsByPersonId = CurrentCheckInState.CheckIn.InProgressAchievementAttemptsByPersonId;
-                        var justCompletedAchievementAttemptsByPersonId = CurrentCheckInState.CheckIn.JustCompletedAchievementAttemptsByPersonId;
-
-                        // Populate Checkin Results and label data
-                        foreach ( var family in CurrentCheckInState.CheckIn.Families.Where( f => f.Selected ) )
-                        {
-                            lbAnother.Visible =
-                                CurrentCheckInState.CheckInType.TypeOfCheckin == TypeOfCheckin.Individual &&
-                                family.People.Count > 1;
-
-                            foreach ( var person in family.GetPeople( true ) )
-                            {
-                                foreach ( var groupType in person.GetGroupTypes( true ) )
-                                {
-                                    foreach ( var group in groupType.GetGroups( true ) )
-                                    {
-                                        foreach ( var location in group.GetLocations( true ) )
-                                        {
-                                            foreach ( var schedule in location.GetSchedules( true ) )
-                                            {
-                                                string detailMessage = string.Format( detailMsg, person.ToString(), group.ToString(), location.Location.Name, schedule.ToString(), person.SecurityCode );
-                                                CheckinResult checkinResult = new CheckinResult();
-                                                checkinResult.Person = person;
-                                                checkinResult.Group = group;
-                                                checkinResult.Location = location.Location;
-                                                checkinResult.Schedule = schedule;
-                                                checkinResult.DetailMessage = detailMessage;
-                                                checkinResult.InProgressAchievementAttempts = inProgressAchievementAttemptsByPersonId.GetValueOrNull( person.Person.Id );
-                                                checkinResult.JustCompletedAchievementAttempts = justCompletedAchievementAttemptsByPersonId.GetValueOrNull( person.Person.Id );
-                                                checkinResultList.Add( checkinResult );
-                                            }
-                                        }
-                                    }
-
-                                    if ( groupType.Labels != null && groupType.Labels.Any() )
-                                    {
-                                        printFromClient.AddRange( groupType.Labels.Where( l => l.PrintFrom == Rock.Model.PrintFrom.Client ) );
-                                        printFromServer.AddRange( groupType.Labels.Where( l => l.PrintFrom == Rock.Model.PrintFrom.Server ) );
-                                    }
-                                }
-                            }
-                        }
-
-                        var mergeFields = Rock.Lava.LavaHelper.GetCommonMergeFields( this.RockPage, null, new Rock.Lava.CommonMergeFieldsOptions { GetLegacyGlobalMergeFields = false } );
-                        mergeFields.Add( "CheckinResultList", checkinResultList );
-                        mergeFields.Add( "Kiosk", CurrentCheckInState.Kiosk );
-                        mergeFields.Add( "RegistrationModeEnabled", CurrentCheckInState.Kiosk.RegistrationModeEnabled );
-                        mergeFields.Add( "Messages", CurrentCheckInState.Messages );
-                        if ( LocalDeviceConfig.CurrentGroupTypeIds != null )
-                        {
-                            var checkInAreas = LocalDeviceConfig.CurrentGroupTypeIds.Select( a => Rock.Web.Cache.GroupTypeCache.Get( a ) );
-                            mergeFields.Add( "CheckinAreas", checkInAreas );
-                        }
-
-                        if ( printFromClient.Any() )
-                        {
-                            var urlRoot = string.Format( "{0}://{1}", Request.Url.Scheme, Request.Url.Authority );
-
-                            /*
-                            // This is extremely useful when debugging with ngrok and an iPad on the local network.
-                            // X-Original-Host will contain the name of your ngrok hostname, therefore the labels will
-                            // get a LabelFile url that will actually work with that iPad.
-                            if ( Request.Headers["X-Original-Host" ] != null )
-                            {
-                                var scheme = Request.Headers["X-Forwarded-Proto"] ?? "http";
-                                urlRoot = string.Format( "{0}://{1}", scheme, Request.Headers.GetValues( "X-Original-Host" ).First() );
-                            }
-                            */
-
-                            printFromClient
-                                .OrderBy( l => l.PersonId )
-                                .ThenBy( l => l.Order )
-                                .ToList()
-                                .ForEach( l => l.LabelFile = urlRoot + l.LabelFile );
-
-                            AddLabelScript( printFromClient.ToJson() );
-                        }
-
-                        if ( printFromServer.Any() )
-                        {
-                            var messages = ZebraPrint.PrintLabels( printFromServer );
-                            mergeFields.Add( "ZebraPrintMessageList", messages );
-                        }
-
-                        if ( lbAnother.Visible )
-                        {
-                            var bodyTag = this.Page.Master.FindControl( "body" ) as HtmlGenericControl;
-                            if ( bodyTag != null )
-                            {
-                                bodyTag.AddCssClass( "checkin-anotherperson" );
-                            }
-                        }
-
-                        //var successLavaTemplate = CurrentCheckInState.CheckInType.SuccessLavaTemplate;
-                        //lCheckinResultsHtml.Text = successLavaTemplate.ResolveMergeFields( mergeFields );
-
-                        if ( LocalDeviceConfig.GenerateQRCodeForAttendanceSessions )
-                        {
-                            HttpCookie attendanceSessionGuidsCookie = Request.Cookies[CheckInCookieKey.AttendanceSessionGuids];
-                            if ( attendanceSessionGuidsCookie == null )
-                            {
-                                attendanceSessionGuidsCookie = new HttpCookie( CheckInCookieKey.AttendanceSessionGuids );
-                                attendanceSessionGuidsCookie.Value = string.Empty;
-                            }
-
-                            // set (or reset) the expiration to be 8 hours from the current time)
-                            attendanceSessionGuidsCookie.Expires = RockDateTime.Now.AddHours( 8 );
-
-                            var attendanceSessionGuids = attendanceSessionGuidsCookie.Value.Split( ',' ).AsGuidList();
-                            attendanceSessionGuids = ValidAttendanceSessionGuids( attendanceSessionGuids );
-
-                            // Add the guid to the list of checkin session cookie guids if it's not already there.
-                            if ( CurrentCheckInState.CheckIn.CurrentFamily.AttendanceCheckinSessionGuid.HasValue &&
-                                !attendanceSessionGuids.Contains( CurrentCheckInState.CheckIn.CurrentFamily.AttendanceCheckinSessionGuid.Value ) )
-                            {
-                                attendanceSessionGuids.Add( CurrentCheckInState.CheckIn.CurrentFamily.AttendanceCheckinSessionGuid.Value );
-                            }
-
-                            attendanceSessionGuidsCookie.Value = attendanceSessionGuids.AsDelimited( "," );
-
-                            Rock.Web.UI.RockPage.AddOrUpdateCookie( attendanceSessionGuidsCookie );
-
-                            lCheckinQRCodeHtml.Text = string.Format( "<div class='qr-code-container text-center'><img class='img-responsive qr-code' src='{0}' alt='Check-in QR Code' width='500' height='500'></div>", GetAttendanceSessionsQrCodeImageUrl( attendanceSessionGuidsCookie ) );
-                        }
-
-                        RenderCheckinResults( checkinResultList );
-
+                        ShowDetails();
                     }
                     catch ( Exception ex )
                     {
@@ -315,18 +194,169 @@ namespace RockWeb.Blocks.CheckIn
         }
 
         /// <summary>
+        /// Shows the details.
+        /// </summary>
+        private void ShowDetails()
+        {
+            lTitle.Text = GetAttributeValue( AttributeKey.Title );
+            string detailMsg = GetAttributeValue( AttributeKey.DetailMessage );
+
+            var printFromClient = new List<CheckInLabel>();
+            var printFromServer = new List<CheckInLabel>();
+
+            List<CheckinResult> checkinResultList = new List<CheckinResult>();
+
+            var inProgressAchievementAttemptsByPersonId = CurrentCheckInState.CheckIn.InProgressAchievementAttemptsByPersonId;
+            var justCompletedAchievementAttemptsByPersonId = CurrentCheckInState.CheckIn.JustCompletedAchievementAttemptsByPersonId;
+
+            // Populate Checkin Results and label data
+            foreach ( var family in CurrentCheckInState.CheckIn.Families.Where( f => f.Selected ) )
+            {
+                lbAnother.Visible =
+                    CurrentCheckInState.CheckInType.TypeOfCheckin == TypeOfCheckin.Individual &&
+                    family.People.Count > 1;
+
+                foreach ( var person in family.GetPeople( true ) )
+                {
+                    foreach ( var groupType in person.GetGroupTypes( true ) )
+                    {
+                        foreach ( var group in groupType.GetGroups( true ) )
+                        {
+                            foreach ( var location in group.GetLocations( true ) )
+                            {
+                                foreach ( var schedule in location.GetSchedules( true ) )
+                                {
+                                    string detailMessage = string.Format( detailMsg, person.ToString(), group.ToString(), location.Location.Name, schedule.ToString(), person.SecurityCode );
+                                    CheckinResult checkinResult = new CheckinResult();
+                                    checkinResult.Person = person;
+                                    checkinResult.Group = group;
+                                    checkinResult.Location = location.Location;
+                                    checkinResult.Schedule = schedule;
+                                    checkinResult.DetailMessage = detailMessage;
+                                    checkinResult.InProgressAchievementAttempts = inProgressAchievementAttemptsByPersonId?.GetValueOrNull( person.Person.Id );
+                                    checkinResult.JustCompletedAchievementAttempts = justCompletedAchievementAttemptsByPersonId?.GetValueOrNull( person.Person.Id );
+                                    checkinResultList.Add( checkinResult );
+                                }
+                            }
+                        }
+
+                        if ( groupType.Labels != null && groupType.Labels.Any() )
+                        {
+                            printFromClient.AddRange( groupType.Labels.Where( l => l.PrintFrom == Rock.Model.PrintFrom.Client ) );
+                            printFromServer.AddRange( groupType.Labels.Where( l => l.PrintFrom == Rock.Model.PrintFrom.Server ) );
+                        }
+                    }
+                }
+            }
+
+            var mergeFields = Rock.Lava.LavaHelper.GetCommonMergeFields( this.RockPage, null, new Rock.Lava.CommonMergeFieldsOptions { GetLegacyGlobalMergeFields = false } );
+            mergeFields.Add( "CheckinResultList", checkinResultList );
+            mergeFields.Add( "Kiosk", CurrentCheckInState.Kiosk );
+            mergeFields.Add( "RegistrationModeEnabled", CurrentCheckInState.Kiosk.RegistrationModeEnabled );
+            mergeFields.Add( "Messages", CurrentCheckInState.Messages );
+            if ( LocalDeviceConfig.CurrentGroupTypeIds != null )
+            {
+                var checkInAreas = LocalDeviceConfig.CurrentGroupTypeIds.Select( a => Rock.Web.Cache.GroupTypeCache.Get( a ) );
+                mergeFields.Add( "CheckinAreas", checkInAreas );
+            }
+
+            if ( printFromClient.Any() )
+            {
+                var urlRoot = string.Format( "{0}://{1}", Request.Url.Scheme, Request.Url.Authority );
+
+                /*
+                // This is extremely useful when debugging with ngrok and an iPad on the local network.
+                // X-Original-Host will contain the name of your ngrok hostname, therefore the labels will
+                // get a LabelFile url that will actually work with that iPad.
+                if ( Request.Headers["X-Original-Host" ] != null )
+                {
+                    var scheme = Request.Headers["X-Forwarded-Proto"] ?? "http";
+                    urlRoot = string.Format( "{0}://{1}", scheme, Request.Headers.GetValues( "X-Original-Host" ).First() );
+                }
+                */
+
+                printFromClient
+                    .OrderBy( l => l.PersonId )
+                    .ThenBy( l => l.Order )
+                    .ToList()
+                    .ForEach( l => l.LabelFile = urlRoot + l.LabelFile );
+
+                AddLabelScript( printFromClient.ToJson() );
+            }
+
+            if ( printFromServer.Any() )
+            {
+                var messages = ZebraPrint.PrintLabels( printFromServer );
+                mergeFields.Add( "ZebraPrintMessageList", messages );
+            }
+
+            if ( lbAnother.Visible )
+            {
+                var bodyTag = this.Page.Master.FindControl( "body" ) as HtmlGenericControl;
+                if ( bodyTag != null )
+                {
+                    bodyTag.AddCssClass( "checkin-anotherperson" );
+                }
+            }
+
+            //var successLavaTemplate = CurrentCheckInState.CheckInType.SuccessLavaTemplate;
+            //lCheckinResultsHtml.Text = successLavaTemplate.ResolveMergeFields( mergeFields );
+
+            GenerateQRCodes();
+
+            RenderCheckinResults( checkinResultList );
+        }
+
+        /// <summary>
+        /// Generates the qr codes.
+        /// </summary>
+        private void GenerateQRCodes()
+        {
+            if ( !LocalDeviceConfig.GenerateQRCodeForAttendanceSessions )
+            {
+                return;
+            }
+
+            HttpCookie attendanceSessionGuidsCookie = Request.Cookies[CheckInCookieKey.AttendanceSessionGuids];
+            if ( attendanceSessionGuidsCookie == null )
+            {
+                attendanceSessionGuidsCookie = new HttpCookie( CheckInCookieKey.AttendanceSessionGuids );
+                attendanceSessionGuidsCookie.Value = string.Empty;
+            }
+
+            // set (or reset) the expiration to be 8 hours from the current time)
+            attendanceSessionGuidsCookie.Expires = RockDateTime.Now.AddHours( 8 );
+
+            var attendanceSessionGuids = attendanceSessionGuidsCookie.Value.Split( ',' ).AsGuidList();
+            attendanceSessionGuids = ValidAttendanceSessionGuids( attendanceSessionGuids );
+
+            // Add the guid to the list of checkin session cookie guids if it's not already there.
+            if ( CurrentCheckInState.CheckIn.CurrentFamily.AttendanceCheckinSessionGuid.HasValue &&
+                !attendanceSessionGuids.Contains( CurrentCheckInState.CheckIn.CurrentFamily.AttendanceCheckinSessionGuid.Value ) )
+            {
+                attendanceSessionGuids.Add( CurrentCheckInState.CheckIn.CurrentFamily.AttendanceCheckinSessionGuid.Value );
+            }
+
+            attendanceSessionGuidsCookie.Value = attendanceSessionGuids.AsDelimited( "," );
+
+            Rock.Web.UI.RockPage.AddOrUpdateCookie( attendanceSessionGuidsCookie );
+
+            lCheckinQRCodeHtml.Text = string.Format( "<div class='qr-code-container text-center'><img class='img-responsive qr-code' src='{0}' alt='Check-in QR Code' width='500' height='500'></div>", GetAttendanceSessionsQrCodeImageUrl( attendanceSessionGuidsCookie ) );
+        }
+
+        /// <summary>
         /// Renders the checkin results and any achievements and celebrations
         /// </summary>
         /// <param name="checkinResultList">The checkin result list.</param>
         private void RenderCheckinResults( List<CheckinResult> checkinResultList )
         {
-            List<PersonJustCompletedAchievementAttempt> personJustCompletedAchievementAttempts = new List<PersonJustCompletedAchievementAttempt>();
+            List<PersonAchievementAttempt> personJustCompletedAchievementAttempts = new List<PersonAchievementAttempt>();
 
-            foreach ( var checkinResult in checkinResultList )
+            foreach ( var checkinResult in checkinResultList.Where( a => a.JustCompletedAchievementAttempts != null ) )
             {
                 foreach ( var achievementAttempt in checkinResult.JustCompletedAchievementAttempts )
                 {
-                    personJustCompletedAchievementAttempts.Add( new PersonJustCompletedAchievementAttempt( checkinResult.Person.Person, achievementAttempt ) );
+                    personJustCompletedAchievementAttempts.Add( new PersonAchievementAttempt( checkinResult.Person.Person, achievementAttempt ) );
                 }
             }
 
@@ -339,11 +369,15 @@ namespace RockWeb.Blocks.CheckIn
 
             pnlCheckinResults.Visible = true;
             rptCheckinResults.DataSource = checkinResultList;
+            rptCheckinResults.DataBind();
         }
 
-        private class PersonJustCompletedAchievementAttempt
+        /// <summary>
+        /// 
+        /// </summary>
+        private class PersonAchievementAttempt
         {
-            public PersonJustCompletedAchievementAttempt( Person person, AchievementAttempt achievementAttempt )
+            public PersonAchievementAttempt( Person person, AchievementAttempt achievementAttempt )
             {
                 Person = person;
                 AchievementAttempt = achievementAttempt;
@@ -353,32 +387,54 @@ namespace RockWeb.Blocks.CheckIn
             public AchievementAttempt AchievementAttempt { get; }
         }
 
+        private Dictionary<string, object> GetAchievementMergeFields( AchievementAttempt achievementAttempt, Person person )
+        {
+            AchievementTypeCache achievementTypeCache = AchievementTypeCache.Get( achievementAttempt.AchievementTypeId );
+            var mergeFields = new Dictionary<string, object>();
+            mergeFields.Add( "Person", person );
+            mergeFields.Add( "Achievement", achievementAttempt );
+            mergeFields.Add( "AchievementType", achievementTypeCache );
+            mergeFields.Add( "NumberToAchieve", achievementTypeCache.NumberToAchieve );
+            mergeFields.Add( "NumberToAccumulate", achievementTypeCache.NumberToAccumulate );
+            mergeFields.Add( "ProgressCount", achievementTypeCache.GetProgressCount( achievementAttempt ) );
+            mergeFields.Add( "ProgressPercent", ( achievementAttempt.Progress * 100 ) );
+
+            return mergeFields;
+        }
+
+        /// <summary>
+        /// Handles the ItemDataBound event of the rptAchievementsSuccess control.
+        /// </summary>
+        /// <param name="sender">The source of the event.</param>
+        /// <param name="e">The <see cref="System.Web.UI.WebControls.RepeaterItemEventArgs"/> instance containing the event data.</param>
         protected void rptAchievementsSuccess_ItemDataBound( object sender, System.Web.UI.WebControls.RepeaterItemEventArgs e )
         {
-            var personJustCompletedAchievementAttempt = e.Item.DataItem as PersonJustCompletedAchievementAttempt;
+            var personJustCompletedAchievementAttempt = e.Item.DataItem as PersonAchievementAttempt;
             if ( personJustCompletedAchievementAttempt == null )
             {
                 return;
             }
 
             AchievementTypeCache achievementTypeCache = AchievementTypeCache.Get( personJustCompletedAchievementAttempt.AchievementAttempt.AchievementTypeId );
-            var summaryTemplate = achievementTypeCache.CustomSummaryLavaTemplate;
+            var customSummaryLavaTemplate = achievementTypeCache.CustomSummaryLavaTemplate;
+
+            if ( customSummaryLavaTemplate.IsNullOrWhiteSpace() )
+            {
+                customSummaryLavaTemplate = DebugSummaryTemplate;
+            }
+
+
             var lAchievementSuccessHtml = e.Item.FindControl( "lAchievementSuccessHtml" ) as Literal;
-            
-            if (summaryTemplate.IsNotNullOrWhiteSpace())
-            {
-                var mergeFields = new Dictionary<string, object>();
-                mergeFields.Add( "Person", personJustCompletedAchievementAttempt.Person );
-                mergeFields.Add( "Achievement", personJustCompletedAchievementAttempt.AchievementAttempt );
-                lAchievementSuccessHtml.Text = summaryTemplate.ResolveMergeFields( mergeFields );
-            }
-            else
-            {
-                StringBuilder stringBuilder = new StringBuilder();
-                // TODO
-            }
+
+            var mergeFields = GetAchievementMergeFields( personJustCompletedAchievementAttempt.AchievementAttempt, personJustCompletedAchievementAttempt.Person );
+            lAchievementSuccessHtml.Text = customSummaryLavaTemplate.ResolveMergeFields( mergeFields );
         }
 
+        /// <summary>
+        /// Handles the ItemDataBound event of the rptCheckinResults control.
+        /// </summary>
+        /// <param name="sender">The source of the event.</param>
+        /// <param name="e">The <see cref="System.Web.UI.WebControls.RepeaterItemEventArgs"/> instance containing the event data.</param>
         protected void rptCheckinResults_ItemDataBound( object sender, System.Web.UI.WebControls.RepeaterItemEventArgs e )
         {
             var checkinResult = e.Item.DataItem as CheckinResult;
@@ -387,8 +443,77 @@ namespace RockWeb.Blocks.CheckIn
                 return;
             }
 
-            var lCheckinResultHtml = e.Item.FindControl( "lCheckinResultHtml" ) as Literal;
-            // TODO
+            var lCheckinResultsPersonName = e.Item.FindControl( "lCheckinResultsPersonName" ) as Literal;
+            var lCheckinResultsCheckinMessage = e.Item.FindControl( "lCheckinResultsCheckinMessage" ) as Literal;
+            var pnlCheckinResultsCelebrationProgress = e.Item.FindControl( "pnlCheckinResultsCelebrationProgress" ) as Panel;
+
+            lCheckinResultsPersonName.Text = checkinResult.Person.ToString();
+            lCheckinResultsCheckinMessage.Text = $"{checkinResult.Group} in {checkinResult.Location.Name} at {checkinResult.Schedule}";
+
+
+            if ( checkinResult.InProgressAchievementAttempts?.Any() == true )
+            {
+                List<PersonAchievementAttempt> inProgressPersonAchievementAttempts = new List<PersonAchievementAttempt>();
+
+                foreach ( var achievementAttempt in checkinResult.InProgressAchievementAttempts )
+                {
+                    inProgressPersonAchievementAttempts.Add( new PersonAchievementAttempt( checkinResult.Person.Person, achievementAttempt ) );
+                }
+
+                pnlCheckinResultsCelebrationProgress.Visible = true;
+
+                var rptCheckinResultsAchievementsProgress = e.Item.FindControl( "rptCheckinResultsAchievementsProgress" ) as Repeater;
+                rptCheckinResultsAchievementsProgress.DataSource = inProgressPersonAchievementAttempts;
+                rptCheckinResultsAchievementsProgress.DataBind();
+            }
+            else
+            {
+                pnlCheckinResultsCelebrationProgress.Visible = false;
+            }
+        }
+
+        private const string DebugSummaryTemplate = @"
+<pre>
+Person: {{ Person.FullName }}
+AchievementType: {{ AchievementType.Name }}
+NumberToAchieve: {{ NumberToAchieve }}
+NumberToAccumulate: {{ NumberToAccumulate }}
+ProgressCount: {{ ProgressCount }}
+ProgressPercent: {{ ProgressPercent }}%
+</pre>
+";
+
+        /// <summary>
+        /// Handles the ItemDataBound event of the rptCheckinResultsAchievementsProgress control.
+        /// </summary>
+        /// <param name="sender">The source of the event.</param>
+        /// <param name="e">The <see cref="RepeaterItemEventArgs"/> instance containing the event data.</param>
+        protected void rptCheckinResultsAchievementsProgress_ItemDataBound( object sender, RepeaterItemEventArgs e )
+        {
+            var lCheckinResultsAchievementProgressHtml = e.Item.FindControl( "lCheckinResultsAchievementProgressHtml" ) as Literal;
+            PersonAchievementAttempt personAchievement = e.Item.DataItem as PersonAchievementAttempt;
+            if ( personAchievement == null )
+            {
+                return;
+            }
+
+            var achievementAttempt = personAchievement.AchievementAttempt;
+
+            var achievementType = AchievementTypeCache.Get( achievementAttempt.AchievementTypeId );
+            if ( achievementType == null )
+            {
+                return;
+            }
+
+            var customSummaryLavaTemplate = achievementType.CustomSummaryLavaTemplate;
+            var mergeFields = GetAchievementMergeFields( achievementAttempt, personAchievement.Person );
+
+            if ( customSummaryLavaTemplate.IsNullOrWhiteSpace() )
+            {
+                customSummaryLavaTemplate = DebugSummaryTemplate;
+            }
+
+            lCheckinResultsAchievementProgressHtml.Text = customSummaryLavaTemplate?.ResolveMergeFields( mergeFields );
         }
 
         /// <summary>
@@ -433,7 +558,6 @@ namespace RockWeb.Blocks.CheckIn
             }
         }
 
-
         /// <summary>
         /// Checks the given list of the attendance check-in session guids are still valid
         /// and returns the valid ones back.
@@ -460,7 +584,6 @@ namespace RockWeb.Blocks.CheckIn
                 .Where( a => sessionGuids.Contains( a.AttendanceCheckInSession.Guid ) )
                 .Select( a => a.AttendanceCheckInSession.Guid ).Distinct().ToList();
         }
-
 
         /// <summary>
         /// Adds the label script.
@@ -509,7 +632,6 @@ namespace RockWeb.Blocks.CheckIn
 ", jsonObject );
             ScriptManager.RegisterStartupScript( this, this.GetType(), "addLabelScript", script, true );
         }
-
 
 
     }
