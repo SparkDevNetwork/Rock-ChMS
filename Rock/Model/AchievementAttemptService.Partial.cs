@@ -14,9 +14,12 @@
 // limitations under the License.
 // </copyright>
 //
+using System;
 using System.Collections.Generic;
 using System.Data.Entity;
 using System.Linq;
+using System.Reflection;
+
 using Rock.Data;
 using Rock.Web.Cache;
 
@@ -57,6 +60,66 @@ namespace Rock.Model
         }
 
         /// <summary>
+        /// Returns a queryable of <see cref="AchievementAttemptWithPerson"/> where <see cref="AchievementType.AchieverEntityTypeId"/> is a Person or PersonAlias EntityType
+        /// </summary>
+        /// <returns></returns>
+        public IQueryable<AchievementAttemptWithPerson> GetAchievementAttemptWithAchieverPersonQuery()
+        {
+            int personAliasEntityTypeId = EntityTypeCache.Get<Rock.Model.PersonAlias>().Id;
+            int personEntityTypeId = EntityTypeCache.Get<Rock.Model.Person>().Id;
+            var personEntityQry = this.GetAchievementAttemptWithAchieverPersonQuery( personEntityTypeId );
+            var personAliasEntityQry = this.GetAchievementAttemptWithAchieverPersonQuery( personAliasEntityTypeId );
+
+            return personEntityQry.Union( personAliasEntityQry );
+        }
+
+        /// <summary>
+        /// Includes the AchieverPerson as Rock.Model.Person for AchievementType that are either a PersonAlias or Person entity type
+        /// </summary>
+        /// <param name="achieverEntityTypeId">The achiever entity type identifier.</param>
+        /// <returns></returns>
+        private IQueryable<AchievementAttemptWithPerson> GetAchievementAttemptWithAchieverPersonQuery( int achieverEntityTypeId )
+        {
+            var achievementAttemptQuery = Queryable().Where(a => a.AchievementType.AchieverEntityTypeId == achieverEntityTypeId );
+            IQueryable<AchievementAttemptWithPerson> achievementAttemptWithPersonQuery;
+
+            int personAliasEntityTypeId = EntityTypeCache.Get<Rock.Model.PersonAlias>().Id;
+            int personEntityTypeId = EntityTypeCache.Get<Rock.Model.Person>().Id;
+            if (achieverEntityTypeId == personAliasEntityTypeId )
+            {
+                var personAliasQry = new PersonAliasService( this.Context as RockContext ).Queryable();
+                achievementAttemptWithPersonQuery = achievementAttemptQuery.Join(
+                    personAliasQry,
+                    a => a.AchieverEntityId,
+                    pa => pa.Id,
+                    ( a, pa ) => new AchievementAttemptWithPerson
+                    {
+                        AchievementAttempt = a,
+                        AchieverPerson = pa.Person
+                    } );
+            }
+            else if ( achieverEntityTypeId == personEntityTypeId )
+            {
+                var personQry = new PersonService( this.Context as RockContext ).Queryable();
+                achievementAttemptWithPersonQuery = achievementAttemptQuery.Join(
+                    personQry,
+                    a => a.AchieverEntityId,
+                    p => p.Id,
+                    ( a, p ) => new AchievementAttemptWithPerson
+                    {
+                        AchievementAttempt = a,
+                        AchieverPerson = p
+                    } );
+            }
+            else
+            {
+                return null;
+            }
+
+            return achievementAttemptWithPersonQuery;
+        }
+
+        /// <summary>
         /// Gets the ordered person attempts.
         /// </summary>
         /// <param name="attemptsQuery">The attempts query.</param>
@@ -91,5 +154,29 @@ namespace Rock.Model
                 .OrderByDescending( saa => saa.AchievementAttemptStartDateTime )
                 .ToList();
         }
+
+        /// <summary>
+        /// 
+        /// </summary>
+        public class AchievementAttemptWithPerson
+        {
+            /// <summary>
+            /// Gets or sets the achievement attempt.
+            /// </summary>
+            /// <value>
+            /// The achievement attempt.
+            /// </value>
+            public AchievementAttempt AchievementAttempt { get; set; }
+
+            /// <summary>
+            /// Gets or sets the achiever person.
+            /// </summary>
+            /// <value>
+            /// The achiever person.
+            /// </value>
+            public Person AchieverPerson { get; set; }
+        }
+
+       
     }
 }

@@ -419,6 +419,26 @@ namespace Rock.Web.Cache
         }
 
         /// <summary>
+        /// If this is a Streak based achievement, this is the StreakType that this AchievementType is based on
+        /// </summary>
+        /// <value>
+        /// The number to achieve.
+        /// </value>
+        public StreakTypeCache StreakType
+        {
+            get
+            {
+                var streakTypeGuid = this.GetAttributeValue( StreakAchievement.AttributeKey.StreakType ).AsGuidOrNull();
+                if ( streakTypeGuid.HasValue )
+                {
+                    return StreakTypeCache.Get( streakTypeGuid.Value );
+                }
+
+                return null;
+            }
+        }
+
+        /// <summary>
         /// Returns a <see cref="System.String" /> that represents this instance Title.
         /// </summary>
         /// <returns>

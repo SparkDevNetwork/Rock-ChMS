@@ -19,21 +19,15 @@ using System.Collections.Generic;
 using System.ComponentModel;
 using System.Data.Entity;
 using System.Linq;
-using System.Net;
-using System.Net.Sockets;
-using System.Text;
-using System.Text.RegularExpressions;
 using System.Web;
 using System.Web.UI;
 using System.Web.UI.HtmlControls;
 using System.Web.UI.WebControls;
 
 using Rock;
-using Rock.Achievement;
 using Rock.Attribute;
 using Rock.CheckIn;
 using Rock.Data;
-using Rock.Lava;
 using Rock.Model;
 using Rock.Utility;
 using Rock.Web.Cache;
@@ -398,6 +392,8 @@ namespace RockWeb.Blocks.CheckIn
             mergeFields.Add( "NumberToAccumulate", achievementTypeCache.NumberToAccumulate );
             mergeFields.Add( "ProgressCount", achievementTypeCache.GetProgressCount( achievementAttempt ) );
             mergeFields.Add( "ProgressPercent", ( achievementAttempt.Progress * 100 ) );
+            mergeFields.Add( "StreakType", achievementTypeCache.StreakType );
+            mergeFields.Add( "FrequencyText", achievementTypeCache.StreakType?.OccurrenceFrequency.ConvertToString() );
 
             return mergeFields;
         }
@@ -480,6 +476,8 @@ NumberToAchieve: {{ NumberToAchieve }}
 NumberToAccumulate: {{ NumberToAccumulate }}
 ProgressCount: {{ ProgressCount }}
 ProgressPercent: {{ ProgressPercent }}%
+FrequencyText: {{ FrequencyText }}
+StreakType: {{ StreakType.Name }}
 </pre>
 ";
 
