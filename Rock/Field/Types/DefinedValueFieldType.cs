@@ -45,7 +45,7 @@ namespace Rock.Field.Types
         private const string INCLUDE_INACTIVE_KEY = "includeInactive";
         private const string ALLOW_ADDING_NEW_VALUES_KEY = "AllowAddingNewValues";
         private const string REPEAT_COLUMNS_KEY = "RepeatColumns";
-
+        private const string SELECTABLE_OPTIONS_KEY = "SelectableOptions";
 
         /// <summary>
         /// Returns a list of the configuration keys.
@@ -61,6 +61,7 @@ namespace Rock.Field.Types
             configKeys.Add( INCLUDE_INACTIVE_KEY );
             configKeys.Add( ALLOW_ADDING_NEW_VALUES_KEY );
             configKeys.Add( REPEAT_COLUMNS_KEY );
+            configKeys.Add( SELECTABLE_OPTIONS_KEY );
             return configKeys;
         }
 
@@ -165,6 +166,7 @@ namespace Rock.Field.Types
             configurationValues.Add( INCLUDE_INACTIVE_KEY, new ConfigurationValue( "Include Inactive", "When set, inactive defined values will be included in the list.", string.Empty ) );
             configurationValues.Add( ALLOW_ADDING_NEW_VALUES_KEY, new ConfigurationValue( "Allow Adding New Values", "When set the defined type picker can be used to add new defined types.", string.Empty ) );
             configurationValues.Add( REPEAT_COLUMNS_KEY, new ConfigurationValue( "Repeat Columns", "Select how many columns the list should use before going to the next row, if not set 4 is used. This setting has no effect if 'Enhance For Long Lists' is selected since that will not use a checkbox list.", string.Empty ) );
+            configurationValues.Add( SELECTABLE_OPTIONS_KEY, new ConfigurationValue( " Selectable Values", "Specify the values eligible for this control. If none are specified then all will be displayed.", string.Empty ) );
 
             if ( controls != null )
             {
