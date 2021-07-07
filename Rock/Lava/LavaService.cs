@@ -503,6 +503,22 @@ namespace Rock.Lava
         }
 
         /// <summary>
+        /// Render the provided template in a new context with the specified merge fields.
+        /// </summary>
+        /// <param name="inputTemplate"></param>
+        /// <param name="mergeFields">The collection of merge fields to be added to the context used to render the template.</param>
+        /// <returns>
+        /// The rendered output of the template.
+        /// If the template is invalid, returns an error message or an empty string according to the current ExceptionHandlingStrategy setting.
+        /// </returns>
+        public static LavaRenderResult RenderTemplate( string inputTemplate, IDictionary<string, object> mergeFields )
+        {
+            var result = RenderTemplate( inputTemplate, LavaRenderParameters.WithContext( _engine.NewRenderContext( mergeFields ) ) );
+
+            return result;
+        }
+
+        /// <summary>
         /// Render the provided template in a new context with the specified parameters.
         /// </summary>
         /// <param name="inputTemplate"></param>
@@ -518,6 +534,22 @@ namespace Rock.Lava
             }
 
             return _engine.RenderTemplate( inputTemplate, parameters );
+        }
+
+        /// <summary>
+        /// Render the provided template in a new context with the specified merge fields.
+        /// </summary>
+        /// <param name="inputTemplate"></param>
+        /// <param name="mergeFields">The collection of merge fields to be added to the context used to render the template.</param>
+        /// <returns>
+        /// The rendered output of the template.
+        /// If the template is invalid, returns an error message or an empty string according to the current ExceptionHandlingStrategy setting.
+        /// </returns>
+        public static LavaRenderResult RenderTemplate( ILavaTemplate inputTemplate, ILavaDataDictionary mergeFields )
+        {
+            var result = RenderTemplate( inputTemplate, LavaRenderParameters.WithContext( _engine.NewRenderContext( mergeFields ) ) );
+
+            return result;
         }
 
         /// <summary>
@@ -554,6 +586,22 @@ namespace Rock.Lava
             }
 
             return _engine.RenderTemplate( inputTemplate, context );
+        }
+
+        /// <summary>
+        /// Render the provided template in a new context with the specified merge fields.
+        /// </summary>
+        /// <param name="inputTemplate"></param>
+        /// <param name="mergeFields">The collection of merge fields to be added to the context used to render the template.</param>
+        /// <returns>
+        /// The rendered output of the template.
+        /// If the template is invalid, returns an error message or an empty string according to the current ExceptionHandlingStrategy setting.
+        /// </returns>
+        public static LavaRenderResult RenderTemplate( ILavaTemplate inputTemplate, IDictionary<string, object> mergeFields )
+        {
+            var result = RenderTemplate( inputTemplate, LavaRenderParameters.WithContext( _engine.NewRenderContext( mergeFields ) ) );
+
+            return result;
         }
 
         /// <summary>
