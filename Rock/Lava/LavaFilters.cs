@@ -1100,7 +1100,7 @@ namespace Rock.Lava
             // If the object is a DateTimeOffset, translate it to local server time to ensure that the offset is accounted for in the output.
             if ( input is DateTimeOffset inputDateTimeOffset )
             {
-                return inputDateTimeOffset.ToLocalTime().ToString( format ).Trim();
+                return inputDateTimeOffset.ToLocalTime().DateTime.ToString( format ).Trim();
             }
 
             // Convert the input to a valid DateTime if possible.
@@ -2761,6 +2761,9 @@ namespace Rock.Lava
                                     break;
                                 case "FormattedHtmlAddress":
                                     qualifier = qualifier.Replace( match.ToString(), location.FormattedHtmlAddress );
+                                    break;
+                                case "Guid":
+                                    qualifier = qualifier.Replace( match.ToString(), location.Guid.ToString() );
                                     break;
                                 default:
                                     qualifier = qualifier.Replace( match.ToString(), "" );
@@ -5141,8 +5144,8 @@ namespace Rock.Lava
                 if ( lavaObject != null )
                 {
                     if ( lavaObject.ContainsKey( filterKey )
-                            && ( ( comparisonType == "equal" && LavaService.AreEqualValue( lavaObject.GetValue( filterKey ), filterValue ) )
-                                 || ( comparisonType == "notequal" && LavaService.AreEqualValue( lavaObject.GetValue( filterKey ), filterValue ) ) ) )
+                            && ( ( comparisonType == "equal" && AreEqualValue( lavaObject.GetValue( filterKey ), filterValue ) )
+                                 || ( comparisonType == "notequal" && !AreEqualValue( lavaObject.GetValue( filterKey ), filterValue ) ) ) )
                     {
                         result.Add( lavaObject );
                     }
@@ -5176,6 +5179,21 @@ namespace Rock.Lava
             }
 
             return result;
+        }
+
+        private static bool AreEqualValue( object left, object right )
+        {
+            if ( right == null )
+            {
+                if ( left == null )
+                {
+                    return true;
+                }
+
+                return false;
+            }
+
+            return left.Equals( right );
         }
 
         /// <summary>
