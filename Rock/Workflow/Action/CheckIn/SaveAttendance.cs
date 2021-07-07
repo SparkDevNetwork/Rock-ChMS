@@ -264,6 +264,13 @@ namespace Rock.Workflow.Action.CheckIn
             return true;
         }
 
+        /// <summary>
+        /// Gets the completed achievement attempt ids.
+        /// </summary>
+        /// <param name="rockContext">The rock context.</param>
+        /// <param name="attendanceRecordsPersonAliasIds">The attendance records person alias ids.</param>
+        /// <param name="configuredAchievementTypeIds">The configured achievement type ids.</param>
+        /// <returns></returns>
         private int[] GetCompletedAchievementAttemptIds( RockContext rockContext, int[] attendanceRecordsPersonAliasIds, List<int> configuredAchievementTypeIds )
         {
             var achievementAttemptService = new AchievementAttemptService( new RockContext() );
@@ -276,6 +283,13 @@ namespace Rock.Workflow.Action.CheckIn
             return alreadyCompletedAchievementAttemptIds;
         }
 
+        /// <summary>
+        /// Gets the achievement attempts with person alias query.
+        /// </summary>
+        /// <param name="rockContext">The rock context.</param>
+        /// <param name="attendanceRecordsPersonAliasIds">The attendance records person alias ids.</param>
+        /// <param name="configuredAchievementTypeIds">The configured achievement type ids.</param>
+        /// <returns></returns>
         private IQueryable<AchievementAttemptService.AchievementAttemptWithPersonAlias> GetAchievementAttemptsWithPersonAliasQuery( RockContext rockContext, int[] attendanceRecordsPersonAliasIds, List<int> configuredAchievementTypeIds )
         {
             var achievementAttemptService = new AchievementAttemptService( new RockContext() );

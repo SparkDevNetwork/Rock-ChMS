@@ -89,6 +89,9 @@ namespace Rock.Client
         public bool IsActive { get; set; }
 
         /// <summary />
+        public bool IsPublic { get; set; }
+
+        /// <summary />
         public int? MaxAccomplishmentsAllowed { get; set; } = 1;
 
         /// <summary>
@@ -156,6 +159,7 @@ namespace Rock.Client
             this.ForeignKey = source.ForeignKey;
             this.ImageBinaryFileId = source.ImageBinaryFileId;
             this.IsActive = source.IsActive;
+            this.IsPublic = source.IsPublic;
             this.MaxAccomplishmentsAllowed = source.MaxAccomplishmentsAllowed;
             this.ModifiedAuditValuesAlreadyUpdated = source.ModifiedAuditValuesAlreadyUpdated;
             this.Name = source.Name;
@@ -202,6 +206,9 @@ namespace Rock.Client
 
         /// <summary />
         public ICollection<AchievementTypePrerequisite> Dependencies { get; set; }
+
+        /// <summary />
+        public BinaryFile ImageBinaryFile { get; set; }
 
         /// <summary />
         public ICollection<AchievementTypePrerequisite> Prerequisites { get; set; }

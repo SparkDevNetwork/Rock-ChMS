@@ -35,24 +35,12 @@ namespace Rock.Migrations
             CreateIndex( "dbo.AchievementType", "ImageBinaryFileId" );
             AddForeignKey( "dbo.AchievementType", "ImageBinaryFileId", "dbo.BinaryFile", "Id" );
 
+            // We want the "AchievementTypes" GroupType attribute to only apply to GroupType's with a GroupTypePurpose of 'Checkin Template'
+            // So, we need to get the checkInTemplatePurposeValueId for that so we can use it as the EntityTypeQualifierValue
+            var checkInTemplatePurposeValueId = SqlScalar( $" SELECT TOP 1 [Id] FROM [DefinedValue] WHERE [Guid] = '{Rock.SystemGuid.DefinedValue.GROUPTYPE_PURPOSE_CHECKIN_TEMPLATE}'" ) as int?;
+
             // Add the "AchievementTypes" group type attribute with a EntityTypeQualifier of GroupTypePurposeValueId
-            RockMigrationHelper.UpdateEntityAttribute( "Rock.Model.GroupType", Rock.SystemGuid.FieldType.TEXT, "GroupTypePurposeValueId", "", "Achievement Types", "", 0, "", "EECDA094-E5E2-4A47-804D-65701590F2A1", Rock.SystemKey.GroupTypeAttributeKey.CHECKIN_GROUPTYPE_ACHIEVEMENT_TYPES );
-
-            // We want the above "AchievementTypes" grouptype attribute to only apply to GroupType's with a GroupTypePurpose of 'Checkin Template',
-            // so we'll do this SQL to set that
-            Sql( $@"
-                    DECLARE @GroupTypeEntityTypeId int = ( SELECT TOP 1 [Id] FROM [EntityType] WHERE [Name] = 'Rock.Model.GroupType' )
-                    DECLARE @CheckInTemplatePurposeId int = ( SELECT TOP 1 [Id] FROM [DefinedValue] WHERE [Guid] = '{Rock.SystemGuid.DefinedValue.GROUPTYPE_PURPOSE_CHECKIN_TEMPLATE}' )
-                    IF @GroupTypeEntityTypeId IS NOT NULL AND @CheckInTemplatePurposeId IS NOT NULL
-                    BEGIN
-
-                        UPDATE [Attribute] SET [EntityTypeQualifierValue] = CAST( @CheckInTemplatePurposeId AS varchar )
-                        WHERE [EntityTypeId] = @GroupTypeEntityTypeId
-                        AND [EntityTypeQualifierColumn] = 'GroupTypePurposeValueId'
-                        AND [Key] = '{Rock.SystemKey.GroupTypeAttributeKey.CHECKIN_GROUPTYPE_ACHIEVEMENT_TYPES}'
-
-                    END
-            " );
+            RockMigrationHelper.UpdateEntityAttribute( "Rock.Model.GroupType", Rock.SystemGuid.FieldType.TEXT, "GroupTypePurposeValueId", checkInTemplatePurposeValueId?.ToString(), "Achievement Types", "", 0, "", "EECDA094-E5E2-4A47-804D-65701590F2A1", Rock.SystemKey.GroupTypeAttributeKey.CHECKIN_GROUPTYPE_ACHIEVEMENT_TYPES );
         }
 
         /// <summary>
