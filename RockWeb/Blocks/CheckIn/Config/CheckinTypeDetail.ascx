@@ -166,6 +166,7 @@
                                     <Rock:CodeEditor runat="server" ID="ceStartTemplate" Label="Start Template" Help="The lava template to use when rendering the Start button on the Welcome Block" EditorMode="Lava" />
                                     <Rock:CodeEditor runat="server" ID="ceFamilySelectTemplate" Label="Family Select Template" Help="The lava template to use when rendering each family button on the Family Select" EditorMode="Lava" />
                                     <Rock:CodeEditor runat="server" ID="cePersonSelectTemplate" Label="Person Select Template" Help="The lava template used to append additional information to each person button on the Person Select & Multi-Person Select Check-in blocks." EditorMode="Lava" />
+                                    <Rock:RockDropDownList runat="server" ID="ddlSuccessTemplateOverrideDisplayMode" Help="'Never' will hide the custom success template. 'Replace' will replace the current success content with the template. 'Append' will place the success template content under the existing content." Label="Success Template Display Mode" AutoPostBack="true" OnSelectedIndexChanged="ddlSuccessTemplateOverrideDisplayMode_SelectedIndexChanged" />
                                     <Rock:CodeEditor runat="server" ID="ceSuccessTemplate" Label="Success Template" Help="The lava template to use when rendering the Success result on the Success Block" EditorMode="Lava" />
                                 </div>
                             </div>

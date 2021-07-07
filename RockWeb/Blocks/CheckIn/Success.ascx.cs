@@ -71,7 +71,7 @@ namespace RockWeb.Blocks.CheckIn
 
         private static class MergeFieldKey
         {
-            public const string CheckinResultList = "Person";
+            public const string CheckinResultList = "CheckinResultList";
             public const string Kiosk = "Kiosk";
             public const string RegistrationModeEnabled = "RegistrationModeEnabled";
             public const string Messages = "Messages";
@@ -147,6 +147,14 @@ namespace RockWeb.Blocks.CheckIn
             public CheckInSchedule Schedule { get; internal set; }
 
             /// <summary>
+            /// Gets the detail message.
+            /// </summary>
+            /// <value>
+            /// The detail message.
+            /// </value>
+            public string DetailMessage => $"{Person} was checked into {Group} in {Location.Name} at {Schedule}";
+
+            /// <summary>
             /// Gets the in progress achievement attempts.
             /// </summary>
             /// <value>
@@ -205,6 +213,7 @@ namespace RockWeb.Blocks.CheckIn
 
             var inProgressAchievementAttemptsByPersonId = CurrentCheckInState.CheckIn.InProgressAchievementAttemptsByPersonId;
             var justCompletedAchievementAttemptsByPersonId = CurrentCheckInState.CheckIn.JustCompletedAchievementAttemptsByPersonId;
+            var successLavaTemplateDisplayMode = CurrentCheckInState.CheckInType.SuccessLavaTemplateDisplayMode;
 
             // Populate Checkin Results and label data
             foreach ( var family in CurrentCheckInState.CheckIn.Families.Where( f => f.Selected ) )
@@ -223,7 +232,7 @@ namespace RockWeb.Blocks.CheckIn
                             {
                                 foreach ( var schedule in location.GetSchedules( true ) )
                                 {
-                                    
+
                                     CheckinResult checkinResult = new CheckinResult();
                                     checkinResult.Person = person;
                                     checkinResult.Group = group;
@@ -308,11 +317,11 @@ namespace RockWeb.Blocks.CheckIn
 
             GenerateQRCodes();
 
-            RenderCheckinResults( checkinResultList );
+            RenderCheckinResults( checkinResultList, mergeFields, successLavaTemplateDisplayMode );
         }
 
         /// <summary>
-        /// Generates the qr codes.
+        /// Generates the QR codes.
         /// </summary>
         private void GenerateQRCodes()
         {
@@ -349,10 +358,40 @@ namespace RockWeb.Blocks.CheckIn
         }
 
         /// <summary>
+        /// Renders the checkin results.
+        /// </summary>
+        /// <param name="checkinResultList">The checkin result list.</param>
+        /// <param name="mergeFields">The merge fields.</param>
+        /// <param name="successLavaTemplateDisplayMode">The success lava template display mode.</param>
+        private void RenderCheckinResults( List<CheckinResult> checkinResultList, Dictionary<string, object> mergeFields, SuccessLavaTemplateDisplayMode successLavaTemplateDisplayMode )
+        {
+            if ( successLavaTemplateDisplayMode != SuccessLavaTemplateDisplayMode.Replace )
+            {
+                pnlDefaultCheckinSuccessResults.Visible = true;
+                RenderDefaultCheckinResults( checkinResultList );
+            }
+            else
+            {
+                pnlDefaultCheckinSuccessResults.Visible = false;
+            }
+
+            if ( successLavaTemplateDisplayMode != SuccessLavaTemplateDisplayMode.Never )
+            {
+                lCustomSuccessLavaTemplateHtml.Visible = true;
+                var successLavaTemplate = CurrentCheckInState.CheckInType.SuccessLavaTemplate;
+                lCustomSuccessLavaTemplateHtml.Text = successLavaTemplate.ResolveMergeFields( mergeFields );
+            }
+            else
+            {
+                lCustomSuccessLavaTemplateHtml.Visible = false;
+            }
+        }
+
+        /// <summary>
         /// Renders the checkin results and any achievements and celebrations
         /// </summary>
         /// <param name="checkinResultList">The checkin result list.</param>
-        private void RenderCheckinResults( List<CheckinResult> checkinResultList )
+        private void RenderDefaultCheckinResults( List<CheckinResult> checkinResultList )
         {
             List<PersonAchievementAttempt> personJustCompletedAchievementAttempts = new List<PersonAchievementAttempt>();
 
@@ -360,7 +399,10 @@ namespace RockWeb.Blocks.CheckIn
             {
                 foreach ( var achievementAttempt in checkinResult.JustCompletedAchievementAttempts )
                 {
-                    personJustCompletedAchievementAttempts.Add( new PersonAchievementAttempt( checkinResult.Person.Person, achievementAttempt ) );
+                    if ( !personJustCompletedAchievementAttempts.Any( x => x.Person.Id == checkinResult.Person.Person.Id ) )
+                    {
+                        personJustCompletedAchievementAttempts.Add( new PersonAchievementAttempt( checkinResult.Person.Person, achievementAttempt ) );
+                    }
                 }
             }
 
@@ -429,7 +471,7 @@ namespace RockWeb.Blocks.CheckIn
 
             if ( customSummaryLavaTemplate.IsNullOrWhiteSpace() )
             {
-                customSummaryLavaTemplate = DebugSummaryTemplate;
+                customSummaryLavaTemplate = DefaultAchievementTypeSummaryLavaTemplate;
             }
 
             var lAchievementSuccessHtml = e.Item.FindControl( "lAchievementSuccessHtml" ) as Literal;
@@ -479,7 +521,7 @@ namespace RockWeb.Blocks.CheckIn
             }
         }
 
-        private const string DebugSummaryTemplate = @"{% include '~/Assets/Lava/CheckinCelebrationDebugTemplate.lava' %}";
+        private const string DefaultAchievementTypeSummaryLavaTemplate = @"{% include '~/Assets/Lava/Achievements/AchievementTypeSummaryLavaTemplate.lava' %}";
 
         /// <summary>
         /// Handles the ItemDataBound event of the rptCheckinResultsAchievementsProgress control.
@@ -508,7 +550,7 @@ namespace RockWeb.Blocks.CheckIn
 
             if ( customSummaryLavaTemplate.IsNullOrWhiteSpace() )
             {
-                customSummaryLavaTemplate = DebugSummaryTemplate;
+                customSummaryLavaTemplate = DefaultAchievementTypeSummaryLavaTemplate;
             }
 
             lCheckinResultsAchievementProgressHtml.Text = customSummaryLavaTemplate?.ResolveMergeFields( mergeFields );

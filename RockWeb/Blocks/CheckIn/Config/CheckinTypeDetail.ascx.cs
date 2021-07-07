@@ -23,6 +23,7 @@ using System.Web.UI;
 using System.Web.UI.WebControls;
 using Rock;
 using Rock.Attribute;
+using Rock.CheckIn;
 using Rock.Constants;
 using Rock.Data;
 using Rock.Model;
@@ -118,6 +119,16 @@ namespace RockWeb.Blocks.CheckIn.Config
         /// <param name="sender">The source of the event.</param>
         /// <param name="e">The <see cref="EventArgs"/> instance containing the event data.</param>
         protected void ddlType_SelectedIndexChanged( object sender, EventArgs e )
+        {
+            SetFieldVisibility();
+        }
+
+        /// <summary>
+        /// Handles the SelectedIndexChanged event of the ddlSuccessTemplateOverrideDisplayMode control.
+        /// </summary>
+        /// <param name="sender">The source of the event.</param>
+        /// <param name="e">The <see cref="EventArgs"/> instance containing the event data.</param>
+        protected void ddlSuccessTemplateOverrideDisplayMode_SelectedIndexChanged( object sender, EventArgs e )
         {
             SetFieldVisibility();
         }
@@ -332,6 +343,8 @@ namespace RockWeb.Blocks.CheckIn.Config
                 groupType.SetAttributeValue( Rock.SystemKey.GroupTypeAttributeKey.CHECKIN_START_LAVA_TEMPLATE, ceStartTemplate.Text );
                 groupType.SetAttributeValue( Rock.SystemKey.GroupTypeAttributeKey.CHECKIN_FAMILYSELECT_LAVA_TEMPLATE, ceFamilySelectTemplate.Text );
                 groupType.SetAttributeValue( Rock.SystemKey.GroupTypeAttributeKey.CHECKIN_PERSON_SELECT_ADDITIONAL_INFORMATION_LAVA_TEMPLATE, cePersonSelectTemplate.Text );
+
+                groupType.SetAttributeValue( Rock.SystemKey.GroupTypeAttributeKey.CHECKIN_SUCCESS_LAVA_TEMPLATE_OVERRIDE_DISPLAY_MODE, ddlSuccessTemplateOverrideDisplayMode.SelectedValue );
                 groupType.SetAttributeValue( Rock.SystemKey.GroupTypeAttributeKey.CHECKIN_SUCCESS_LAVA_TEMPLATE, ceSuccessTemplate.Text );
 
                 // Save group type and attributes
@@ -573,6 +586,8 @@ namespace RockWeb.Blocks.CheckIn.Config
                 ceStartTemplate.Text = groupType.GetAttributeValue( Rock.SystemKey.GroupTypeAttributeKey.CHECKIN_START_LAVA_TEMPLATE );
                 ceFamilySelectTemplate.Text = groupType.GetAttributeValue( Rock.SystemKey.GroupTypeAttributeKey.CHECKIN_FAMILYSELECT_LAVA_TEMPLATE );
                 cePersonSelectTemplate.Text = groupType.GetAttributeValue( Rock.SystemKey.GroupTypeAttributeKey.CHECKIN_PERSON_SELECT_ADDITIONAL_INFORMATION_LAVA_TEMPLATE );
+
+                ddlSuccessTemplateOverrideDisplayMode.SetValue( groupType.GetAttributeValue( Rock.SystemKey.GroupTypeAttributeKey.CHECKIN_SUCCESS_LAVA_TEMPLATE_OVERRIDE_DISPLAY_MODE ) );
                 ceSuccessTemplate.Text = groupType.GetAttributeValue( Rock.SystemKey.GroupTypeAttributeKey.CHECKIN_SUCCESS_LAVA_TEMPLATE );
 
                 // Other GroupType Attributes
@@ -643,6 +658,7 @@ namespace RockWeb.Blocks.CheckIn.Config
 
             excludeList.Add( Rock.SystemKey.GroupTypeAttributeKey.CHECKIN_START_LAVA_TEMPLATE );
             excludeList.Add( Rock.SystemKey.GroupTypeAttributeKey.CHECKIN_FAMILYSELECT_LAVA_TEMPLATE );
+            excludeList.Add( Rock.SystemKey.GroupTypeAttributeKey.CHECKIN_SUCCESS_LAVA_TEMPLATE_OVERRIDE_DISPLAY_MODE );
             excludeList.Add( Rock.SystemKey.GroupTypeAttributeKey.CHECKIN_SUCCESS_LAVA_TEMPLATE );
             excludeList.Add( Rock.SystemKey.GroupTypeAttributeKey.CHECKIN_PERSON_SELECT_ADDITIONAL_INFORMATION_LAVA_TEMPLATE );
 
@@ -657,6 +673,9 @@ namespace RockWeb.Blocks.CheckIn.Config
             }
         }
 
+        /// <summary>
+        /// Sets the field visibility.
+        /// </summary>
         private void SetFieldVisibility()
         {
             bool familyType = ddlType.SelectedValue == "1";
@@ -678,6 +697,9 @@ namespace RockWeb.Blocks.CheckIn.Config
             nbMinPhoneLength.Visible = showPhoneFields;
             nbMaxPhoneLength.Visible = showPhoneFields;
             ddlPhoneSearchType.Visible = showPhoneFields;
+
+            var successLavaTemplateDisplayMode = ddlSuccessTemplateOverrideDisplayMode.SelectedValueAsEnum<SuccessLavaTemplateDisplayMode>( SuccessLavaTemplateDisplayMode.Never );
+            ceSuccessTemplate.Visible = successLavaTemplateDisplayMode != SuccessLavaTemplateDisplayMode.Never;
         }
 
         /// <summary>
@@ -832,9 +854,11 @@ namespace RockWeb.Blocks.CheckIn.Config
                 lbRegistrationRequiredAttributesForFamilies.Items.Add( new ListItem( groupTypeFamilyAttribute.Name, groupTypeFamilyAttribute.Value ) );
                 lbRegistrationOptionalAttributesForFamilies.Items.Add( new ListItem( groupTypeFamilyAttribute.Name, groupTypeFamilyAttribute.Value ) );
             }
+
+            ddlSuccessTemplateOverrideDisplayMode.Items.Clear();
+            ddlSuccessTemplateOverrideDisplayMode.BindToEnum<SuccessLavaTemplateDisplayMode>();
         }
 
         #endregion
-
     }
 }

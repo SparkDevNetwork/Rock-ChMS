@@ -41,6 +41,9 @@ namespace Rock.Migrations
 
             // Add the "AchievementTypes" group type attribute with a EntityTypeQualifier of GroupTypePurposeValueId
             RockMigrationHelper.UpdateEntityAttribute( "Rock.Model.GroupType", Rock.SystemGuid.FieldType.TEXT, "GroupTypePurposeValueId", checkInTemplatePurposeValueId?.ToString(), "Achievement Types", "", 0, "", "EECDA094-E5E2-4A47-804D-65701590F2A1", Rock.SystemKey.GroupTypeAttributeKey.CHECKIN_GROUPTYPE_ACHIEVEMENT_TYPES );
+
+            // Add the "AchievementTypes" group type attribute with a EntityTypeQualifier of GroupTypePurposeValueId
+            RockMigrationHelper.UpdateEntityAttribute( "Rock.Model.GroupType", Rock.SystemGuid.FieldType.TEXT, "GroupTypePurposeValueId", checkInTemplatePurposeValueId?.ToString(), "Success Template Display Mode", "", 0, "", "B30236D5-F25F-4CC6-8ED1-76E02E71F042", Rock.SystemKey.GroupTypeAttributeKey.CHECKIN_SUCCESS_LAVA_TEMPLATE_OVERRIDE_DISPLAY_MODE );
         }
 
         /// <summary>

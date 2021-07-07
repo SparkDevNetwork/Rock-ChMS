@@ -254,39 +254,42 @@
 
         <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.3.3/dist/confetti.browser.min.js"></script>
         <script>
-            var conffettiSound = new Howl({
-                    src: ['https://www.sparkdevnetwork.org/Content/misc/checkinsoundtesting/Confetti_Gun_05.mp3'],
-                    volume: 1
-                });
-    
-            var celebrateSound = new Howl({
-                src: ['https://www.sparkdevnetwork.org/Content/misc/checkinsoundtesting/Fanfare_Trumpets1.mp3'],
+
+            var conffetiSound = new Howl( {
+                src: [ '<%= ResolveRockUrl("~/Assets/Sounds/Checkin/confetti_gun.mp3") %>' ],
+                volume: 1
+            } );
+
+            var celebrateSound = new Howl( {
+                src: [ '<%= ResolveRockUrl("~/Assets/Sounds/Checkin/fanfare_trumpets.mp3") %>' ],
                 volume: 0.8
-            });
-    
-            $(document).ready(function () {
-                if ($('.checkin-celebrations').length){
+            } );
+
+            $( document ).ready( function ()
+            {
+                if ( $( '.checkin-celebrations' ).length )
+                {
                     setTimeout(
-                        function()
+                        function ()
                         {
-                        celebrateSound.play();
-                                confetti({
-                                    origin: { y: -0.2 },
+                            celebrateSound.play();
+                            confetti( {
+                                origin: { y: -0.2 },
                                 angle: -90,
                                 spread: 150,
                                 startVelocity: 30,
                                 particleCount: 200,
                                 decay: 0.95,
-                                colors: ['#f24730', '#6abfd3', '#ffc639', '#ff9239','#fc83a3','#5395e5']
-                                });
-                        }, 500);
+                                colors: [ '#f24730', '#6abfd3', '#ffc639', '#ff9239', '#fc83a3', '#5395e5' ]
+                            } );
+                        }, 500 );
                     setTimeout(
-                        function()
+                        function ()
                         {
-                            conffettiSound.play();
-                        }, 800);
+                            conffetiSound.play();
+                        }, 800 );
                 }
-            });
+            } );
         </script>
 
         <Rock:ModalAlert ID="maWarning" runat="server" />
@@ -300,83 +303,88 @@
             <div class="checkin-scroll-panel">
                 <div class="scroller">
 
-                     <ol class="checkin-messages checkin-body-container">
+                    <ol class="checkin-messages checkin-body-container">
                     </ol>
 
                     <ol class="checkin-summary checkin-body-container">
-                    
 
-                    <asp:Panel ID="pnlCheckinCelebrations" runat="server" Visible="false" CssClass="checkin-celebrations">
-                        
-                        <h3>Celebrations</h3>
-                        <div class="row">
+                        <%-- The default Success Results --%>
+                        <asp:Panel ID="pnlDefaultCheckinSuccessResults" runat="server">
 
-                            <asp:Repeater ID="rptAchievementsSuccess" runat="server" OnItemDataBound="rptAchievementsSuccess_ItemDataBound">
-                                <ItemTemplate>
-                                    <div class="col-xs-12 col-lg-4">
-                                        <div class="card">
-                                            <div class="card-body">
+                            <asp:Panel ID="pnlCheckinCelebrations" runat="server" Visible="false" CssClass="checkin-celebrations">
 
-                                                <asp:Literal ID="lAchievementSuccessHtml" runat="server" />
+                                <h3>Celebrations</h3>
+                                <div class="row">
 
-                                            </div>
-                                        </div>
-                                    </div>
-                                </ItemTemplate>
-                            </asp:Repeater>
+                                    <asp:Repeater ID="rptAchievementsSuccess" runat="server" OnItemDataBound="rptAchievementsSuccess_ItemDataBound">
+                                        <ItemTemplate>
+                                            <div class="col-xs-12 col-lg-4">
+                                                <div class="card">
+                                                    <div class="card-body">
 
-                        </div>
-                        
-                    </asp:Panel>
+                                                        <asp:Literal ID="lAchievementSuccessHtml" runat="server" />
 
-                    <%-- List of Attendances' Checkin Results, and any in-progress Achievements for each--%>
-                    <asp:Panel ID="pnlCheckinConfirmations" runat="server" Visible="true" CssClass="checkin-confirmations">
-                        <h3>Check-in Confirmation</h3>
-
-                        <div class="row">
-                            <asp:Repeater ID="rptCheckinResults" runat="server" OnItemDataBound="rptCheckinResults_ItemDataBound">
-                                <ItemTemplate>
-                                    <div class="col-xs-12 col-md-6 col-lg-4">
-                                        <div class="card">
-                                            <div class="card-body">
-                                                <div class="checkin-details">
-                                                    <%-- Person Name and Checkin Message (ex: Noah, Group in Location at Time)  --%>
-                                                    <span class="person-name">
-                                                        <asp:Literal ID="lCheckinResultsPersonName" runat="server" /></span>
-                                                    <span>
-                                                        <asp:Literal ID="lCheckinResultsCheckinMessage" runat="server" /></span>
+                                                    </div>
                                                 </div>
-
-                                                <%-- List of In-Progress Achievements for this Attendance --%>
-                                                <asp:Panel ID="pnlCheckinResultsCelebrationProgressList" runat="server" Visible="false" >
-                                                    <asp:Repeater ID="rptCheckinResultsAchievementsProgress" runat="server" OnItemDataBound="rptCheckinResultsAchievementsProgress_ItemDataBound">
-                                                        <ItemTemplate>
-                                                            <%-- HTML for the AchievmentType's Custom Summary Lava Template --%>
-                                                            <asp:Literal ID="lCheckinResultsAchievementProgressHtml" runat="server" />
-                                                        </ItemTemplate>
-                                                    </asp:Repeater>
-                                                </asp:Panel>
-
                                             </div>
-                                                
-                                        </div>
-                                    </div>
-                                </ItemTemplate>
-                            </asp:Repeater>
-                        </div>
-                        
-                    </asp:Panel>
+                                        </ItemTemplate>
+                                    </asp:Repeater>
 
-                    <%-- The QR Code (for mobile self-checkin) --%>
-                    <asp:Literal ID="lCheckinQRCodeHtml" runat="server" />
+                                </div>
+
+                            </asp:Panel>
+
+                            <%-- List of Attendances' Checkin Results, and any in-progress Achievements for each--%>
+                            <asp:Panel ID="pnlCheckinConfirmations" runat="server" Visible="true" CssClass="checkin-confirmations">
+                                <h3>Check-in Confirmation</h3>
+
+                                <div class="row">
+                                    <asp:Repeater ID="rptCheckinResults" runat="server" OnItemDataBound="rptCheckinResults_ItemDataBound">
+                                        <ItemTemplate>
+                                            <div class="col-xs-12 col-md-6 col-lg-4">
+                                                <div class="card">
+                                                    <div class="card-body">
+                                                        <div class="checkin-details">
+                                                            <%-- Person Name and Checkin Message (ex: Noah, Group in Location at Time)  --%>
+                                                            <span class="person-name">
+                                                                <asp:Literal ID="lCheckinResultsPersonName" runat="server" /></span>
+                                                            <span>
+                                                                <asp:Literal ID="lCheckinResultsCheckinMessage" runat="server" /></span>
+                                                        </div>
+
+                                                        <%-- List of In-Progress Achievements for this Attendance --%>
+                                                        <asp:Panel ID="pnlCheckinResultsCelebrationProgressList" runat="server" Visible="false">
+                                                            <asp:Repeater ID="rptCheckinResultsAchievementsProgress" runat="server" OnItemDataBound="rptCheckinResultsAchievementsProgress_ItemDataBound">
+                                                                <ItemTemplate>
+                                                                    <%-- HTML for the AchievmentType's Custom Summary Lava Template --%>
+                                                                    <asp:Literal ID="lCheckinResultsAchievementProgressHtml" runat="server" />
+                                                                </ItemTemplate>
+                                                            </asp:Repeater>
+                                                        </asp:Panel>
+
+                                                    </div>
+
+                                                </div>
+                                            </div>
+                                        </ItemTemplate>
+                                    </asp:Repeater>
+                                </div>
+
+                            </asp:Panel>
+                        </asp:Panel>
+
+                        <%-- If CustomSuccessLavaTemplateHtml option is enabled, show it here --%>
+                        <asp:Literal ID="lCustomSuccessLavaTemplateHtml" runat="server" />
+
+
+                        <%-- The QR Code (for mobile self-checkin) --%>
+                        <asp:Literal ID="lCheckinQRCodeHtml" runat="server" />
 
                     </ol>
 
                     <ol class="checkin-error">
                         <asp:Literal ID="lCheckinLabelErrorMessages" runat="server" Visible="false" />
                     </ol>
-                    
-
                 </div>
             </div>
         </div>
