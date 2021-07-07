@@ -56,14 +56,6 @@ namespace RockWeb.Blocks.CheckIn
         Category = "Text",
         Order = 6 )]
 
-    [TextField( "Detail Message",
-        Key = AttributeKey.DetailMessage,
-        Description = "The message to display indicating person has been checked in. Use {0} for person, {1} for group, {2} for schedule, and {3} for the security code",
-        IsRequired = false,
-        DefaultValue = "{0} was checked into {1} in {2} at {3}",
-        Category = "Text",
-        Order = 7 )]
-
     #endregion Block Attributes
 
     public partial class Success : CheckInBlock
@@ -75,7 +67,6 @@ namespace RockWeb.Blocks.CheckIn
         {
             public const string PersonSelectPage = "PersonSelectPage";
             public const string Title = "Title";
-            public const string DetailMessage = "DetailMessage";
         }
 
         private static class MergeFieldKey
@@ -156,14 +147,6 @@ namespace RockWeb.Blocks.CheckIn
             public CheckInSchedule Schedule { get; internal set; }
 
             /// <summary>
-            /// Gets the detail message.
-            /// </summary>
-            /// <value>
-            /// The detail message.
-            /// </value>
-            public string DetailMessage { get; internal set; }
-
-            /// <summary>
             /// Gets the in progress achievement attempts.
             /// </summary>
             /// <value>
@@ -214,7 +197,6 @@ namespace RockWeb.Blocks.CheckIn
         private void ShowDetails()
         {
             lTitle.Text = GetAttributeValue( AttributeKey.Title );
-            string detailMsg = GetAttributeValue( AttributeKey.DetailMessage );
 
             var printFromClient = new List<CheckInLabel>();
             var printFromServer = new List<CheckInLabel>();
@@ -241,13 +223,12 @@ namespace RockWeb.Blocks.CheckIn
                             {
                                 foreach ( var schedule in location.GetSchedules( true ) )
                                 {
-                                    string detailMessage = string.Format( detailMsg, person.ToString(), group.ToString(), location.Location.Name, schedule.ToString(), person.SecurityCode );
+                                    
                                     CheckinResult checkinResult = new CheckinResult();
                                     checkinResult.Person = person;
                                     checkinResult.Group = group;
                                     checkinResult.Location = location.Location;
                                     checkinResult.Schedule = schedule;
-                                    checkinResult.DetailMessage = detailMessage;
                                     checkinResult.InProgressAchievementAttempts = inProgressAchievementAttemptsByPersonId?.GetValueOrNull( person.Person.Id );
                                     checkinResult.JustCompletedAchievementAttempts = justCompletedAchievementAttemptsByPersonId?.GetValueOrNull( person.Person.Id );
                                     checkinResultList.Add( checkinResult );
