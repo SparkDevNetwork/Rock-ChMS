@@ -44,7 +44,7 @@ namespace Rock.Tests.Integration.Lava
 
             TestHelper.ExecuteForActiveEngines( ( engine ) =>
             {
-                var testEngine = LavaService.NewEngineInstance( engine.EngineType, options );
+                var testEngine = LavaService.NewEngineInstance( engine.EngineIdentifier, options );
 
                 var context = testEngine.NewRenderContext();
 
@@ -75,7 +75,7 @@ namespace Rock.Tests.Integration.Lava
                 // Remove all existing items from the cache.
                 cacheService.ClearCache();
 
-                var engine = LavaService.NewEngineInstance( defaultEngineInstance.EngineType, options );
+                var engine = LavaService.NewEngineInstance( defaultEngineInstance.EngineIdentifier, options );
 
                 // Process a zero-length whitespace template - this should be cached separately.
                 var input0 = string.Empty;
@@ -129,13 +129,13 @@ namespace Rock.Tests.Integration.Lava
 
             TestHelper.ExecuteForActiveEngines( ( defaultEngineInstance ) =>
             {
-                if ( defaultEngineInstance.EngineType == LavaEngineTypeSpecifier.DotLiquid )
+                if ( defaultEngineInstance.EngineIdentifier == LavaEngineTypeSpecifier.DotLiquid )
                 {
                     Debug.Write( "Shortcode caching is not currently implemented for DotLiquid." );
                     return;
                 }
 
-                var engine = LavaService.NewEngineInstance( defaultEngineInstance.EngineType, options );
+                var engine = LavaService.NewEngineInstance( defaultEngineInstance.EngineIdentifier, options );
 
                 var shortcodeProvider = new TestLavaDynamicShortcodeProvider();
 

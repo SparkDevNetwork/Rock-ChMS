@@ -24,42 +24,44 @@ namespace Rock.Lava
     /// </summary>
     public abstract class LavaTemplateBase : ILavaTemplate
     {
-        /// <summary>
-        /// Try to render the template using the provided context values.
-        /// Errors will be included in the rendered output.
-        /// </summary>
-        /// <param name="values"></param>
-        /// <returns></returns>
-        public string Render( IDictionary<string, object> values )
-        {
-            var context = LavaService.NewRenderContext( values );
+        /*
+                /// <summary>
+                /// Try to render the template using the provided context values.
+                /// Errors will be included in the rendered output.
+                /// </summary>
+                /// <param name="values"></param>
+                /// <returns></returns>
+                public string Render( IDictionary<string, object> values )
+                {
+                    var context = LavaService.NewRenderContext( values );
 
-            var result = Render( new LavaRenderParameters { Context = context } );
+                    var result = Render( new LavaRenderParameters { Context = context } );
 
-            return result.Text;
-        }
+                    return result.Text;
+                }
 
-        /// <summary>
-        /// Try to render the template using the provided context.
-        /// Errors will be included in the rendered output.
-        /// </summary>
-        /// <param name="context"></param>
-        /// <returns></returns>
-        public string Render( ILavaRenderContext context )
-        {
-            var result = Render( new LavaRenderParameters { Context = context } );
+                /// <summary>
+                /// Try to render the template using the provided context.
+                /// Errors will be included in the rendered output.
+                /// </summary>
+                /// <param name="context"></param>
+                /// <returns></returns>
+                public string Render( ILavaRenderContext context )
+                {
+                    var result = Render( new LavaRenderParameters { Context = context } );
 
-            return result.Text;
-        }
+                    return result.Text;
+                }
 
-        /// <summary>
-        /// Try to render the template using the provided settings.
-        /// </summary>
-        /// <param name="parameters"></param>
-        /// <returns></returns>
-        public LavaRenderResult Render( LavaRenderParameters parameters )
-        {
-            return LavaService.RenderTemplate( this, parameters );
-        }
+                /// <summary>
+                /// Try to render the template using the provided settings.
+                /// </summary>
+                /// <param name="parameters"></param>
+                /// <returns></returns>
+                public LavaRenderResult Render( LavaRenderParameters parameters )
+                {
+                    return LavaService.RenderTemplate( this, parameters );
+                }
+        */
     }
 }

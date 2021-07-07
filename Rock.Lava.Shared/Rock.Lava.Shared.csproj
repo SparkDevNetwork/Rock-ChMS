@@ -84,6 +84,7 @@
     <Compile Include="Core\ILavaSecured.cs" />
     <Compile Include="Core\ILavaDataDictionary.cs" />
     <Compile Include="Core\ILavaDataDictionarySource.cs" />
+    <Compile Include="Core\ILavaService.cs" />
     <Compile Include="Core\ILavaShortcodeProvider.cs" />
     <Compile Include="Core\ILavaTemplateCacheService.cs" />
     <Compile Include="Core\IRockLavaElement.cs" />

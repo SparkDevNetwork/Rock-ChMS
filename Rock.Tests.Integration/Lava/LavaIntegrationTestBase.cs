@@ -47,7 +47,7 @@ namespace Rock.Tests.Integration.Lava
         protected bool AssertCurrentEngineIs( IEnumerable<LavaEngineTypeSpecifier> validEngines )
         {
             if ( validEngines == null
-                 || ( LavaService.CurrentEngineType != null && !validEngines.Contains( LavaService.CurrentEngineType.Value ) ) )
+                 || ( LavaService.CurrentEngineIdentifier != null && !validEngines.Contains( LavaService.CurrentEngineIdentifier.Value ) ) )
             {
                 Debug.Write( $"This test is not applicable for the current Lava Engine \"{ LavaService.CurrentEngineName }\".", "warning" );
                 return false;
@@ -59,8 +59,8 @@ namespace Rock.Tests.Integration.Lava
         protected bool AssertCurrentEngineIsNot( IEnumerable<LavaEngineTypeSpecifier> invalidEngines )
         {
             if ( invalidEngines != null
-                 && LavaService.CurrentEngineType != null
-                 && invalidEngines.Contains( LavaService.CurrentEngineType.Value ) )
+                 && LavaService.CurrentEngineIdentifier != null
+                 && invalidEngines.Contains( LavaService.CurrentEngineIdentifier.Value ) )
             {
                 Debug.Write( $"This test is not applicable for the current Lava Engine \"{ LavaService.CurrentEngineName }\".", "warning" );
                 return true;

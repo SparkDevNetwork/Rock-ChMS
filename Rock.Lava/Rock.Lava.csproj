@@ -43,9 +43,6 @@
     <Reference Include="EntityFramework.SqlServer, Version=6.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089, processorArchitecture=MSIL">
       <HintPath>..\packages\EntityFramework.6.1.3\lib\net45\EntityFramework.SqlServer.dll</HintPath>
     </Reference>
-    <Reference Include="Fluid, Version=0.0.0.0, Culture=neutral, PublicKeyToken=51cdb8c1938e4789, processorArchitecture=MSIL">
-      <HintPath>..\packages\Fluid.Core.2.0.13\lib\netstandard2.0\Fluid.dll</HintPath>
-    </Reference>
     <Reference Include="Humanizer">
       <HintPath>..\libs\Humanizer.2.1.0\Humanizer.dll</HintPath>
     </Reference>
@@ -223,6 +220,7 @@
     <Compile Include="Core\ILiquidFrameworkDataObjectProxy.cs" />
     <Compile Include="Core\LavaSecurityHelper.cs" />
     <Compile Include="Core\Blocks\LavaBlockBase.cs" />
+    <Compile Include="Core\LavaServiceProvider.cs" />
     <Compile Include="Core\Shortcodes\DynamicShortcode.cs" />
     <Compile Include="Core\ILiquidFrameworkElementRenderer.cs" />
     <Compile Include="Core\Shortcodes\DynamicShortcodeBlock.cs" />
@@ -236,13 +234,7 @@
     <Compile Include="Engine\LavaUtilityHelper.cs" />
     <Compile Include="Filters\Generic\TemplateFilters.Utility.cs" />
     <Compile Include="Filters\Generic\TemplateFilters.Dictionaries.cs" />
-    <Compile Include="Implementations\Fluid\LavaDateTimeValue.cs" />
-    <Compile Include="Implementations\Fluid\FluidLavaTagStatement.cs" />
-    <Compile Include="Implementations\Fluid\FluidLavaBlockStatement.cs" />
-    <Compile Include="Implementations\RockLiquidEngine.cs" />
     <Compile Include="Utilities\LavaDataObjectHelper.cs" />
-    <Compile Include="Implementations\Fluid\FluidFileSystem.cs" />
-    <Compile Include="LavaService.cs" />
     <Compile Include="Engine\LavaEngineBase.cs" />
     <Compile Include="Filters\Generic\TemplateFilters.Collections.partial.cs" />
     <Compile Include="Filters\Generic\TemplateFilters.Colors.partial.cs" />
@@ -253,32 +245,15 @@
     <Compile Include="Filters\Generic\TemplateFilters.Objects.partial.cs" />
     <Compile Include="Filters\Generic\TemplateFilters.Serialization.partial.cs" />
     <Compile Include="Filters\Generic\TemplateFilters.Text.partial.cs" />
-    <Compile Include="Implementations\Fluid\FluidEngine.cs" />
-    <Compile Include="Implementations\Fluid\FluidExtensions.cs" />
-    <Compile Include="Implementations\Fluid\FluidRenderContext.cs" />
-    <Compile Include="Implementations\Fluid\FluidTemplateProxy.cs" />
-    <Compile Include="Implementations\Fluid\LavaFluidParser.cs" />
-    <Compile Include="Implementations\DotLiquid\DotLiquidLavaDataDictionaryProxy.cs" />
-    <Compile Include="Implementations\DotLiquid\DotLiquidEngine.cs" />
-    <Compile Include="Implementations\DotLiquid\DotLiquidRenderContext.cs" />
-    <Compile Include="Implementations\DotLiquid\DotLiquidTemplateProxy.cs" />
-    <Compile Include="Implementations\DotLiquid\DotLiquidBlockProxy.cs" />
-    <Compile Include="Implementations\DotLiquid\DotLiquidTagProxy.cs" />
-    <Compile Include="Implementations\DotLiquid\DotLiquidFileSystem.cs" />
     <Compile Include="Core\Tags\LavaTagBase.cs" />
     <Compile Include="Core\LavaTemplateBase.cs" />
     <Compile Include="Core\LavaRenderContextBase.cs" />
-    <Compile Include="Implementations\Fluid\LavaObjectMemberAccessStrategy.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="Utilities\LavaTypeInfo.cs" />
     <Compile Include="Utilities\ListExtensionMethods.cs" />
     <Compile Include="Utilities\RockSerializableDictionary.cs" />
   </ItemGroup>
   <ItemGroup>
-    <ProjectReference Include="..\DotLiquid\DotLiquid.csproj">
-      <Project>{00edcb8d-ef33-459c-ad62-02876bd24dff}</Project>
-      <Name>DotLiquid</Name>
-    </ProjectReference>
     <ProjectReference Include="..\Rock.Common.Web\Rock.Common.Web.csproj">
       <Project>{50174698-828b-49fb-8dd6-6f9d1b4651a4}</Project>
       <Name>Rock.Common.Web</Name>

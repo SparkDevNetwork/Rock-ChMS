@@ -211,7 +211,7 @@ namespace Rock.Lava
         /// <summary>
         /// Gets the type of third-party framework used to render and parse Lava/Liquid documents.
         /// </summary>
-        public abstract LavaEngineTypeSpecifier EngineType { get; }
+        public abstract Guid EngineIdentifier { get; }
 
         /// <summary>
         /// Register a type that can be referenced in a template during the rendering process.
@@ -888,6 +888,22 @@ namespace Rock.Lava
         /// Gets or sets the strategy for handling exceptions encountered during the rendering process.
         /// </summary>
         public ExceptionHandlingStrategySpecifier ExceptionHandlingStrategy { get; set; } = ExceptionHandlingStrategySpecifier.RenderToOutput;
+
+        public string ServiceName
+        {
+            get
+            {
+                return this.EngineName;
+            }
+        }
+
+        public Guid ServiceIdentifier
+        {
+            get
+            {
+                return this.EngineIdentifier;
+            }
+        }
 
         /// <summary>
         /// Convert a Lava template to a Liquid-compatible template by replacing Lava-specific syntax and keywords.

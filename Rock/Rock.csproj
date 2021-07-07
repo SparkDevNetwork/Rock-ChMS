@@ -678,6 +678,7 @@
     <Compile Include="Financial\IRedirectionGateway.cs" />
     <Compile Include="Financial\TestRedirectionGateway.cs" />
     <Compile Include="Lava\CommonMergeFieldsOptions.cs" />
+    <Compile Include="Lava\LavaService.cs" />
     <Compile Include="Lava\RockLiquid\Shortcodes\MediaPlayer.cs" />
     <Compile Include="Lava\Shortcodes\MediaPlayerShortcode.cs" />
     <Compile Include="Lava\WebsiteLavaTemplateCache.cs" />
@@ -3345,6 +3346,14 @@
     <ProjectReference Include="..\Rock.DownhillCss\Rock.DownhillCss.csproj">
       <Project>{cadd9206-2c6b-42e4-b20b-2dfc3eb4d6d4}</Project>
       <Name>Rock.DownhillCss</Name>
+    </ProjectReference>
+    <ProjectReference Include="..\Rock.Lava.DotLiquid\Rock.Lava.DotLiquid.csproj">
+      <Project>{79aa470a-dc63-4cb4-b0b6-77285f60c69b}</Project>
+      <Name>Rock.Lava.DotLiquid</Name>
+    </ProjectReference>
+    <ProjectReference Include="..\Rock.Lava.Fluid\Rock.Lava.Fluid.csproj">
+      <Project>{afce6f84-bf3a-4182-a816-8fb47afc0305}</Project>
+      <Name>Rock.Lava.Fluid</Name>
     </ProjectReference>
     <ProjectReference Include="..\Rock.Lava.Shared\Rock.Lava.Shared.csproj">
       <Project>{8820cd93-70ee-496d-b17b-0c4c68dd4957}</Project>

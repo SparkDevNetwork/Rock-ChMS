@@ -102,9 +102,9 @@ Font Bold: true
 
             TestHelper.ExecuteForActiveEngines( ( engine ) =>
             {
-                if ( engine.EngineType == LavaEngineTypeSpecifier.RockLiquid )
+                if ( engine.EngineIdentifier == LavaEngineTypeSpecifier.RockLiquid )
                 {
-                    TestHelper.DebugWriteRenderResult( engine.EngineType, "(Ignored)", "(Ignored)" );
+                    TestHelper.DebugWriteRenderResult( engine.EngineIdentifier, "(Ignored)", "(Ignored)" );
                     return;
                 }
 
@@ -122,7 +122,7 @@ Font Bold: true
 
                     var options = new LavaTestRenderOptions() { MergeFields = context, Wildcards = new List<string> { "<?>" } };
 
-                    TestHelper.AssertTemplateOutput( engine.EngineType, expectedOutput, input, options );
+                    TestHelper.AssertTemplateOutput( engine.EngineIdentifier, expectedOutput, input, options );
                 } );
             } );
         }
@@ -184,9 +184,9 @@ Panel 3 - Panel 3 content.
 
             TestHelper.ExecuteForActiveEngines( ( engine ) =>
             {
-                if ( engine.EngineType == LavaEngineTypeSpecifier.RockLiquid )
+                if ( engine.EngineIdentifier == LavaEngineTypeSpecifier.RockLiquid )
                 {
-                    TestHelper.DebugWriteRenderResult( engine.EngineType, "(Ignored)", "(Ignored)" );
+                    TestHelper.DebugWriteRenderResult( engine.EngineIdentifier, "(Ignored)", "(Ignored)" );
                     return;
                 }
 
@@ -201,7 +201,7 @@ Panel 3 - Panel 3 content.
 
                     var options = new LavaTestRenderOptions() { MergeFields = context, Wildcards = new List<string> { "<?>" } };
 
-                    TestHelper.AssertTemplateOutput( engine.EngineType, expectedOutput, input, options );
+                    TestHelper.AssertTemplateOutput( engine.EngineIdentifier, expectedOutput, input, options );
                 } );
             } );
 

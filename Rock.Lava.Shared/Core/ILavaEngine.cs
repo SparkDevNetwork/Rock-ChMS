@@ -24,7 +24,7 @@ namespace Rock.Lava
     /// <summary>
     /// Represents the Lava Engine that is responsible for compiling and rendering templates.
     /// </summary>
-    public interface ILavaEngine
+    public interface ILavaEngine : ILavaService
     {
         /// <summary>
         /// An event that is triggered when the LavaEngine encounters a processing exception.
@@ -55,7 +55,7 @@ namespace Rock.Lava
         /// <summary>
         /// The Liquid framework currently used to parse and render Lava templates.
         /// </summary>
-        LavaEngineTypeSpecifier EngineType { get; }
+        Guid EngineIdentifier { get; }
 
         /// <summary>
         /// Creates a new render context instance.
