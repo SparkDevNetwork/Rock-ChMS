@@ -262,10 +262,20 @@ namespace Rock.Lava.DotLiquid
                 }
             }
 
-            // Add the DotLiquid Context wrapped in a LavaContext.
+            // Inject the render context if it is requested, and add services that may be required by the filter.
             if ( lavaFilterFunctionParams.Length > 0 && lavaFilterFunctionParams[0].ParameterType == typeof( ILavaRenderContext ) )
             {
-                args.Insert( 0, new DotLiquidRenderContext( dotLiquidContext ) );
+                var renderContext = new DotLiquidRenderContext( dotLiquidContext );
+
+                // Register the current Lava engine as a service that can be accessed through the render context.
+                var provider = renderContext as ILavaServiceProvider;
+
+                provider.RegisterService( typeof(ILavaEngine), ( type, configurationObject ) =>
+                {
+                    return this;
+                } );
+
+                args.Insert( 0, renderContext );
             }
 
             // Add in any missing parameters with the default values defined for the filter method.

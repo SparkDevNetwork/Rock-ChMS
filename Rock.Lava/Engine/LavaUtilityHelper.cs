@@ -14,11 +14,69 @@
 // limitations under the License.
 // </copyright>
 //
+using System;
 
 namespace Rock.Lava
 {
     public static class LavaUtilityHelper
     {
+        /// <summary>
+        /// Get a valid Liquid document element name from a Rock shortcode.
+        /// Applies decorations to the shortcode name to prevent naming collisions with other custom tags and blocks.
+        /// </summary>
+        /// <param name="shortcodeName"></param>
+        /// <returns></returns>
+        public static string GetContextKeyFromType( Type objectType )
+        {
+            if ( objectType == null )
+            {
+                return null;
+            }
+
+            return GetContextKeyFromTypeName( objectType.FullName );
+        }
+
+        /// <summary>
+        /// Get a valid Liquid document element name from a Rock shortcode.
+        /// Applies decorations to the shortcode name to prevent naming collisions with other custom tags and blocks.
+        /// </summary>
+        /// <param name="shortcodeName"></param>
+        /// <returns></returns>
+        public static string GetContextKeyFromTypeName( string typeName )
+        {
+            if ( string.IsNullOrWhiteSpace( typeName ) )
+            {
+                return null;
+            }
+
+            var key = $"type:{typeName.Trim()}";
+
+            return key;
+        }
+
+        /// <summary>
+        /// Get a valid Liquid document element name from a Rock shortcode.
+        /// Applies decorations to the shortcode name to prevent naming collisions with other custom tags and blocks.
+        /// </summary>
+        /// <param name="shortcodeName"></param>
+        /// <returns></returns>
+        public static string GetTypeNameFromContextKey( string key )
+        {
+            if ( key == null )
+            {
+                return null;
+            }
+
+            var typeName = key.Trim();
+
+            if ( typeName.StartsWith("type:") )
+            {
+                typeName = typeName.Substring( "type:".Length );
+            }
+
+            return typeName;
+        }
+
         /// <summary>
         /// Get a valid Liquid document element name from a Rock shortcode.
         /// Applies decorations to the shortcode name to prevent naming collisions with other custom tags and blocks.

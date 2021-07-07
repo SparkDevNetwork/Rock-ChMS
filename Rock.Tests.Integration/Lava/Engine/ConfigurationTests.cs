@@ -21,6 +21,7 @@ using System.Linq;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using Rock.Data;
 using Rock.Lava;
+using Rock.Lava.DotLiquid;
 using Rock.Model;
 using Rock.Tests.Shared;
 
@@ -44,7 +45,7 @@ namespace Rock.Tests.Integration.Lava
 
             TestHelper.ExecuteForActiveEngines( ( engine ) =>
             {
-                var testEngine = LavaService.NewEngineInstance( engine.EngineIdentifier, options );
+                var testEngine = LavaService.NewEngineInstance( engine.GetType(), options );
 
                 var context = testEngine.NewRenderContext();
 
@@ -75,7 +76,7 @@ namespace Rock.Tests.Integration.Lava
                 // Remove all existing items from the cache.
                 cacheService.ClearCache();
 
-                var engine = LavaService.NewEngineInstance( defaultEngineInstance.EngineIdentifier, options );
+                var engine = LavaService.NewEngineInstance( defaultEngineInstance.GetType(), options );
 
                 // Process a zero-length whitespace template - this should be cached separately.
                 var input0 = string.Empty;
@@ -83,6 +84,11 @@ namespace Rock.Tests.Integration.Lava
 
                 // Verify that the template does not initially exist in the cache.
                 var exists = cacheService.ContainsKey( key0 );
+
+                if (exists)
+                {
+                    int i = 0;
+                }
 
                 Assert.IsFalse( exists, "String-0 Template found in cache unexpectedly." );
 
@@ -129,13 +135,13 @@ namespace Rock.Tests.Integration.Lava
 
             TestHelper.ExecuteForActiveEngines( ( defaultEngineInstance ) =>
             {
-                if ( defaultEngineInstance.EngineIdentifier == LavaEngineTypeSpecifier.DotLiquid )
+                if ( defaultEngineInstance.GetType() == typeof( DotLiquidEngine ) )
                 {
                     Debug.Write( "Shortcode caching is not currently implemented for DotLiquid." );
                     return;
                 }
 
-                var engine = LavaService.NewEngineInstance( defaultEngineInstance.EngineIdentifier, options );
+                var engine = LavaService.NewEngineInstance( defaultEngineInstance.GetType(), options );
 
                 var shortcodeProvider = new TestLavaDynamicShortcodeProvider();
 

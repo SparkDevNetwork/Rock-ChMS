@@ -22,7 +22,7 @@ namespace Rock.Lava
     /// <summary>
     /// Stores the configuration and data used by the Lava Engine to resolve a Lava template.
     /// </summary>
-    public abstract class LavaRenderContextBase : ILavaRenderContext
+    public abstract class LavaRenderContextBase : ILavaRenderContext, ILavaServiceProvider
     {
         private LavaServiceProvider _serviceProvider = new LavaServiceProvider();
 
@@ -229,12 +229,45 @@ namespace Rock.Lava
         public TService GetService<TService>()
             where TService : class, ILavaService
         {
-            return _serviceProvider.GetService<TService>();
+            return GetService( typeof(TService), null ) as TService;
         }
 
         public ILavaService GetService( Type serviceType )
         {
-            return _serviceProvider.GetService(serviceType);  
+            return GetService( serviceType, null );
         }
+
+        #region ILavaServiceProvider
+
+        private ILavaService GetService( Type serviceType, object configuration )
+        {
+            var key = LavaUtilityHelper.GetContextKeyFromType( serviceType );
+
+            var service = this.GetInternalField( key );
+
+            if ( service != null )
+            {
+                return service as ILavaService;
+            }
+
+            return _serviceProvider.GetService( serviceType, configuration );
+        }
+
+        ILavaService ILavaServiceProvider.GetService( Type serviceType, object configuration )
+        {
+            return GetService( serviceType, configuration );
+        }
+
+        void ILavaServiceProvider.RegisterService( Type serviceType, Func<Type, object, ILavaService> serviceFactoryMethod )
+        {
+            var key = LavaUtilityHelper.GetContextKeyFromType( serviceType );
+
+            SetInternalField( key, serviceFactoryMethod( serviceType, null ) );
+
+            _serviceProvider.RegisterService( serviceType, serviceFactoryMethod );
+        }
+
+        #endregion
+
     }
 }
