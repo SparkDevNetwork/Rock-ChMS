@@ -13,12 +13,12 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 // </copyright>
-//
 using System;
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.Data.Entity;
 using System.Linq;
+using System.Text;
 using System.Web;
 using System.Web.UI;
 using System.Web.UI.HtmlControls;
@@ -76,6 +76,27 @@ namespace RockWeb.Blocks.CheckIn
             public const string PersonSelectPage = "PersonSelectPage";
             public const string Title = "Title";
             public const string DetailMessage = "DetailMessage";
+        }
+
+        private static class MergeFieldKey
+        {
+            public const string CheckinResultList = "Person";
+            public const string Kiosk = "Kiosk";
+            public const string RegistrationModeEnabled = "RegistrationModeEnabled";
+            public const string Messages = "Messages";
+            public const string CheckinAreas = "CheckinAreas";
+            public const string ZebraPrintMessageList = "ZebraPrintMessageList";
+
+            public const string Person = "Person";
+            public const string AchievementAttempt = "AchievementAttempt";
+            public const string AchievementType = "AchievementType";
+            public const string AchievementTypeEvent = "AchievementTypeEvent";
+            public const string NumberToAchieve = "NumberToAchieve";
+            public const string NumberToAccumulate = "NumberToAccumulate";
+            public const string ProgressCount = "ProgressCount";
+            public const string ProgressPercent = "ProgressPercent";
+            public const string StreakType = "StreakType";
+            public const string FrequencyText = "FrequencyText";
         }
 
         /// <summary>
@@ -244,14 +265,14 @@ namespace RockWeb.Blocks.CheckIn
             }
 
             var mergeFields = Rock.Lava.LavaHelper.GetCommonMergeFields( this.RockPage, null, new Rock.Lava.CommonMergeFieldsOptions { GetLegacyGlobalMergeFields = false } );
-            mergeFields.Add( "CheckinResultList", checkinResultList );
-            mergeFields.Add( "Kiosk", CurrentCheckInState.Kiosk );
-            mergeFields.Add( "RegistrationModeEnabled", CurrentCheckInState.Kiosk.RegistrationModeEnabled );
-            mergeFields.Add( "Messages", CurrentCheckInState.Messages );
+            mergeFields.Add( MergeFieldKey.CheckinResultList, checkinResultList );
+            mergeFields.Add( MergeFieldKey.Kiosk, CurrentCheckInState.Kiosk );
+            mergeFields.Add( MergeFieldKey.RegistrationModeEnabled, CurrentCheckInState.Kiosk.RegistrationModeEnabled );
+            mergeFields.Add( MergeFieldKey.Messages, CurrentCheckInState.Messages );
             if ( LocalDeviceConfig.CurrentGroupTypeIds != null )
             {
                 var checkInAreas = LocalDeviceConfig.CurrentGroupTypeIds.Select( a => Rock.Web.Cache.GroupTypeCache.Get( a ) );
-                mergeFields.Add( "CheckinAreas", checkInAreas );
+                mergeFields.Add( MergeFieldKey.CheckinAreas, checkInAreas );
             }
 
             if ( printFromClient.Any() )
@@ -282,6 +303,17 @@ namespace RockWeb.Blocks.CheckIn
             {
                 var messages = ZebraPrint.PrintLabels( printFromServer );
                 mergeFields.Add( "ZebraPrintMessageList", messages );
+                if ( messages.Any() )
+                {
+                    lCheckinLabelErrorMessages.Visible = true;
+                    var messageHtml = new StringBuilder();
+                    foreach ( var message in messages )
+                    {
+                        messageHtml.AppendLine( $"<li>{message}</li>" );
+                    }
+
+                    lCheckinLabelErrorMessages.Text = messageHtml.ToString();
+                }
             }
 
             if ( lbAnother.Visible )
@@ -292,9 +324,6 @@ namespace RockWeb.Blocks.CheckIn
                     bodyTag.AddCssClass( "checkin-anotherperson" );
                 }
             }
-
-            //var successLavaTemplate = CurrentCheckInState.CheckInType.SuccessLavaTemplate;
-            //lCheckinResultsHtml.Text = successLavaTemplate.ResolveMergeFields( mergeFields );
 
             GenerateQRCodes();
 
@@ -356,12 +385,12 @@ namespace RockWeb.Blocks.CheckIn
 
             if ( personJustCompletedAchievementAttempts.Any() )
             {
-                pnlAchievementSuccess.Visible = true;
+                pnlCheckinCelebrations.Visible = true;
                 rptAchievementsSuccess.DataSource = personJustCompletedAchievementAttempts;
                 rptAchievementsSuccess.DataBind();
             }
 
-            pnlCheckinResults.Visible = true;
+            pnlCheckinConfirmations.Visible = true;
             rptCheckinResults.DataSource = checkinResultList;
             rptCheckinResults.DataBind();
         }
@@ -378,6 +407,7 @@ namespace RockWeb.Blocks.CheckIn
             }
 
             public Person Person { get; }
+
             public AchievementAttempt AchievementAttempt { get; }
         }
 
@@ -385,15 +415,17 @@ namespace RockWeb.Blocks.CheckIn
         {
             AchievementTypeCache achievementTypeCache = AchievementTypeCache.Get( achievementAttempt.AchievementTypeId );
             var mergeFields = new Dictionary<string, object>();
-            mergeFields.Add( "Person", person );
-            mergeFields.Add( "Achievement", achievementAttempt );
-            mergeFields.Add( "AchievementType", achievementTypeCache );
-            mergeFields.Add( "NumberToAchieve", achievementTypeCache.NumberToAchieve );
-            mergeFields.Add( "NumberToAccumulate", achievementTypeCache.NumberToAccumulate );
-            mergeFields.Add( "ProgressCount", achievementTypeCache.GetProgressCount( achievementAttempt ) );
-            mergeFields.Add( "ProgressPercent", ( achievementAttempt.Progress * 100 ) );
-            mergeFields.Add( "StreakType", achievementTypeCache.StreakType );
-            mergeFields.Add( "FrequencyText", achievementTypeCache.StreakType?.OccurrenceFrequency.ConvertToString() );
+            mergeFields.Add( MergeFieldKey.Person, person );
+            mergeFields.Add( MergeFieldKey.AchievementAttempt, achievementAttempt );
+            mergeFields.Add( MergeFieldKey.AchievementType, achievementTypeCache );
+            var achievementTypeEventEntityType = EntityTypeCache.Get( achievementTypeCache.ComponentEntityTypeId );
+            mergeFields.Add( MergeFieldKey.AchievementTypeEvent, new RockDynamic( achievementTypeEventEntityType ) );
+            mergeFields.Add( MergeFieldKey.NumberToAchieve, achievementTypeCache.NumberToAchieve );
+            mergeFields.Add( MergeFieldKey.NumberToAccumulate, achievementTypeCache.NumberToAccumulate );
+            mergeFields.Add( MergeFieldKey.ProgressCount, achievementTypeCache.GetProgressCount( achievementAttempt ) );
+            mergeFields.Add( MergeFieldKey.ProgressPercent, achievementAttempt.Progress * 100 );
+            mergeFields.Add( MergeFieldKey.StreakType, achievementTypeCache.StreakType );
+            mergeFields.Add( MergeFieldKey.FrequencyText, achievementTypeCache.StreakType?.OccurrenceFrequency.ConvertToString() );
 
             return mergeFields;
         }
@@ -419,7 +451,6 @@ namespace RockWeb.Blocks.CheckIn
                 customSummaryLavaTemplate = DebugSummaryTemplate;
             }
 
-
             var lAchievementSuccessHtml = e.Item.FindControl( "lAchievementSuccessHtml" ) as Literal;
 
             var mergeFields = GetAchievementMergeFields( personJustCompletedAchievementAttempt.AchievementAttempt, personJustCompletedAchievementAttempt.Person );
@@ -441,11 +472,10 @@ namespace RockWeb.Blocks.CheckIn
 
             var lCheckinResultsPersonName = e.Item.FindControl( "lCheckinResultsPersonName" ) as Literal;
             var lCheckinResultsCheckinMessage = e.Item.FindControl( "lCheckinResultsCheckinMessage" ) as Literal;
-            var pnlCheckinResultsCelebrationProgress = e.Item.FindControl( "pnlCheckinResultsCelebrationProgress" ) as Panel;
+            var pnlCheckinResultsCelebrationProgressList = e.Item.FindControl( "pnlCheckinResultsCelebrationProgressList" ) as Panel;
 
             lCheckinResultsPersonName.Text = checkinResult.Person.ToString();
             lCheckinResultsCheckinMessage.Text = $"{checkinResult.Group} in {checkinResult.Location.Name} at {checkinResult.Schedule}";
-
 
             if ( checkinResult.InProgressAchievementAttempts?.Any() == true )
             {
@@ -456,7 +486,7 @@ namespace RockWeb.Blocks.CheckIn
                     inProgressPersonAchievementAttempts.Add( new PersonAchievementAttempt( checkinResult.Person.Person, achievementAttempt ) );
                 }
 
-                pnlCheckinResultsCelebrationProgress.Visible = true;
+                pnlCheckinResultsCelebrationProgressList.Visible = true;
 
                 var rptCheckinResultsAchievementsProgress = e.Item.FindControl( "rptCheckinResultsAchievementsProgress" ) as Repeater;
                 rptCheckinResultsAchievementsProgress.DataSource = inProgressPersonAchievementAttempts;
@@ -464,22 +494,11 @@ namespace RockWeb.Blocks.CheckIn
             }
             else
             {
-                pnlCheckinResultsCelebrationProgress.Visible = false;
+                pnlCheckinResultsCelebrationProgressList.Visible = false;
             }
         }
 
-        private const string DebugSummaryTemplate = @"
-<pre>
-Person: {{ Person.FullName }}
-AchievementType: {{ AchievementType.Name }}
-NumberToAchieve: {{ NumberToAchieve }}
-NumberToAccumulate: {{ NumberToAccumulate }}
-ProgressCount: {{ ProgressCount }}
-ProgressPercent: {{ ProgressPercent }}%
-FrequencyText: {{ FrequencyText }}
-StreakType: {{ StreakType.Name }}
-</pre>
-";
+        private const string DebugSummaryTemplate = @"{% include '~/Assets/Lava/CheckinCelebrationDebugTemplate.lava' %}";
 
         /// <summary>
         /// Handles the ItemDataBound event of the rptCheckinResultsAchievementsProgress control.
@@ -548,7 +567,6 @@ StreakType: {{ StreakType.Name }}
 
                 SaveState();
                 NavigateToLinkedPage( AttributeKey.PersonSelectPage );
-
             }
             else
             {
@@ -573,6 +591,7 @@ StreakType: {{ StreakType.Name }}
             {
                 return new List<Guid>();
             }
+
             if ( !sessionGuids.Any() )
             {
                 return sessionGuids;
@@ -630,7 +649,5 @@ StreakType: {{ StreakType.Name }}
 ", jsonObject );
             ScriptManager.RegisterStartupScript( this, this.GetType(), "addLabelScript", script, true );
         }
-
-
     }
 }

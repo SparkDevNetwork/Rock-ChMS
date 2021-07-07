@@ -252,6 +252,43 @@
 <asp:UpdatePanel ID="upContent" runat="server">
     <ContentTemplate>
 
+        <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.3.3/dist/confetti.browser.min.js"></script>
+        <script>
+            var conffettiSound = new Howl({
+                    src: ['https://www.sparkdevnetwork.org/Content/misc/checkinsoundtesting/Confetti_Gun_05.mp3'],
+                    volume: 1
+                });
+    
+            var celebrateSound = new Howl({
+                src: ['https://www.sparkdevnetwork.org/Content/misc/checkinsoundtesting/Fanfare_Trumpets1.mp3'],
+                volume: 0.8
+            });
+    
+            $(document).ready(function () {
+                if ($('.checkin-celebrations').length){
+                    setTimeout(
+                        function()
+                        {
+                        celebrateSound.play();
+                                confetti({
+                                    origin: { y: -0.2 },
+                                angle: -90,
+                                spread: 150,
+                                startVelocity: 30,
+                                particleCount: 200,
+                                decay: 0.95,
+                                colors: ['#f24730', '#6abfd3', '#ffc639', '#ff9239','#fc83a3','#5395e5']
+                                });
+                        }, 500);
+                    setTimeout(
+                        function()
+                        {
+                            conffettiSound.play();
+                        }, 800);
+                }
+            });
+        </script>
+
         <Rock:ModalAlert ID="maWarning" runat="server" />
 
         <div class="checkin-header">
@@ -262,77 +299,83 @@
         <div class="checkin-body">
             <div class="checkin-scroll-panel">
                 <div class="scroller">
-                    <%-- ToDo, will this will be used?: This was Checkin-Results from Checkin Type's SuccessTemplate --%>
-                    <%-- <asp:Literal ID="lCheckinResultsHtml" runat="server" /> --%>
 
-                    <%-- ToDo, how about label printer error messages? --%>
-                    <asp:Literal ID="lCheckinLabelDebugErrorMessages" runat="server" Visible="false" />
+                     <ol class="checkin-messages checkin-body-container">
+                    </ol>
 
-                    <asp:Panel ID="pnlAchievementSuccess" runat="server" CssClass="row" Visible="false">
-                        <div class="checkin-celebrations">
-                            <h3>Celebrations</h3>
-                            <div class="row">
+                    <ol class="checkin-summary checkin-body-container">
+                    
 
-                                <asp:Repeater ID="rptAchievementsSuccess" runat="server" OnItemDataBound="rptAchievementsSuccess_ItemDataBound">
-                                    <ItemTemplate>
-                                        <div class="col-xs-12 col-lg-4">
-                                            <div class="card">
-                                                <div class="card-body">
+                    <asp:Panel ID="pnlCheckinCelebrations" runat="server" Visible="false" CssClass="checkin-celebrations">
+                        
+                        <h3>Celebrations</h3>
+                        <div class="row">
 
-                                                    <asp:Literal ID="lAchievementSuccessHtml" runat="server" />
+                            <asp:Repeater ID="rptAchievementsSuccess" runat="server" OnItemDataBound="rptAchievementsSuccess_ItemDataBound">
+                                <ItemTemplate>
+                                    <div class="col-xs-12 col-lg-4">
+                                        <div class="card">
+                                            <div class="card-body">
 
-                                                </div>
+                                                <asp:Literal ID="lAchievementSuccessHtml" runat="server" />
+
                                             </div>
                                         </div>
-                                    </ItemTemplate>
-                                </asp:Repeater>
+                                    </div>
+                                </ItemTemplate>
+                            </asp:Repeater>
 
-                            </div>
                         </div>
+                        
                     </asp:Panel>
 
                     <%-- List of Attendances' Checkin Results, and any in-progress Achievements for each--%>
-                    <asp:Panel ID="pnlCheckinResults" runat="server" Visible="true" CssClass="checkin-summary">
+                    <asp:Panel ID="pnlCheckinConfirmations" runat="server" Visible="true" CssClass="checkin-confirmations">
+                        <h3>Check-in Confirmation</h3>
 
-                        <div class="checkin-confirmations">
-                            <h3>Check-in Confirmation</h3>
-
-                            <div class="row">
-                                <asp:Repeater ID="rptCheckinResults" runat="server" OnItemDataBound="rptCheckinResults_ItemDataBound">
-                                    <ItemTemplate>
-                                        <div class="col-xs-12 col-md-6 col-lg-4">
-                                            <div class="card">
-                                                <div class="card-body">
-                                                    <div class="checkin-details">
-
-                                                        <%-- Person Name and Checkin Message (ex: Noah, Group in Location at Time)  --%>
-                                                        <span class="person-name">
-                                                            <asp:Literal ID="lCheckinResultsPersonName" runat="server" /></span>
-                                                        <span>
-                                                            <asp:Literal ID="lCheckinResultsCheckinMessage" runat="server" /></span>
-
-                                                        <%-- List of In-Progress Achievements for this Attendance --%>
-                                                        <asp:Panel ID="pnlCheckinResultsCelebrationProgress" runat="server" Visible="false" CssClass="celebration-progress">
-                                                            <asp:Repeater ID="rptCheckinResultsAchievementsProgress" runat="server" OnItemDataBound="rptCheckinResultsAchievementsProgress_ItemDataBound">
-                                                                <ItemTemplate>
-                                                                    <%-- HTML for the AchievmentType's Custom Summary Lava Template --%>
-                                                                    <asp:Literal ID="lCheckinResultsAchievementProgressHtml" runat="server" />
-                                                                </ItemTemplate>
-                                                            </asp:Repeater>
-                                                        </asp:Panel>
-
-                                                    </div>
+                        <div class="row">
+                            <asp:Repeater ID="rptCheckinResults" runat="server" OnItemDataBound="rptCheckinResults_ItemDataBound">
+                                <ItemTemplate>
+                                    <div class="col-xs-12 col-md-6 col-lg-4">
+                                        <div class="card">
+                                            <div class="card-body">
+                                                <div class="checkin-details">
+                                                    <%-- Person Name and Checkin Message (ex: Noah, Group in Location at Time)  --%>
+                                                    <span class="person-name">
+                                                        <asp:Literal ID="lCheckinResultsPersonName" runat="server" /></span>
+                                                    <span>
+                                                        <asp:Literal ID="lCheckinResultsCheckinMessage" runat="server" /></span>
                                                 </div>
+
+                                                <%-- List of In-Progress Achievements for this Attendance --%>
+                                                <asp:Panel ID="pnlCheckinResultsCelebrationProgressList" runat="server" Visible="false" >
+                                                    <asp:Repeater ID="rptCheckinResultsAchievementsProgress" runat="server" OnItemDataBound="rptCheckinResultsAchievementsProgress_ItemDataBound">
+                                                        <ItemTemplate>
+                                                            <%-- HTML for the AchievmentType's Custom Summary Lava Template --%>
+                                                            <asp:Literal ID="lCheckinResultsAchievementProgressHtml" runat="server" />
+                                                        </ItemTemplate>
+                                                    </asp:Repeater>
+                                                </asp:Panel>
+
                                             </div>
+                                                
                                         </div>
-                                    </ItemTemplate>
-                                </asp:Repeater>
-                            </div>
+                                    </div>
+                                </ItemTemplate>
+                            </asp:Repeater>
                         </div>
+                        
                     </asp:Panel>
 
                     <%-- The QR Code (for mobile self-checkin) --%>
                     <asp:Literal ID="lCheckinQRCodeHtml" runat="server" />
+
+                    </ol>
+
+                    <ol class="checkin-error">
+                        <asp:Literal ID="lCheckinLabelErrorMessages" runat="server" Visible="false" />
+                    </ol>
+                    
 
                 </div>
             </div>

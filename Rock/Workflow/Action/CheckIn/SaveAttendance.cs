@@ -62,6 +62,14 @@ namespace Rock.Workflow.Action.CheckIn
             public const string NotCheckedInMessageFormat = "NotChecked-InMessageFormat";
         }
 
+        private static class MergeFieldKey
+        {
+            public const string Person = "Person";
+            public const string Group = "Group";
+            public const string Location = "Location";
+            public const string Schedule = "Schedule";
+        }
+
         /// <summary>
         /// Executes the specified workflow.
         /// </summary>
@@ -71,7 +79,7 @@ namespace Rock.Workflow.Action.CheckIn
         /// <param name="errorMessages">The error messages.</param>
         /// <returns></returns>
         /// <exception cref="System.NotImplementedException"></exception>
-        public override bool Execute( RockContext rockContext, Model.WorkflowAction action, Object entity, out List<string> errorMessages )
+        public override bool Execute( RockContext rockContext, Model.WorkflowAction action, object entity, out List<string> errorMessages )
         {
             Stopwatch stopwatchSaveAttendance = Stopwatch.StartNew();
             var checkInState = GetCheckInState( entity, out errorMessages );
@@ -217,15 +225,29 @@ namespace Rock.Workflow.Action.CheckIn
             {
                 // Get any achievements that were in-progress *prior* to adding these attendance records
                 var configuredAchievementTypeIds = checkInState.CheckInType.AchievementTypes.Select( a => a.Id ).ToList();
-                var inProgressAchievementAttemptsPriorToSaveChangesByPersonId = GetInProgressAchievementAttemptsByPersonId( rockContext, attendanceRecords, configuredAchievementTypeIds );
+                var attendanceRecordsPersonAliasIds = attendanceRecords.Where( a => a.PersonAliasId.HasValue ).Select( a => a.PersonAliasId.Value ).ToArray();
+                var alreadyCompletedAchievementIdsPriorToSaveChanges = GetCompletedAchievementAttemptIds( rockContext, attendanceRecordsPersonAliasIds, configuredAchievementTypeIds );
 
-                SaveChangesResult saveChangesResult = rockContext.SaveChanges( new SaveChangesArgs { IsAchievementsEnabled = true } );
+                rockContext.SaveChanges();
+
+                var achievementAttemptsAfterSaveChanges = GetAchievementAttemptsWithPersonAliasQuery( rockContext, attendanceRecordsPersonAliasIds, configuredAchievementTypeIds )
+                    .Where( a => !alreadyCompletedAchievementIdsPriorToSaveChanges.Contains( a.AchievementAttempt.Id ) ).AsNoTracking().ToList();
+
+                var justCompletedAchievementAttemptsByPersonId = achievementAttemptsAfterSaveChanges
+                    .Where( a => a.AchievementAttempt.IsSuccessful )
+                    .GroupBy( a => a.AchieverPersonAlias.PersonId )
+                    .ToDictionary( k => k.Key, v => v.Select( x => x.AchievementAttempt ).ToArray() );
+
+                var inProgressAchievementAttemptsByPersonId = achievementAttemptsAfterSaveChanges
+                    .Where( a => !a.AchievementAttempt.IsSuccessful && !a.AchievementAttempt.IsClosed )
+                    .GroupBy( a => a.AchieverPersonAlias.PersonId )
+                    .ToDictionary( k => k.Key, v => v.Select( x => x.AchievementAttempt ).ToArray() );
 
                 // calculate the "Just Completed" achievements as-of *after* save changes
-                checkInState.CheckIn.JustCompletedAchievementAttemptsByPersonId = GetJustCompletedAchievementAttemptsByPersonId( configuredAchievementTypeIds, inProgressAchievementAttemptsPriorToSaveChangesByPersonId, saveChangesResult );
+                checkInState.CheckIn.JustCompletedAchievementAttemptsByPersonId = justCompletedAchievementAttemptsByPersonId;
 
                 // get any InProgress attempts as-of after save changes
-                checkInState.CheckIn.InProgressAchievementAttemptsByPersonId = GetInProgressAchievementAttemptsByPersonId( rockContext, attendanceRecords, configuredAchievementTypeIds );
+                checkInState.CheckIn.InProgressAchievementAttemptsByPersonId = inProgressAchievementAttemptsByPersonId;
             }
             else
             {
@@ -242,64 +264,25 @@ namespace Rock.Workflow.Action.CheckIn
             return true;
         }
 
-        /// <summary>
-        /// Gets the just completed achievement attempts by person identifier.
-        /// </summary>
-        /// <param name="configuredAchievementTypeIds">The configured achievement type ids.</param>
-        /// <param name="inProgressAchievementAttemptsPriorToSaveChangesByPersonId">The in progress achievement attempts prior to save changes by person identifier.</param>
-        /// <param name="saveChangesResult">The save changes result.</param>
-        /// <returns></returns>
-        private static Dictionary<int, AchievementAttempt[]> GetJustCompletedAchievementAttemptsByPersonId( List<int> configuredAchievementTypeIds, Dictionary<int, AchievementAttempt[]> inProgressAchievementAttemptsPriorToSaveChangesByPersonId, SaveChangesResult saveChangesResult )
+        private int[] GetCompletedAchievementAttemptIds( RockContext rockContext, int[] attendanceRecordsPersonAliasIds, List<int> configuredAchievementTypeIds )
         {
-            var inProgressAchievementIdsPriorToSaveChanges = inProgressAchievementAttemptsPriorToSaveChangesByPersonId.SelectMany( a => a.Value.Select( x => x.Id ) ).ToArray();
+            var achievementAttemptService = new AchievementAttemptService( new RockContext() );
+            var alreadyCompletedAchievementAttemptIds = achievementAttemptService
+                .QueryByPersonAliasIds( attendanceRecordsPersonAliasIds )
+                 .Where( a => configuredAchievementTypeIds.Contains( a.AchievementTypeId ) )
+                 .Where( a => a.IsSuccessful || a.IsClosed )
+                    .Select( a => a.Id ).ToArray();
 
-            // AchievementAttempts that were updated/added as a result of these attendances
-            var saveChangesAchievementAttempts = saveChangesResult.AchievementAttempts.Where( a => configuredAchievementTypeIds.Contains( a.AchievementTypeId ) );
-            var updatedAchievementAttempts = saveChangesAchievementAttempts.Where( a => inProgressAchievementIdsPriorToSaveChanges.Contains( a.Id ) ).ToArray();
-            var addedAchievementAttempts = saveChangesAchievementAttempts.Where( a => !inProgressAchievementIdsPriorToSaveChanges.Contains( a.Id ) ).ToArray();
-
-            // determine the "Just Completed" attempts by seeing what achievements changed from InProgress To IsSuccessful
-            var justCompletedAchievementAttempts = updatedAchievementAttempts
-                .Where( a => a.IsSuccessful && inProgressAchievementIdsPriorToSaveChanges.Contains( a.Id ) )
-                .ToList();
-
-            // Add any new achievements that were added as a result of SaveChanges, and include any "IsSuccessful" ones as "Just Completed"
-            justCompletedAchievementAttempts.AddRange( addedAchievementAttempts.Where( a => a.IsSuccessful ) );
-
-            var justCompletedAchievementAttemptsByPersonId = inProgressAchievementAttemptsPriorToSaveChangesByPersonId.Select( a => new
-            {
-                PersonId = a.Key,
-                JustCompletedAchievementAttempts = a.Value.Where( x => justCompletedAchievementAttempts.Any( c => c.Id == x.Id ) ).ToArray()
-            } ).ToDictionary( k => k.PersonId, v => v.JustCompletedAchievementAttempts );
-
-            return justCompletedAchievementAttemptsByPersonId;
+            return alreadyCompletedAchievementAttemptIds;
         }
 
-        /// <summary>
-        /// Gets the in progress achievement attempts by person identifier.
-        /// </summary>
-        /// <param name="rockContext">The rock context.</param>
-        /// <param name="attendanceRecords">The attendance records.</param>
-        /// <param name="configuredAchievementTypeIds">The configured achievement type ids.</param>
-        /// <returns></returns>
-        private static Dictionary<int, AchievementAttempt[]> GetInProgressAchievementAttemptsByPersonId( RockContext rockContext, List<Attendance> attendanceRecords, List<int> configuredAchievementTypeIds )
+        private IQueryable<AchievementAttemptService.AchievementAttemptWithPersonAlias> GetAchievementAttemptsWithPersonAliasQuery( RockContext rockContext, int[] attendanceRecordsPersonAliasIds, List<int> configuredAchievementTypeIds )
         {
-            var achievementAttemptService = new AchievementAttemptService( rockContext );
-            Dictionary<int, AchievementAttempt[]> inProgressAchievementAttemptsByPersonId = new Dictionary<int, AchievementAttempt[]>();
-            foreach ( var attendance in attendanceRecords.Where( a => a.PersonAliasId.HasValue ) )
-            {
-                var attendancePersonAlias = attendance.PersonAlias ?? new PersonAliasService( rockContext ).Get( attendance.PersonAliasId.Value );
-                var personId = attendancePersonAlias?.PersonId ?? 0;
-                var personInProgressAchievementAttempts = achievementAttemptService
-                    .QueryByPersonId( personId )
-                    .Where( a => configuredAchievementTypeIds.Contains( a.AchievementTypeId ) && !a.IsSuccessful && !a.IsClosed )
-                    .AsNoTracking()
-                    .ToArray();
+            var achievementAttemptService = new AchievementAttemptService( new RockContext() );
+            IQueryable<AchievementAttemptService.AchievementAttemptWithPersonAlias> achievementAttemptsQuery = achievementAttemptService.GetAchievementAttemptWithAchieverPersonAliasQuery()
+                 .Where( a => configuredAchievementTypeIds.Contains( a.AchievementAttempt.AchievementTypeId ) && attendanceRecordsPersonAliasIds.Contains( a.AchieverPersonAlias.Id ) );
 
-                inProgressAchievementAttemptsByPersonId.AddOrIgnore( personId, personInProgressAchievementAttempts );
-            }
-
-            return inProgressAchievementAttemptsByPersonId;
+            return achievementAttemptsQuery;
         }
 
         /// <summary>
@@ -367,10 +350,10 @@ namespace Rock.Workflow.Action.CheckIn
                     };
 
                     var mergeFields = Lava.LavaHelper.GetCommonMergeFields( null );
-                    mergeFields.Add( "Person", person.Person );
-                    mergeFields.Add( "Group", group.Group );
-                    mergeFields.Add( "Location", location.Location );
-                    mergeFields.Add( "Schedule", schedule.Schedule );
+                    mergeFields.Add( MergeFieldKey.Person, person.Person );
+                    mergeFields.Add( MergeFieldKey.Group, group.Group );
+                    mergeFields.Add( MergeFieldKey.Location, location.Location );
+                    mergeFields.Add( MergeFieldKey.Schedule, schedule.Schedule );
                     message.MessageText = GetAttributeValue( action, AttributeKey.NotCheckedInMessageFormat ).ResolveMergeFields( mergeFields );
 
                     // Now add it to the check-in state message list for others to see.
@@ -396,13 +379,16 @@ namespace Rock.Workflow.Action.CheckIn
                 }
             }
         }
-    }
 
-    class OccurrenceRecord
-    {
-        public int ScheduleId { get; set; }
-        public int LocationId { get; set; }
-        public int Count { get; set; }
-        public DateTime Date { get; set; }
+        private class OccurrenceRecord
+        {
+            public int ScheduleId { get; set; }
+
+            public int LocationId { get; set; }
+
+            public int Count { get; set; }
+
+            public DateTime Date { get; set; }
+        }
     }
 }
