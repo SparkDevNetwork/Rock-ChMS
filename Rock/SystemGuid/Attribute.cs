@@ -846,11 +846,59 @@ namespace Rock.SystemGuid
 
         /// <summary>
         /// Last Classification Run Date Time - Date - sets the date time of then the giving unit was last classified.
-        /// Classification is updated after each new gift, but if they stop giving we’ll use this to occassionally update the classification. 
+        /// Classification is updated after each new gift, but if they stop giving we’ll use this to occasionally update the classification. 
         /// </summary>
         public const string PERSON_GIVING_LAST_CLASSIFICATION_DATE = "7220B230-03CE-4D1E-985B-26AA28BE06F8";
 
+        /// <summary>
+        /// Giving History JSON - Code - gets the JSON array of giving data by month objects.
+        /// [{ Year: 2020, Month: 1, AccountId: 1, Amount: 550.67 }, ...]
+        /// </summary>
+        public const string PERSON_GIVING_HISTORY_JSON = "3BF34F25-4D50-4417-B436-37FEA3FA5473";
+
+        /// <summary>
+        /// Giving Total past 12 months - Currency
+        /// </summary>
+        public const string PERSON_GIVING_12_MONTHS = "ADD9BE86-49CA-46C4-B4EA-547F2F277294";
+
+        /// <summary>
+        /// Giving Total past 90 days - Currency
+        /// </summary>
+        public const string PERSON_GIVING_90_DAYS = "0DE95B77-D26E-4513-9A71-92A7FD5C4B7C";
+
+        /// <summary>
+        /// Giving Total prior 90 days (90-180 days ago) - Currency
+        /// </summary>
+        public const string PERSON_GIVING_PRIOR_90_DAYS = "0170A267-942A-480A-A9CF-E4EA60CAA529";
+
+        /// <summary>
+        /// Gift count 12 month - Integer
+        /// </summary>
+        public const string PERSON_GIVING_12_MONTHS_COUNT = "23B6A7BD-BBBB-4F2D-9695-2B1E03B3013A";
+
+        /// <summary>
+        /// Gift count 90 days - Integer
+        /// </summary>
+        public const string PERSON_GIVING_90_DAYS_COUNT = "356B8F0B-AA54-4F44-8513-F8A5FF592F18";
+
         #endregion Giving Analytics
+
+        #region Language Defined Type
+        /// <summary>
+        /// Language in ISO639-1
+        /// </summary>
+        public const string ISO639_1 = "F5E8B6D2-6483-0F8D-4C20-07C51E7548AD";
+
+        /// <summary>
+        /// Language in ISO639
+        /// </summary>
+        public const string ISO639_2 = "09225D47-9A4D-D391-49E4-5A99A1DB47B8";
+
+        /// <summary>
+        /// The native language name
+        /// </summary>
+        public const string NativeLanguageName = "55256C99-DAC9-1AB4-4FD2-7CBFE3170245";
+        #endregion
 
         /// <summary>
         /// The currency code symbol
