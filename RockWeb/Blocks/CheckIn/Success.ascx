@@ -251,47 +251,6 @@
 
 <asp:UpdatePanel ID="upContent" runat="server">
     <ContentTemplate>
-
-        <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.3.3/dist/confetti.browser.min.js"></script>
-        <script>
-
-            var conffetiSound = new Howl( {
-                src: [ '<%= ResolveRockUrl("~/Assets/Sounds/Checkin/confetti_gun.mp3") %>' ],
-                volume: 1
-            } );
-
-            var celebrateSound = new Howl( {
-                src: [ '<%= ResolveRockUrl("~/Assets/Sounds/Checkin/fanfare_trumpets.mp3") %>' ],
-                volume: 0.8
-            } );
-
-            $( document ).ready( function ()
-            {
-                if ( $( '.checkin-celebrations' ).length )
-                {
-                    setTimeout(
-                        function ()
-                        {
-                            celebrateSound.play();
-                            confetti( {
-                                origin: { y: -0.2 },
-                                angle: -90,
-                                spread: 150,
-                                startVelocity: 30,
-                                particleCount: 200,
-                                decay: 0.95,
-                                colors: [ '#f24730', '#6abfd3', '#ffc639', '#ff9239', '#fc83a3', '#5395e5' ]
-                            } );
-                        }, 500 );
-                    setTimeout(
-                        function ()
-                        {
-                            conffetiSound.play();
-                        }, 800 );
-                }
-            } );
-        </script>
-
         <Rock:ModalAlert ID="maWarning" runat="server" />
 
         <div class="checkin-header">

@@ -84,6 +84,10 @@ namespace RockWeb.Blocks.CheckIn
             public const string AchievementTypeEvent = "AchievementTypeEvent";
             public const string NumberToAchieve = "NumberToAchieve";
             public const string NumberToAccumulate = "NumberToAccumulate";
+
+            // Number of times person has successful achieved this (For example, successfully did  '3 times a month" 10 times )
+            public const string SuccessfulAchievementCount = "SuccessfulAchievementCount";
+
             public const string ProgressCount = "ProgressCount";
             public const string ProgressPercent = "ProgressPercent";
             public const string StreakType = "StreakType";
@@ -292,7 +296,7 @@ namespace RockWeb.Blocks.CheckIn
             if ( printFromServer.Any() )
             {
                 var messages = ZebraPrint.PrintLabels( printFromServer );
-                mergeFields.Add( "ZebraPrintMessageList", messages );
+                mergeFields.Add( MergeFieldKey.ZebraPrintMessageList, messages );
                 if ( messages.Any() )
                 {
                     lCheckinLabelErrorMessages.Visible = true;
@@ -397,20 +401,20 @@ namespace RockWeb.Blocks.CheckIn
 
             foreach ( var checkinResult in checkinResultList.Where( a => a.JustCompletedAchievementAttempts != null ) )
             {
-                foreach ( var achievementAttempt in checkinResult.JustCompletedAchievementAttempts )
+                if ( !personJustCompletedAchievementAttempts.Any( x => x.Person.Id == checkinResult.Person.Person.Id ) )
                 {
-                    if ( !personJustCompletedAchievementAttempts.Any( x => x.Person.Id == checkinResult.Person.Person.Id ) )
+                    foreach ( var achievementAttempt in checkinResult.JustCompletedAchievementAttempts )
                     {
                         personJustCompletedAchievementAttempts.Add( new PersonAchievementAttempt( checkinResult.Person.Person, achievementAttempt ) );
                     }
                 }
-            }
 
-            if ( personJustCompletedAchievementAttempts.Any() )
-            {
-                pnlCheckinCelebrations.Visible = true;
-                rptAchievementsSuccess.DataSource = personJustCompletedAchievementAttempts;
-                rptAchievementsSuccess.DataBind();
+                if ( personJustCompletedAchievementAttempts.Any() )
+                {
+                    pnlCheckinCelebrations.Visible = true;
+                    rptAchievementsSuccess.DataSource = personJustCompletedAchievementAttempts;
+                    rptAchievementsSuccess.DataBind();
+                }
             }
 
             pnlCheckinConfirmations.Visible = true;
@@ -434,6 +438,12 @@ namespace RockWeb.Blocks.CheckIn
             public AchievementAttempt AchievementAttempt { get; }
         }
 
+        /// <summary>
+        /// Gets the achievement merge fields.
+        /// </summary>
+        /// <param name="achievementAttempt">The achievement attempt.</param>
+        /// <param name="person">The person.</param>
+        /// <returns></returns>
         private Dictionary<string, object> GetAchievementMergeFields( AchievementAttempt achievementAttempt, Person person )
         {
             AchievementTypeCache achievementTypeCache = AchievementTypeCache.Get( achievementAttempt.AchievementTypeId );
@@ -449,6 +459,15 @@ namespace RockWeb.Blocks.CheckIn
             mergeFields.Add( MergeFieldKey.ProgressPercent, achievementAttempt.Progress * 100 );
             mergeFields.Add( MergeFieldKey.StreakType, achievementTypeCache.StreakType );
             mergeFields.Add( MergeFieldKey.FrequencyText, achievementTypeCache.StreakType?.OccurrenceFrequency.ConvertToString() );
+
+            // Get number of times person has successfully accomplished the achievement
+            var achievementAttemptService = new AchievementAttemptService( new RockContext() );
+            var totalSuccessfulAchievementCount = achievementAttemptService
+                .QueryByPersonId( person.Id )
+                .Where( a => a.AchievementTypeId == achievementAttempt.AchievementTypeId && a.IsSuccessful )
+                .Count();
+
+            mergeFields.Add( MergeFieldKey.SuccessfulAchievementCount, totalSuccessfulAchievementCount );
 
             return mergeFields;
         }
