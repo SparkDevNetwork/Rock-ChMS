@@ -231,20 +231,29 @@ namespace Rock.Workflow.Action.CheckIn
                 rockContext.SaveChanges();
 
                 var achievementAttemptsAfterSaveChanges = GetAchievementAttemptsWithPersonAliasQuery( rockContext, attendanceRecordsPersonAliasIds, configuredAchievementTypeIds )
-                    .Where( a => !alreadyCompletedAchievementIdsPriorToSaveChanges.Contains( a.AchievementAttempt.Id ) ).AsNoTracking().ToList();
+                    .AsNoTracking().ToList();
 
                 var justCompletedAchievementAttemptsByPersonId = achievementAttemptsAfterSaveChanges
                     .Where( a => a.AchievementAttempt.IsSuccessful )
+                    .Where( a => !alreadyCompletedAchievementIdsPriorToSaveChanges.Contains( a.AchievementAttempt.Id ) )
                     .GroupBy( a => a.AchieverPersonAlias.PersonId )
                     .ToDictionary( k => k.Key, v => v.Select( x => x.AchievementAttempt ).ToArray() );
 
                 var inProgressAchievementAttemptsByPersonId = achievementAttemptsAfterSaveChanges
                     .Where( a => !a.AchievementAttempt.IsSuccessful && !a.AchievementAttempt.IsClosed )
                     .GroupBy( a => a.AchieverPersonAlias.PersonId )
-                    .ToDictionary( k => k.Key, v => v.Select( x => x.AchievementAttempt ).ToArray() );
+                    .ToDictionary( k => k.Key, v => v.Select( x => x.AchievementAttempt ).DistinctBy( aa => aa.AchievementTypeId ).ToArray() );
+
+                var completedAchievementAttemptsByPersonId = achievementAttemptsAfterSaveChanges
+                    .Where( a => a.AchievementAttempt.IsSuccessful )
+                    .GroupBy( a => a.AchieverPersonAlias.PersonId )
+                    .ToDictionary( k => k.Key, v => v.Select( x => x.AchievementAttempt ).DistinctBy( aa => aa.AchievementTypeId ).ToArray() );
 
                 // calculate the "Just Completed" achievements as-of *after* save changes
                 checkInState.CheckIn.JustCompletedAchievementAttemptsByPersonId = justCompletedAchievementAttemptsByPersonId;
+
+                // calculate all "Completed" achievements as-of *after* save changes (which would include the Just Completed one too)
+                checkInState.CheckIn.CompletedAchievementAttemptsByPersonId = completedAchievementAttemptsByPersonId;
 
                 // get any InProgress attempts as-of after save changes
                 checkInState.CheckIn.InProgressAchievementAttemptsByPersonId = inProgressAchievementAttemptsByPersonId;

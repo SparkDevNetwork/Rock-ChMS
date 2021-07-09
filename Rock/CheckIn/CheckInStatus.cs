@@ -166,6 +166,14 @@ namespace Rock.CheckIn
         public Dictionary<int, AchievementAttempt[]> InProgressAchievementAttemptsByPersonId { get; internal set; }
 
         /// <summary>
+        /// Achievement Attempts (for each Person) that have been completed
+        /// </summary>
+        /// <value>
+        /// The completed achievement attempts by person identifier.
+        /// </value>
+        public Dictionary<int, AchievementAttempt[]> CompletedAchievementAttemptsByPersonId { get; internal set; }
+
+        /// <summary>
         /// Achievement Attempts (for each Person) that became complete as a result of this checkin.
         /// </summary>
         /// <value>

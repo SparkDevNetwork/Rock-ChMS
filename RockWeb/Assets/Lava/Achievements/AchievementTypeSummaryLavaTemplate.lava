@@ -1,4 +1,4 @@
-{% if AchievementAttempt.IsSuccessful == true %}
+{% if JustCompleted == true  %}
     <div class="left-icon">
         {% if AchievementType.ImageBinaryFileId %}
             <img src="/GetImage.ashx?id={{AchievementType.ImageBinaryFileId}}&width=40" />
