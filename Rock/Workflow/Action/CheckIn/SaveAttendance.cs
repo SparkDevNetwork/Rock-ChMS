@@ -226,37 +226,16 @@ namespace Rock.Workflow.Action.CheckIn
                 // Get any achievements that were in-progress *prior* to adding these attendance records
                 var configuredAchievementTypeIds = checkInState.CheckInType.AchievementTypes.Select( a => a.Id ).ToList();
                 var attendanceRecordsPersonAliasIds = attendanceRecords.Where( a => a.PersonAliasId.HasValue ).Select( a => a.PersonAliasId.Value ).ToArray();
-                var alreadyCompletedAchievementIdsPriorToSaveChanges = GetCompletedAchievementAttemptIds( rockContext, attendanceRecordsPersonAliasIds, configuredAchievementTypeIds );
+                var successfulyCompletedAchievementsPriorToSaveChanges = GetSuccessfulyCompletedAchievementAttempts( rockContext, attendanceRecordsPersonAliasIds, configuredAchievementTypeIds );
 
                 rockContext.SaveChanges();
 
-                var achievementAttemptsAfterSaveChanges = GetAchievementAttemptsWithPersonAliasQuery( rockContext, attendanceRecordsPersonAliasIds, configuredAchievementTypeIds )
-                    .AsNoTracking().ToList();
+                AchievementAttemptService.AchievementAttemptWithPersonAlias[] achievementAttemptsAfterSaveChanges = GetAchievementAttemptsWithPersonAliasQuery( rockContext, attendanceRecordsPersonAliasIds, configuredAchievementTypeIds )
+                    .AsNoTracking().ToArray();
 
-                var justCompletedAchievementAttemptsByPersonId = achievementAttemptsAfterSaveChanges
-                    .Where( a => a.AchievementAttempt.IsSuccessful )
-                    .Where( a => !alreadyCompletedAchievementIdsPriorToSaveChanges.Contains( a.AchievementAttempt.Id ) )
-                    .GroupBy( a => a.AchieverPersonAlias.PersonId )
-                    .ToDictionary( k => k.Key, v => v.Select( x => x.AchievementAttempt ).ToArray() );
 
-                var inProgressAchievementAttemptsByPersonId = achievementAttemptsAfterSaveChanges
-                    .Where( a => !a.AchievementAttempt.IsSuccessful && !a.AchievementAttempt.IsClosed )
-                    .GroupBy( a => a.AchieverPersonAlias.PersonId )
-                    .ToDictionary( k => k.Key, v => v.Select( x => x.AchievementAttempt ).DistinctBy( aa => aa.AchievementTypeId ).ToArray() );
-
-                var completedAchievementAttemptsByPersonId = achievementAttemptsAfterSaveChanges
-                    .Where( a => a.AchievementAttempt.IsSuccessful )
-                    .GroupBy( a => a.AchieverPersonAlias.PersonId )
-                    .ToDictionary( k => k.Key, v => v.Select( x => x.AchievementAttempt ).DistinctBy( aa => aa.AchievementTypeId ).ToArray() );
-
-                // calculate the "Just Completed" achievements as-of *after* save changes
-                checkInState.CheckIn.JustCompletedAchievementAttemptsByPersonId = justCompletedAchievementAttemptsByPersonId;
-
-                // calculate all "Completed" achievements as-of *after* save changes (which would include the Just Completed one too)
-                checkInState.CheckIn.CompletedAchievementAttemptsByPersonId = completedAchievementAttemptsByPersonId;
-
-                // get any InProgress attempts as-of after save changes
-                checkInState.CheckIn.InProgressAchievementAttemptsByPersonId = inProgressAchievementAttemptsByPersonId;
+                checkInState.CheckIn.SuccessfulyCompletedAchievementsPriorToCheckin = successfulyCompletedAchievementsPriorToSaveChanges;
+                checkInState.CheckIn.AchievementsStateAfterCheckin = achievementAttemptsAfterSaveChanges;
             }
             else
             {
@@ -280,16 +259,17 @@ namespace Rock.Workflow.Action.CheckIn
         /// <param name="attendanceRecordsPersonAliasIds">The attendance records person alias ids.</param>
         /// <param name="configuredAchievementTypeIds">The configured achievement type ids.</param>
         /// <returns></returns>
-        private int[] GetCompletedAchievementAttemptIds( RockContext rockContext, int[] attendanceRecordsPersonAliasIds, List<int> configuredAchievementTypeIds )
+        private AchievementAttemptService.AchievementAttemptWithPersonAlias[] GetSuccessfulyCompletedAchievementAttempts( RockContext rockContext, int[] attendanceRecordsPersonAliasIds, List<int> configuredAchievementTypeIds )
         {
             var achievementAttemptService = new AchievementAttemptService( new RockContext() );
-            var alreadyCompletedAchievementAttemptIds = achievementAttemptService
-                .QueryByPersonAliasIds( attendanceRecordsPersonAliasIds )
-                 .Where( a => configuredAchievementTypeIds.Contains( a.AchievementTypeId ) )
-                 .Where( a => a.IsSuccessful || a.IsClosed )
-                    .Select( a => a.Id ).ToArray();
+            var completedAchievementAttempts = achievementAttemptService.GetAchievementAttemptWithAchieverPersonAliasQuery()
+                .Where( x => attendanceRecordsPersonAliasIds.Contains( x.AchieverPersonAlias.Id ) )
+                 .Where( a => configuredAchievementTypeIds.Contains( a.AchievementAttempt.AchievementTypeId ) )
+                 .Where( a => a.AchievementAttempt.IsSuccessful || a.AchievementAttempt.IsClosed )
+                 .AsNoTracking()
+                 .ToArray();
 
-            return alreadyCompletedAchievementAttemptIds;
+            return completedAchievementAttempts;
         }
 
         /// <summary>

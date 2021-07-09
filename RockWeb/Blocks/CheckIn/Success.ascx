@@ -311,12 +311,12 @@
                                                                 <asp:Literal ID="lCheckinResultsCheckinMessage" runat="server" /></span>
                                                         </div>
 
-                                                        <%-- List of In-Progress Achievements for this Attendance --%>
-                                                        <asp:Panel ID="pnlCheckinResultsCelebrationProgressList" runat="server" Visible="false">
-                                                            <asp:Repeater ID="rptCheckinResultsAchievementsProgress" runat="server" OnItemDataBound="rptCheckinResultsAchievementsProgress_ItemDataBound">
+                                                        <%-- List of InProgress and Completed Achievements for each CheckinResult --%>
+                                                        <asp:Panel ID="pnlCheckinResultsAchievementsScoreboard" runat="server" Visible="false">
+                                                            <asp:Repeater ID="rptCheckinResultsAchievementsScoreboard" runat="server" OnItemDataBound="rptCheckinResultsAchievementsScoreboard_ItemDataBound">
                                                                 <ItemTemplate>
                                                                     <%-- HTML for the AchievmentType's Custom Summary Lava Template --%>
-                                                                    <asp:Literal ID="lCheckinResultsAchievementProgressHtml" runat="server" />
+                                                                    <asp:Literal ID="lCheckinResultsAchievementScoreboardHtml" runat="server" />
                                                                 </ItemTemplate>
                                                             </asp:Repeater>
                                                         </asp:Panel>

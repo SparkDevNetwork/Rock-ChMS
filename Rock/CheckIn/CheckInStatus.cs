@@ -156,7 +156,12 @@ namespace Rock.CheckIn
                 return null;
             }
         }
+        
 
+        public AchievementAttemptService.AchievementAttemptWithPersonAlias[] SuccessfulyCompletedAchievementsPriorToCheckin { get; internal set; }
+        public AchievementAttemptService.AchievementAttemptWithPersonAlias[] AchievementsStateAfterCheckin { get; internal set; }
+
+        /*
         /// <summary>
         /// Achievement Attempts (for each Person) that are still in progress after this checkin.
         /// </summary>
@@ -164,6 +169,8 @@ namespace Rock.CheckIn
         /// The in progress achievement attempts.
         /// </value>
         public Dictionary<int, AchievementAttempt[]> InProgressAchievementAttemptsByPersonId { get; internal set; }
+
+        // ## TODO ## figure out if AchievementAttempts should be distinct by AchievementTypeId or not
 
         /// <summary>
         /// Achievement Attempts (for each Person) that have been completed
@@ -180,5 +187,6 @@ namespace Rock.CheckIn
         /// The complete achievement attempts.
         /// </value>
         public Dictionary<int, AchievementAttempt[]> JustCompletedAchievementAttemptsByPersonId { get; internal set; }
+        */
     }
 }
