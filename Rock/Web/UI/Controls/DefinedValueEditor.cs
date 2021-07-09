@@ -481,6 +481,11 @@ namespace Rock.Web.UI.Controls
             {
                 var picker = this.Parent as DefinedValuePickerWithAdd;
 
+                if ( picker.SelectableDefinedValuesId != null && picker.SelectableDefinedValuesId.Any() )
+                {
+                    // TODO: Need to add to the attribute.
+                }
+
                 if ( this.IsMultiSelection )
                 {
                     List<int> definedValues = picker.SelectedDefinedValuesId.ToList();

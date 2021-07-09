@@ -382,6 +382,14 @@ namespace Rock.Web.UI.Controls
         public bool EnhanceForLongLists { get; set; }
 
         /// <summary>
+        /// Gets or sets the selectable defined values identifier.
+        /// </summary>
+        /// <value>
+        /// The selectable defined values identifier.
+        /// </value>
+        public int[] SelectableDefinedValuesId { get; set; }
+
+        /// <summary>
         /// Raises the <see cref="E:System.Web.UI.Control.Load" /> event.
         /// </summary>
         /// <param name="e">The <see cref="T:System.EventArgs" /> object that contains the event data.</param>
