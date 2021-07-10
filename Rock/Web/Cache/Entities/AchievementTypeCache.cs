@@ -379,6 +379,11 @@ namespace Rock.Web.Cache
         /// <returns></returns>
         public int? GetProgressCount( AchievementAttempt achievementAttempt )
         {
+            if ( achievementAttempt == null)
+            {
+                return null;
+            }
+
             var targetCount = NumberToAchieve ?? NumberToAccumulate;
             if ( targetCount.HasValue )
             {

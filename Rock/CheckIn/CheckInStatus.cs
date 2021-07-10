@@ -156,37 +156,21 @@ namespace Rock.CheckIn
                 return null;
             }
         }
-        
 
-        public AchievementAttemptService.AchievementAttemptWithPersonAlias[] SuccessfulyCompletedAchievementsPriorToCheckin { get; internal set; }
+        /// <summary>
+        /// Gets the successfully completed achievements prior to checkin.
+        /// </summary>
+        /// <value>
+        /// The successfully completed achievements prior to checkin.
+        /// </value>
+        public AchievementAttemptService.AchievementAttemptWithPersonAlias[] SuccessfullyCompletedAchievementsPriorToCheckin { get; internal set; }
+
+        /// <summary>
+        /// Gets the achievements state after checkin.
+        /// </summary>
+        /// <value>
+        /// The achievements state after checkin.
+        /// </value>
         public AchievementAttemptService.AchievementAttemptWithPersonAlias[] AchievementsStateAfterCheckin { get; internal set; }
-
-        /*
-        /// <summary>
-        /// Achievement Attempts (for each Person) that are still in progress after this checkin.
-        /// </summary>
-        /// <value>
-        /// The in progress achievement attempts.
-        /// </value>
-        public Dictionary<int, AchievementAttempt[]> InProgressAchievementAttemptsByPersonId { get; internal set; }
-
-        // ## TODO ## figure out if AchievementAttempts should be distinct by AchievementTypeId or not
-
-        /// <summary>
-        /// Achievement Attempts (for each Person) that have been completed
-        /// </summary>
-        /// <value>
-        /// The completed achievement attempts by person identifier.
-        /// </value>
-        public Dictionary<int, AchievementAttempt[]> CompletedAchievementAttemptsByPersonId { get; internal set; }
-
-        /// <summary>
-        /// Achievement Attempts (for each Person) that became complete as a result of this checkin.
-        /// </summary>
-        /// <value>
-        /// The complete achievement attempts.
-        /// </value>
-        public Dictionary<int, AchievementAttempt[]> JustCompletedAchievementAttemptsByPersonId { get; internal set; }
-        */
     }
 }

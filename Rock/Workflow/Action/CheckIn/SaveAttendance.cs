@@ -226,7 +226,7 @@ namespace Rock.Workflow.Action.CheckIn
                 // Get any achievements that were in-progress *prior* to adding these attendance records
                 var configuredAchievementTypeIds = checkInState.CheckInType.AchievementTypes.Select( a => a.Id ).ToList();
                 var attendanceRecordsPersonAliasIds = attendanceRecords.Where( a => a.PersonAliasId.HasValue ).Select( a => a.PersonAliasId.Value ).ToArray();
-                var successfulyCompletedAchievementsPriorToSaveChanges = GetSuccessfulyCompletedAchievementAttempts( rockContext, attendanceRecordsPersonAliasIds, configuredAchievementTypeIds );
+                var successfullyCompletedAchievementsPriorToSaveChanges = GetSuccessfullyCompletedAchievementAttempts( rockContext, attendanceRecordsPersonAliasIds, configuredAchievementTypeIds );
 
                 rockContext.SaveChanges();
 
@@ -234,7 +234,7 @@ namespace Rock.Workflow.Action.CheckIn
                     .AsNoTracking().ToArray();
 
 
-                checkInState.CheckIn.SuccessfulyCompletedAchievementsPriorToCheckin = successfulyCompletedAchievementsPriorToSaveChanges;
+                checkInState.CheckIn.SuccessfullyCompletedAchievementsPriorToCheckin = successfullyCompletedAchievementsPriorToSaveChanges;
                 checkInState.CheckIn.AchievementsStateAfterCheckin = achievementAttemptsAfterSaveChanges;
             }
             else
@@ -259,7 +259,7 @@ namespace Rock.Workflow.Action.CheckIn
         /// <param name="attendanceRecordsPersonAliasIds">The attendance records person alias ids.</param>
         /// <param name="configuredAchievementTypeIds">The configured achievement type ids.</param>
         /// <returns></returns>
-        private AchievementAttemptService.AchievementAttemptWithPersonAlias[] GetSuccessfulyCompletedAchievementAttempts( RockContext rockContext, int[] attendanceRecordsPersonAliasIds, List<int> configuredAchievementTypeIds )
+        private AchievementAttemptService.AchievementAttemptWithPersonAlias[] GetSuccessfullyCompletedAchievementAttempts( RockContext rockContext, int[] attendanceRecordsPersonAliasIds, List<int> configuredAchievementTypeIds )
         {
             var achievementAttemptService = new AchievementAttemptService( new RockContext() );
             var completedAchievementAttempts = achievementAttemptService.GetAchievementAttemptWithAchieverPersonAliasQuery()

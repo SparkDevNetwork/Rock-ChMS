@@ -2,12 +2,6 @@
     <div class="left-icon">
         {% if AchievementType.ImageBinaryFileId %}
             <img src="/GetImage.ashx?id={{AchievementType.ImageBinaryFileId}}&width=40" />
-        {% else %}
-            {% if IsConsecutiveStreakType %}
-                <img src="/Assets/Images/Achievements/AchievementTrophy.svg" />
-            {% else %}
-                <img src="/Assets/Images/Achievements/AchievementMedal.svg" />
-            {%endif%}
         {%endif%}
     </div>
 
@@ -30,12 +24,6 @@
             <div class="left-icon">
                 {% if AchievementType.ImageBinaryFileId %}
                     <img src="/GetImage.ashx?id={{AchievementType.ImageBinaryFileId}}&width=40" />
-                {% else %}
-                    {% if IsConsecutiveStreakType %}
-                        <img src="/Assets/Images/Achievements/AchievementTrophy.svg" />
-                    {% else %}
-                        <img src="/Assets/Images/Achievements/AchievementMedal.svg" />
-                    {%endif%}
                 {%endif%}
             </div>
 
@@ -62,10 +50,10 @@
         </div>
         <span class="celebration-progress-stat">
 
-            {% if IsConsecutiveStreakType %}
+            {% if NumberToAchieve %}
                 <!-- Consecutive Streak -->
-                <!-- Current Streak: 1 Week of 10 -->
-                Current Streak: {{ ProgressCount }} {{ FrequencyText }} of {{ NumberToAchieve }}
+                <!-- Current Streak: 1 of 10 -->
+                Current Streak: {{ ProgressCount }} of {{ NumberToAchieve }}
             {% else %}
                 <!-- Probably an Accumulative Streak -->
                 <!-- Current Total: 2 -->
