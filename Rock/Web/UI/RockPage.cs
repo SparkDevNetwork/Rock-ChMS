@@ -1242,8 +1242,7 @@ Rock.settings.initialize({{
 
                                         if ( blockEntity is IRockBlockType rockBlockEntity )
                                         {
-                                            var clientType = rockBlockEntity.GetRockClientType();
-                                            rockBlockEntity.RequestContext = new RockRequestContext( Request, clientType );
+                                            rockBlockEntity.RequestContext = new RockRequestContext( Request );
                                             rockBlockEntity.RequestContext.AddContextEntitiesForPage( _pageCache );
 
                                             var wrapper = new RockBlockTypeWrapper
@@ -1259,7 +1258,7 @@ Rock.settings.initialize({{
                                             control.ClientIDMode = ClientIDMode.AutoID;
                                         }
 
-                                        if ( blockEntity is IObsidianBlockType )
+                                        if ( blockEntity is IRockObsidianBlockType )
                                         {
                                             _pageNeedsObsidian = true;
                                         }
@@ -1363,7 +1362,7 @@ Rock.settings.initialize({{
                         if ( !ClientScript.IsStartupScriptRegistered( "rock-obsidian-init" ) )
                         {
                             var script = $@"
-Obsidian.whenReady(() => {{
+Obsidian.onReady(() => {{
     System.import('/Obsidian/Index.js').then(indexModule => {{
         indexModule.initializePage({{
             executionStartTime: new Date(),
@@ -1681,7 +1680,7 @@ Obsidian.whenReady(() => {{
                     if ( !ClientScript.IsStartupScriptRegistered( "rock-obsidian-page-timings" ) )
                     {
                         var script = $@"
-Obsidian.whenReady(() => {{
+Obsidian.onReady(() => {{
     System.import('/Obsidian/Index.js').then(indexModule => {{
         indexModule.initializePageTimings({{
             elementId: '{_obsidianPageTimingControlId}',

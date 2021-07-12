@@ -388,6 +388,9 @@ namespace Rock.Mobile
             package.AppearanceSettings.NavigationBarActionsXaml = additionalSettings.NavigationBarActionXaml;
             package.AppearanceSettings.LockedPhoneOrientation = additionalSettings.LockedPhoneOrientation;
             package.AppearanceSettings.LockedTabletOrientation = additionalSettings.LockedTabletOrientation;
+            package.AppearanceSettings.PaletteColors.Add( "text-color", additionalSettings.DownhillSettings.TextColor );
+            package.AppearanceSettings.PaletteColors.Add( "heading-color", additionalSettings.DownhillSettings.HeadingColor );
+            package.AppearanceSettings.PaletteColors.Add( "background-color", additionalSettings.DownhillSettings.BackgroundColor );
             package.AppearanceSettings.PaletteColors.Add( "app-primary", additionalSettings.DownhillSettings.ApplicationColors.Primary );
             package.AppearanceSettings.PaletteColors.Add( "app-secondary", additionalSettings.DownhillSettings.ApplicationColors.Secondary );
             package.AppearanceSettings.PaletteColors.Add( "app-success", additionalSettings.DownhillSettings.ApplicationColors.Success );
@@ -441,7 +444,7 @@ namespace Rock.Mobile
 
                     mobileBlockEntity.BlockCache = block;
                     mobileBlockEntity.PageCache = block.Page;
-                    mobileBlockEntity.RequestContext = new Net.RockRequestContext( RockClientType.Mobile );
+                    mobileBlockEntity.RequestContext = new Net.RockRequestContext();
 
                     var attributes = block.Attributes
                         .Select( a => a.Value )
