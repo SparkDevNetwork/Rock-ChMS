@@ -489,7 +489,8 @@ namespace Rock.UniversalSearch.IndexModels
             return propertyNames;
         }
 
-        #region ILiquid Implementation
+        #region ILiquidizable Implementation
+
         /// <summary>
         /// Gets the available keys (for debugging info).
         /// </summary>
@@ -501,8 +502,19 @@ namespace Rock.UniversalSearch.IndexModels
         {
             get
             {
-                return GetDynamicMemberNames().ToList();
+                return GetAvailableKeys();
             }
+        }
+
+        /// <summary>
+        /// Gets the available keys (for debugging info).
+        /// </summary>
+        /// <value>
+        /// The available keys.
+        /// </value>
+        public List<string> GetAvailableKeys()
+        {
+            return GetDynamicMemberNames().ToList();
         }
 
         /// <summary>

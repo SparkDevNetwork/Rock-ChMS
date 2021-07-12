@@ -379,23 +379,19 @@ namespace Rock.Web.Cache
         /// <value>
         /// The available keys.
         /// </value>
-        [LavaHidden]
-        public virtual List<string> AvailableKeys
+        public virtual List<string> GetAvailableKeys()
         {
-            get
+            var availableKeys = new List<string>();
+
+            foreach ( var propInfo in GetType().GetProperties() )
             {
-                var availableKeys = new List<string>();
-
-                foreach ( var propInfo in GetType().GetProperties() )
+                if ( propInfo != null && propInfo.GetCustomAttributes( typeof( LavaHiddenAttribute ) ).Count() <= 0 )
                 {
-                    if ( propInfo != null && propInfo.GetCustomAttributes( typeof( LavaHiddenAttribute ) ).Count() <= 0 )
-                    {
-                        availableKeys.Add( propInfo.Name );
-                    }
+                    availableKeys.Add( propInfo.Name );
                 }
-
-                return availableKeys;
             }
+
+            return availableKeys;
         }
 
         /// <summary>
@@ -546,6 +542,21 @@ namespace Rock.Web.Cache
         #endregion
 
         #region ILiquidizable Implementation
+
+        /// <summary>
+        /// Gets the available keys (for debugging info).
+        /// </summary>
+        /// <value>
+        /// The available keys.
+        /// </value>
+        [LavaHidden]
+        public List<string> AvailableKeys
+        {
+            get
+            {
+                return GetAvailableKeys();
+            }
+        }
 
         /// <summary>
         /// To the liquid.

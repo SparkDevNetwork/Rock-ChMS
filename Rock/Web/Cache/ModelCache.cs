@@ -400,8 +400,12 @@ namespace Rock.Web.Cache
         /// <value>
         /// The available keys.
         /// </value>
-        [LavaHidden]
-        public virtual List<string> AvailableKeys => ( from propInfo in GetType().GetProperties() where propInfo != null && !propInfo.GetCustomAttributes( typeof( LavaHiddenAttribute ) ).Any() select propInfo.Name ).ToList();
+        public virtual List<string> GetAvailableKeys()
+        {
+            var keys = from propInfo in GetType().GetProperties() where propInfo != null && !propInfo.GetCustomAttributes( typeof( LavaHiddenAttribute ) ).Any() select propInfo.Name;
+
+            return keys.ToList();
+        }
 
         /// <summary>
         /// Gets the <see cref="System.Object"/> with the specified key.
@@ -544,6 +548,21 @@ namespace Rock.Web.Cache
         public object ToLiquid()
         {
             return this;
+        }
+
+        /// <summary>
+        /// Gets the available keys (for debugging info).
+        /// </summary>
+        /// <value>
+        /// The available keys.
+        /// </value>
+        [LavaHidden]
+        public List<string> AvailableKeys
+        {
+            get
+            {
+                return GetAvailableKeys();
+            }
         }
 
         /// <summary>

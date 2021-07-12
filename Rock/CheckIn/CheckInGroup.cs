@@ -192,18 +192,14 @@ namespace Rock.CheckIn
         /// <value>
         /// The available keys.
         /// </value>
-        [LavaHidden]
-        public List<string> AvailableKeys
+        public List<string> GetAvailableKeys()
         {
-            get
+            var availableKeys = new List<string> { "LastCheckIn", "Locations" };
+            if ( this.Group != null )
             {
-                var availableKeys = new List<string> { "LastCheckIn", "Locations" };
-                if ( this.Group != null )
-                {
-                    availableKeys.AddRange( this.Group.AvailableKeys );
-                }
-                return availableKeys;
+                availableKeys.AddRange( this.Group.GetAvailableKeys() );
             }
+            return availableKeys;
         }
 
         /// <summary>
@@ -261,6 +257,21 @@ namespace Rock.CheckIn
         }
 
         #region ILiquidizable
+
+        /// <summary>
+        /// Gets the available keys (for debugging info).
+        /// </summary>
+        /// <value>
+        /// The available keys.
+        /// </value>
+        [LavaHidden]
+        public List<string> AvailableKeys
+        {
+            get
+            {
+                return GetAvailableKeys();
+            }
+        }
 
         /// <summary>
         /// Determines whether the specified key contains key.

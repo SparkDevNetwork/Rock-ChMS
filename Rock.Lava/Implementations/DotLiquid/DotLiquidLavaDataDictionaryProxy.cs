@@ -120,7 +120,7 @@ namespace Rock.Lava.DotLiquid
         {
             get
             {
-                return _dataObject.AvailableKeys.Count;
+                return _dataObject.GetAvailableKeys().Count;
             }
         }
 
@@ -203,7 +203,7 @@ namespace Rock.Lava.DotLiquid
                 return new List<string>();
             }
 
-            return _dataObject.AvailableKeys;
+            return _dataObject.GetAvailableKeys();
         }
     }
 }

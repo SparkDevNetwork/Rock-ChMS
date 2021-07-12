@@ -430,6 +430,21 @@ namespace Rock.Model
         #region ILiquidizable
 
         /// <summary>
+        /// Gets the available keys (for debugging info).
+        /// </summary>
+        /// <value>
+        /// The available keys.
+        /// </value>
+        [LavaHidden]
+        public List<string> AvailableKeys
+        {
+            get
+            {
+                return GetAvailableKeys();
+            }
+        }
+
+        /// <summary>
         /// Creates a DotLiquid compatible dictionary that represents the current entity object. 
         /// </summary>
         /// <returns>DotLiquid compatible dictionary.</returns>
@@ -444,23 +459,19 @@ namespace Rock.Model
         /// <value>
         /// The available keys.
         /// </value>
-        [LavaHidden]
-        public virtual List<string> AvailableKeys
+        public virtual List<string> GetAvailableKeys()
         {
-            get
+            var availableKeys = new List<string>();
+
+            foreach ( var propInfo in GetType().GetProperties() )
             {
-                var availableKeys = new List<string>();
-
-                foreach ( var propInfo in GetType().GetProperties() )
+                if ( propInfo != null && LiquidizableProperty( propInfo ) )
                 {
-                    if ( propInfo != null && LiquidizableProperty( propInfo ) )
-                    {
-                        availableKeys.Add( propInfo.Name );
-                    }
+                    availableKeys.Add( propInfo.Name );
                 }
-
-                return availableKeys;
             }
+
+            return availableKeys;
         }
 
         /// <summary>

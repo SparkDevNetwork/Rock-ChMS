@@ -335,13 +335,9 @@ namespace Rock.Utility
         /// <value>
         /// The available keys.
         /// </value>
-        [LavaHidden]
-        public List<string> AvailableKeys
+        public List<string> GetAvailableKeys()
         {
-            get
-            {
-                return GetDynamicMemberNames().ToList();
-            }
+            return GetDynamicMemberNames().ToList();
         }
 
         /// <summary>
@@ -367,6 +363,21 @@ namespace Rock.Utility
         #endregion
 
         #region ILiquidizable
+
+        /// <summary>
+        /// Gets the available keys (for debugging info).
+        /// </summary>
+        /// <value>
+        /// The available keys.
+        /// </value>
+        [LavaHidden]
+        public List<string> AvailableKeys
+        {
+            get
+            {
+                return GetDynamicMemberNames().ToList();
+            }
+        }
 
         /// <summary>
         /// Determines whether this object holds a value with the specified key.

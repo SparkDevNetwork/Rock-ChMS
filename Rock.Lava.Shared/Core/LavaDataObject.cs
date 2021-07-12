@@ -89,6 +89,7 @@ namespace Rock.Lava
             _lavaDataObjectInternal = new LavaDataObjectInternal( wrappedObject );
 
             _lavaDataObjectInternal.TryGetMemberCallback = OnTryGetValue;
+            _lavaDataObjectInternal.TrySetMemberCallback = OnTrySetValue;
         }
 
         /// <summary>
@@ -109,6 +110,20 @@ namespace Rock.Lava
             var ldo = GetLavaDataObjectInternal();
 
             return ldo.GetProperty( key.ToString(), out result );
+        }
+
+        /// <summary>
+        /// Override this method to provide a custom implementation for retrieving a property value from this data object.
+        /// </summary>
+        /// <param name="key"></param>
+        /// <param name="result"></param>
+        /// <returns>True if the value was resolved.</returns>
+        [LavaHidden]
+        protected virtual bool OnTrySetValue( string key, object value )
+        {
+            var ldo = GetLavaDataObjectInternal();
+
+            return ldo.TrySetMember( key, value );
         }
 
         /// <summary>
@@ -154,15 +169,11 @@ namespace Rock.Lava
         /// <value>
         /// The available keys.
         /// </value>
-        [LavaHidden]
-        public virtual List<string> AvailableKeys
+        public virtual List<string> GetAvailableKeys()
         {
-            get
-            {
-                var ldo = GetLavaDataObjectInternal();
+            var ldo = GetLavaDataObjectInternal();
 
-                return ldo.GetDynamicMemberNames().ToList();
-            }
+            return ldo.GetDynamicMemberNames().ToList();
         }
 
         /// <summary>
@@ -174,7 +185,7 @@ namespace Rock.Lava
         public bool ContainsKey( string key )
         {
             // First, check if this is a defined member name or or an existing dictionary entry.
-            if ( AvailableKeys.Contains( key ) )
+            if ( GetAvailableKeys().Contains( key ) )
             {
                 return true;
             }
@@ -257,7 +268,7 @@ namespace Rock.Lava
         {
             get
             {
-                return AvailableKeys;
+                return GetAvailableKeys();
             }
         }
 
@@ -372,6 +383,7 @@ namespace Rock.Lava
     internal class LavaDataObjectInternal : DynamicObject
     {
         public delegate bool TryGetValueDelegate( string memberName, out object memberValue );
+        public delegate bool TrySetValueDelegate( string memberName, object memberValue );
 
         private Dictionary<string, object> _members = new Dictionary<string, object>();
 
@@ -405,7 +417,14 @@ namespace Rock.Lava
         /// Defines a method that can be used to implement a custom member lookup.
         /// </summary>
         public TryGetValueDelegate TryGetMemberCallback { get; set; }
+        /// <summary>
+        /// Defines a method that can be used to implement a custom member lookup.
+        /// </summary>
+        public TrySetValueDelegate TrySetMemberCallback { get; set; }
 
+        /// <summary>
+        /// The collection of properties that are defined by the wrapped object.
+        /// </summary>
         private Dictionary<string, PropertyInfo> InstancePropertyLookup
         {
             get
@@ -521,12 +540,25 @@ namespace Rock.Lava
         /// </returns>
         public override bool TrySetMember( SetMemberBinder binder, object value )
         {
+            return TrySetMember( binder.Name, value );
+        }
+
+        /// <summary>
+        /// Provides the implementation for operations that set member values. Classes derived from the <see cref="T:System.Dynamic.DynamicObject" /> class can override this method to specify dynamic behavior for operations such as setting a value for a property.
+        /// </summary>
+        /// <param name="name">The name of the property to set.</param>
+        /// <param name="value">The value to set to the member. For example, for sampleObject.SampleProperty = "Test", where sampleObject is an instance of the class derived from the <see cref="T:System.Dynamic.DynamicObject" /> class, the <paramref name="value" /> is "Test".</param>
+        /// <returns>
+        /// true if the operation is successful; otherwise, false. If this method returns false, the run-time binder of the language determines the behavior. (In most cases, a language-specific run-time exception is thrown.)
+        /// </returns>
+        public bool TrySetMember( string name, object value )
+        {
             // first check to see if there's a native property to set
             if ( _targetObject != null )
             {
                 try
                 {
-                    bool result = SetProperty( binder.Name, value );
+                    bool result = SetProperty( name, value );
                     if ( result )
                     {
                         return true;
@@ -537,7 +569,8 @@ namespace Rock.Lava
                 }
             }
 
-            _members[binder.Name] = value;
+            _members[name] = value;
+
             return true;
         }
 
@@ -766,20 +799,38 @@ namespace Rock.Lava
         {
             var dictionary = new Dictionary<string, object>();
 
-            // Add the properties of the wrapped target object.
-            if ( _targetObject != null )
+            var memberNames = this.GetDynamicMemberNames();
+
+            foreach ( var memberName in memberNames )
             {
-                foreach ( var prop in InstancePropertyLookup.Values )
+                object value;
+
+                var exists = GetProperty( memberName, out value );
+
+                if (!exists)
                 {
-                    dictionary.Add( prop.Name, prop.GetValue( _targetObject, null ) );
+                    continue;
                 }
+
+                dictionary.Add( memberName, value );
             }
 
-            // Add the dynamic properties.
-            foreach ( var key in _members.Keys )
-            {
-                dictionary.Add( key, _members[key] );
-            }
+            // Add the properties of the wrapped target object.
+            //if ( _targetObject != null )
+            //{
+            //    foreach ( var prop in InstancePropertyLookup.Values )
+            //    {
+            //        dictionary.Add( prop.Name, prop.GetValue( _targetObject, null ) );
+            //    }
+
+            //    // Add
+            //}
+
+            //// Add the dynamic properties.
+            //foreach ( var key in _members.Keys )
+            //{
+            //    dictionary.Add( key, _members[key] );
+            //}
 
             return dictionary;
         }

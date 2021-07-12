@@ -84,14 +84,10 @@ namespace Rock.CheckIn
         /// <value>
         /// The available keys.
         /// </value>
-        [LavaHidden]
-        public List<string> AvailableKeys
+        public List<string> GetAvailableKeys()
         {
-            get
-            {
-                var availableKeys = new List<string> { "MessageText", "MessageType"};
-                return availableKeys;
-            }
+            var availableKeys = new List<string> { "MessageText", "MessageType"};
+            return availableKeys;
         }
 
         /// <summary>
@@ -110,6 +106,21 @@ namespace Rock.CheckIn
         }
 
         #region ILiquidizable
+
+        /// <summary>
+        /// Gets the available keys (for debugging info).
+        /// </summary>
+        /// <value>
+        /// The available keys.
+        /// </value>
+        [LavaHidden]
+        public List<string> AvailableKeys
+        {
+            get
+            {
+                return GetAvailableKeys();
+            }
+        }
 
         /// <summary>
         /// Determines whether the specified key contains key.

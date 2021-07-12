@@ -212,7 +212,7 @@ namespace Rock
 
                 var result = new Dictionary<string, object>();
 
-                foreach ( var key in liquidObject.AvailableKeys )
+                foreach ( var key in liquidObject.GetAvailableKeys() )
                 {
                     // Ignore the person property of the person's primary alias (prevent unnecessary recursion)
                     if ( key == "Person" && parentElement.Contains( ".PrimaryAlias" ) )

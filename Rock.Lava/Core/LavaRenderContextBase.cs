@@ -115,7 +115,7 @@ namespace Rock.Lava
                 return;
             }
 
-            foreach ( var key in fieldValues.AvailableKeys )
+            foreach ( var key in fieldValues.GetAvailableKeys() )
             {
                 SetMergeField( key, fieldValues.GetValue( key ) );
             }

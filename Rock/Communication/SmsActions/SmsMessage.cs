@@ -83,20 +83,16 @@ namespace Rock.Communication.SmsActions
         /// <value>
         /// The available keys.
         /// </value>
-        [LavaHidden]
-        public virtual List<string> AvailableKeys
+        public virtual List<string> GetAvailableKeys()
         {
-            get
+            var availableKeys = new List<string>();
+
+            foreach ( var propInfo in GetType().GetProperties() )
             {
-                var availableKeys = new List<string>();
-
-                foreach ( var propInfo in GetType().GetProperties() )
-                {
-                    availableKeys.Add( propInfo.Name );
-                }
-
-                return availableKeys;
+                availableKeys.Add( propInfo.Name );
             }
+
+            return availableKeys;
         }
 
         /// <summary>
@@ -170,6 +166,21 @@ namespace Rock.Communication.SmsActions
         #endregion
 
         #region ILiquidizable
+
+        /// <summary>
+        /// Gets the available keys (for debugging info).
+        /// </summary>
+        /// <value>
+        /// The available keys.
+        /// </value>
+        [LavaHidden]
+        public List<string> AvailableKeys
+        {
+            get
+            {
+                return GetAvailableKeys();
+            }
+        }
 
         /// <summary>
         /// Determines whether the specified key contains key.

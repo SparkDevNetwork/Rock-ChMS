@@ -354,34 +354,30 @@ namespace Rock.Data
         /// <value>
         /// The available keys.
         /// </value>
-        [LavaHidden]
-        public virtual List<string> AvailableKeys
+        public virtual List<string> GetAvailableKeys()
         {
-            get
+            var availableKeys = new List<string>();
+
+            foreach ( var propInfo in GetBaseType().GetProperties() )
             {
-                var availableKeys = new List<string>();
-
-                foreach ( var propInfo in GetBaseType().GetProperties() )
+                if ( propInfo != null && LiquidizableProperty( propInfo ) )
                 {
-                    if ( propInfo != null && LiquidizableProperty( propInfo ) )
-                    {
-                        availableKeys.Add( propInfo.Name );
-                    }
+                    availableKeys.Add( propInfo.Name );
                 }
-
-                if ( this.AdditionalLavaFields != null )
-                {
-                    foreach ( var field in AdditionalLavaFields.Keys )
-                    {
-                        if ( !availableKeys.Contains( field ) )
-                        {
-                            availableKeys.Add( field );
-                        }
-                    }
-                }
-
-                return availableKeys;
             }
+
+            if ( this.AdditionalLavaFields != null )
+            {
+                foreach ( var field in AdditionalLavaFields.Keys )
+                {
+                    if ( !availableKeys.Contains( field ) )
+                    {
+                        availableKeys.Add( field );
+                    }
+                }
+            }
+
+            return availableKeys;
         }
 
         /// <summary>
@@ -581,6 +577,21 @@ namespace Rock.Data
         #endregion
 
         #region ILiquidizable
+
+        /// <summary>
+        /// Gets the available keys (for debugging info).
+        /// </summary>
+        /// <value>
+        /// The available keys.
+        /// </value>
+        [LavaHidden]
+        public List<string> AvailableKeys
+        {
+            get
+            {
+                return GetAvailableKeys();
+            }
+        }
 
         /// <summary>
         /// Determines whether the specified key contains key.

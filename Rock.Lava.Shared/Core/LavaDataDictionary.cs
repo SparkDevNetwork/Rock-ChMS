@@ -322,9 +322,9 @@ namespace Rock.Lava
             get { return _nestedDictionary.Values; }
         }
 
-        public List<string> AvailableKeys
+        public List<string> GetAvailableKeys()
         {
-            get { return new List<string>( _nestedDictionary.Keys ); }
+            return new List<string>( _nestedDictionary.Keys );
         }
 
         #endregion
