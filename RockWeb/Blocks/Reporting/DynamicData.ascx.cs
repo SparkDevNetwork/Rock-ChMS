@@ -1230,7 +1230,7 @@ namespace RockWeb.Blocks.Reporting
         }
 
         #endregion
-
+  
         private class DataRowLavaData : LavaDataObject
         {
             private readonly DataRow _dataRow;
@@ -1238,6 +1238,18 @@ namespace RockWeb.Blocks.Reporting
             public DataRowLavaData( DataRow dataRow )
             {
                 _dataRow = dataRow;
+            }
+
+            public override List<string> GetAvailableKeys()
+            {
+                var keys = new List<string>();
+
+                foreach ( DataColumn column in _dataRow.Table.Columns )
+                {
+                    keys.Add( column.ColumnName );
+                }
+
+                return keys;
             }
 
             protected override bool OnTryGetValue( string key, out object result )
