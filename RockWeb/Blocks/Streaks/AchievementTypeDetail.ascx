@@ -163,7 +163,7 @@
                             <div class="col-sm-6">
                             </div>
                             <div class="col-sm-12">
-                                <Rock:CodeEditor ID="ceCustomSummaryLavaTemplate" runat="server" EditorHeight="200" EditorMode="Lava" EditorTheme="Rock" Label="Custom Summary Lava Template" Help="The lava template used to render the status summary of the achievement." />
+                                <Rock:CodeEditor ID="ceCustomSummaryLavaTemplate" runat="server" EditorHeight="200" EditorMode="Lava" EditorTheme="Rock" Label="Custom Summary Lava Template" Help="The lava template used to render the status summary of the achievement. If this is blank, a default will be used." />
                             </div>
                         </div>
                     </Rock:PanelWidget>

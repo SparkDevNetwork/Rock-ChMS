@@ -78,7 +78,6 @@ namespace Rock.Workflow.Action.CheckIn
         /// <param name="entity">The entity.</param>
         /// <param name="errorMessages">The error messages.</param>
         /// <returns></returns>
-        /// <exception cref="System.NotImplementedException"></exception>
         public override bool Execute( RockContext rockContext, Model.WorkflowAction action, object entity, out List<string> errorMessages )
         {
             Stopwatch stopwatchSaveAttendance = Stopwatch.StartNew();
@@ -230,9 +229,8 @@ namespace Rock.Workflow.Action.CheckIn
 
                 rockContext.SaveChanges();
 
-                AchievementAttemptService.AchievementAttemptWithPersonAlias[] achievementAttemptsAfterSaveChanges = GetAchievementAttemptsWithPersonAliasQuery( rockContext, attendanceRecordsPersonAliasIds, configuredAchievementTypeIds )
-                    .AsNoTracking().ToArray();
-
+                AchievementAttemptService.AchievementAttemptWithPersonAlias[] achievementAttemptsAfterSaveChanges =
+                    GetAchievementAttemptsWithPersonAliasQuery( rockContext, attendanceRecordsPersonAliasIds, configuredAchievementTypeIds ).AsNoTracking().ToArray();
 
                 checkInState.CheckIn.SuccessfullyCompletedAchievementsPriorToCheckin = successfullyCompletedAchievementsPriorToSaveChanges;
                 checkInState.CheckIn.AchievementsStateAfterCheckin = achievementAttemptsAfterSaveChanges;

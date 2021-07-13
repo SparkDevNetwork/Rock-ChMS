@@ -1,16 +1,15 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+﻿using System.Linq;
+using System.Runtime.Serialization;
+
 using Rock.Model;
 using Rock.Web.Cache;
 
 namespace Rock.CheckIn
 {
     /// <summary>
-    /// 
+    /// Helper class that includes the <see cref="Rock.Model.Person" /> with the <seealso cref="Rock.Model.AchievementAttempt">Achievements</seealso> for the specified <seealso cref="Rock.Model.AchievementType"/>
     /// </summary>
+    [DataContract]
     public class PersonAchievementType
     {
         /// <summary>
@@ -36,6 +35,7 @@ namespace Rock.CheckIn
         /// <value>
         /// The type of the achievement.
         /// </value>
+        [DataMember]
         public AchievementTypeCache AchievementType { get; }
 
         /// <summary>
@@ -44,6 +44,7 @@ namespace Rock.CheckIn
         /// <value>
         /// The just completed achievement attempt.
         /// </value>
+        [DataMember]
         public AchievementAttempt JustCompletedAchievementAttempt { get; }
 
         /// <summary>
@@ -52,6 +53,7 @@ namespace Rock.CheckIn
         /// <value>
         ///   <c>true</c> if [just completed]; otherwise, <c>false</c>.
         /// </value>
+        [DataMember]
         public bool JustCompleted => JustCompletedAchievementAttempt != null;
 
         /// <summary>
@@ -60,6 +62,7 @@ namespace Rock.CheckIn
         /// <value>
         /// The person.
         /// </value>
+        [DataMember]
         public Person Person { get; }
 
         /// <summary>
@@ -68,6 +71,7 @@ namespace Rock.CheckIn
         /// <value>
         /// The current in progress achievement.
         /// </value>
+        [DataMember]
         public AchievementAttempt CurrentInProgressAchievement { get; }
 
         /// <summary>
@@ -76,6 +80,7 @@ namespace Rock.CheckIn
         /// <value>
         /// The achievement attempts.
         /// </value>
+        [DataMember]
         public AchievementAttempt[] AchievementAttempts { get; }
     }
 }

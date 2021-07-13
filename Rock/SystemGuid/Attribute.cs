@@ -884,6 +884,7 @@ namespace Rock.SystemGuid
         #endregion Giving Analytics
 
         #region Language Defined Type
+
         /// <summary>
         /// Language in ISO639-1
         /// </summary>
@@ -898,6 +899,7 @@ namespace Rock.SystemGuid
         /// The native language name
         /// </summary>
         public const string NativeLanguageName = "55256C99-DAC9-1AB4-4FD2-7CBFE3170245";
+
         #endregion
 
         /// <summary>
@@ -924,5 +926,35 @@ namespace Rock.SystemGuid
         /// The person do not send giving statement
         /// </summary>
         public const string PERSON_DO_NOT_SEND_GIVING_STATEMENT = "B767F2CF-A4F0-45AA-A2E9-8270F31B307B";
-    }
+
+        /// <summary>
+        /// The accumulative achievement streak type
+        /// </summary>
+        public const string ACCUMULATIVE_ACHIEVEMENT_STREAK_TYPE = "BEDD14D0-450E-475C-8D9F-404DDE350530";
+
+        /// <summary>
+        /// The accumulative achievement number to accumulate
+        /// </summary>
+        public const string ACCUMULATIVE_ACHIEVEMENT_NUMBER_TO_ACCUMULATE = "E286F5E1-356F-473A-AB80-A3BA3063703F";
+
+        /// <summary>
+        /// The accumulative achievement time span in days
+        /// </summary>
+        public const string ACCUMULATIVE_ACHIEVEMENT_TIME_SPAN_IN_DAYS = "1C0F4BE1-81E9-4974-A24E-2DFBA8320AE5";
+
+        /// <summary>
+        /// The streak achievement streak type
+        /// </summary>
+        public const string STREAK_ACHIEVEMENT_STREAK_TYPE = "E926DAAE-980A-4BEE-9CF8-C3BF52F28D9D";
+
+        /// <summary>
+        /// The streak achievement number to achieve
+        /// </summary>
+        public const string STREAK_ACHIEVEMENT_NUMBER_TO_ACHIEVE = "302BDD9E-5EAA-423B-AC1A-7E2067E70C19";
+
+        /// <summary>
+        /// The streak achievement time span in days
+        /// </summary>
+        public const string STREAK_ACHIEVEMENT_TIME_SPAN_IN_DAYS = "80030537-ED8E-41BA-BF61-AF242B9073CC";
+    }                        
 }

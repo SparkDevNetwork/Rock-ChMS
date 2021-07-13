@@ -89,8 +89,8 @@ namespace RockWeb.Blocks.CheckIn
             public const string NumberToAccumulate = "NumberToAccumulate";
             public const string JustCompleted = "JustCompleted";
 
-
             public const string CurrentAchievementAttempt = "CurrentAchievementAttempt";
+
             // Number of times person has successful achieved this (For example, successfully did  '3 times a month" 10 times )
             public const string SuccessfulAchievementCount = "SuccessfulAchievementCount";
 
@@ -117,8 +117,6 @@ namespace RockWeb.Blocks.CheckIn
                 bodyTag.AddCssClass( "checkin-success-bg" );
             }
         }
-
-        
 
         /// <summary>
         /// Raises the <see cref="E:System.Web.UI.Control.Load" /> event.
@@ -185,7 +183,6 @@ namespace RockWeb.Blocks.CheckIn
                             {
                                 foreach ( var schedule in location.GetSchedules( true ) )
                                 {
-
                                     CheckinResult checkinResult = new CheckinResult();
                                     checkinResult.Person = person;
                                     checkinResult.Group = group;
@@ -348,9 +345,9 @@ namespace RockWeb.Blocks.CheckIn
             if ( checkinResultList.Any( a => a.JustCompletedAchievementAttempts?.Any() == true ) )
             {
                 List<PersonAchievementType> justCompletedPersonAchievementTypes = new List<PersonAchievementType>();
-                foreach(var checkinResult in checkinResultList.DistinctBy(a => a.Person.Person.Id ) )
+                foreach ( var checkinResult in checkinResultList.DistinctBy( a => a.Person.Person.Id ) )
                 {
-                    justCompletedPersonAchievementTypes.AddRange( checkinResult.GetPersonAchievementTypes( true ).Where(a => a.JustCompleted ) );
+                    justCompletedPersonAchievementTypes.AddRange( checkinResult.GetPersonAchievementTypes( true ).Where( a => a.JustCompleted ) );
                 }
 
                 pnlCheckinCelebrations.Visible = true;
@@ -375,7 +372,6 @@ namespace RockWeb.Blocks.CheckIn
         /// <returns></returns>
         private Dictionary<string, object> GetAchievementMergeFields( PersonAchievementType personAchievementType )
         {
-            //var achievementAttempt = personAchievementType.AchievementAttempt;
             var person = personAchievementType.Person;
 
             AchievementTypeCache achievementTypeCache = personAchievementType.AchievementType;
@@ -393,7 +389,6 @@ namespace RockWeb.Blocks.CheckIn
                 currentAchievementAttempt = personAchievementType.AchievementAttempts.Where( a => !a.IsSuccessful && !a.IsClosed ).FirstOrDefault();
             }
 
-            
             // there should be either 1 or 0 achievementAttempts in progress
             int inProgressCount;
             if ( personAchievementType.AchievementAttempts.Where( a => !a.IsSuccessful && !a.IsClosed ).Any() )
@@ -407,14 +402,13 @@ namespace RockWeb.Blocks.CheckIn
 
             int successfulAchievementCount = personAchievementType.AchievementAttempts.Where( a => a.IsSuccessful ).Count();
 
-
             mergeFields.Add( MergeFieldKey.CurrentAchievementAttempt, currentAchievementAttempt );
             mergeFields.Add( MergeFieldKey.AchievementAttempts, personAchievementType.AchievementAttempts );
             mergeFields.Add( MergeFieldKey.InProgressCount, inProgressCount );
             mergeFields.Add( MergeFieldKey.SuccessfulAchievementCount, successfulAchievementCount );
             mergeFields.Add( MergeFieldKey.JustCompleted, personAchievementType.JustCompleted );
-
             mergeFields.Add( MergeFieldKey.AchievementType, achievementTypeCache );
+
             var achievementTypeEventEntityType = EntityTypeCache.Get( achievementTypeCache.ComponentEntityTypeId );
             mergeFields.Add( MergeFieldKey.AchievementTypeEvent, new RockDynamic( achievementTypeEventEntityType ) );
             mergeFields.Add( MergeFieldKey.NumberToAchieve, achievementTypeCache.NumberToAchieve );
@@ -444,7 +438,7 @@ namespace RockWeb.Blocks.CheckIn
 
             if ( customSummaryLavaTemplate.IsNullOrWhiteSpace() )
             {
-                customSummaryLavaTemplate = DefaultAchievementTypeSummaryLavaTemplate;
+                customSummaryLavaTemplate = achievementTypeCache.DefaultSummaryLavaTemplate;
             }
 
             var lAchievementSuccessHtml = e.Item.FindControl( "lAchievementSuccessHtml" ) as Literal;
@@ -503,8 +497,6 @@ namespace RockWeb.Blocks.CheckIn
             }
         }
 
-        private const string DefaultAchievementTypeSummaryLavaTemplate = @"{% include '~/Assets/Lava/Achievements/AchievementTypeSummaryLavaTemplate.lava' %}";
-
         /// <summary>
         /// Handles the ItemDataBound event of the rptCheckinResultsAchievementsScoreboard control.
         /// </summary>
@@ -519,8 +511,6 @@ namespace RockWeb.Blocks.CheckIn
                 return;
             }
 
-            //var achievementAttempt = personAchievementType.CurrentInProgressAchievement;
-
             var achievementType = personAchievementType.AchievementType;
             if ( achievementType == null )
             {
@@ -532,7 +522,7 @@ namespace RockWeb.Blocks.CheckIn
 
             if ( customSummaryLavaTemplate.IsNullOrWhiteSpace() )
             {
-                customSummaryLavaTemplate = DefaultAchievementTypeSummaryLavaTemplate;
+                customSummaryLavaTemplate = achievementType.DefaultSummaryLavaTemplate;
             }
 
             lCheckinResultsAchievementScoreboardHtml.Text = customSummaryLavaTemplate?.ResolveMergeFields( mergeFields );

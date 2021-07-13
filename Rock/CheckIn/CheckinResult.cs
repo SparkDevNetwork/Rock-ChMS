@@ -16,11 +16,10 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Runtime.Serialization;
 
 using Rock;
-using Rock.CheckIn;
 using Rock.Model;
-using Rock.Utility;
 using Rock.Web.Cache;
 
 namespace Rock.CheckIn
@@ -28,151 +27,162 @@ namespace Rock.CheckIn
     /// <summary>
     /// 
     /// </summary>
-    /// <seealso cref="Rock.Utility.RockDynamic" />
-    public class CheckinResult : RockDynamic
+    [DataContract]
+    public class CheckinResult
+    {
+        /// <summary>
+        /// Gets the person.
+        /// </summary>
+        /// <value>
+        /// The person.
+        /// </value>
+        [DataMember]
+        public CheckInPerson Person { get; set; }
+
+        /// <summary>
+        /// Gets the group.
+        /// </summary>
+        /// <value>
+        /// The group.
+        /// </value>
+        [DataMember]
+        public CheckInGroup Group { get; set; }
+
+        /// <summary>
+        /// Gets the location.
+        /// </summary>
+        /// <value>
+        /// The location.
+        /// </value>
+        [DataMember]
+        public Location Location { get; set; }
+
+        /// <summary>
+        /// Gets the schedule.
+        /// </summary>
+        /// <value>
+        /// The schedule.
+        /// </value>
+        [DataMember]
+        public CheckInSchedule Schedule { get; set; }
+
+        /// <summary>
+        /// Gets the detail message.
+        /// </summary>
+        /// <value>
+        /// The detail message.
+        /// </value>
+        [DataMember]
+        public string DetailMessage => $"{Person} was checked into {Group} in {Location.Name} at {Schedule}";
+
+        /// <summary>
+        /// Gets the in progress achievement attempts.
+        /// </summary>
+        /// <value>
+        /// The in progress achievement attempts.
+        /// </value>
+        [DataMember]
+        public AchievementAttempt[] InProgressAchievementAttempts { get; internal set; }
+
+        /// <summary>
+        /// Gets the completed achievement attempts.
+        /// </summary>
+        /// <value>
+        /// The completed achievement attempts.
+        /// </value>
+        [DataMember]
+        public AchievementAttempt[] CompletedAchievementAttempts { get; internal set; }
+
+        /// <summary>
+        /// Gets the just completed achievement attempts.
+        /// </summary>
+        /// <value>
+        /// The just completed achievement attempts.
+        /// </value>
+        [DataMember]
+        public AchievementAttempt[] JustCompletedAchievementAttempts { get; internal set; }
+
+        /// <summary>
+        /// Gets the person achievement types.
+        /// </summary>
+        /// <param name="includeJustCompleted">if set to <c>true</c> [include just completed].</param>
+        /// <returns></returns>
+        public PersonAchievementType[] GetPersonAchievementTypes( bool includeJustCompleted )
         {
-            /// <summary>
-            /// Gets the person.
-            /// </summary>
-            /// <value>
-            /// The person.
-            /// </value>
-            public CheckInPerson Person { get; set; }
+            // For each checkin, we only want to show one achievement per AchievementType
+            // If there is one in Progress, include that
+            // otherwise add the first Completed one of each AchievementType
+            List<AchievementAttempt> achievementAttempts = new List<AchievementAttempt>();
+            var checkinResult = this;
 
-            /// <summary>
-            /// Gets the group.
-            /// </summary>
-            /// <value>
-            /// The group.
-            /// </value>
-            public CheckInGroup Group { get; set; }
-
-            /// <summary>
-            /// Gets the location.
-            /// </summary>
-            /// <value>
-            /// The location.
-            /// </value>
-            public Location Location { get;  set; }
-
-            /// <summary>
-            /// Gets the schedule.
-            /// </summary>
-            /// <value>
-            /// The schedule.
-            /// </value>
-            public CheckInSchedule Schedule { get;  set; }
-
-            /// <summary>
-            /// Gets the detail message.
-            /// </summary>
-            /// <value>
-            /// The detail message.
-            /// </value>
-            public string DetailMessage => $"{Person} was checked into {Group} in {Location.Name} at {Schedule}";
-
-            /// <summary>
-            /// Gets the in progress achievement attempts.
-            /// </summary>
-            /// <value>
-            /// The in progress achievement attempts.
-            /// </value>
-            public AchievementAttempt[] InProgressAchievementAttempts { get; internal set; }
-
-            /// <summary>
-            /// Gets the completed achievement attempts.
-            /// </summary>
-            /// <value>
-            /// The completed achievement attempts.
-            /// </value>
-            public AchievementAttempt[] CompletedAchievementAttempts { get; internal set; }
-
-            /// <summary>
-            /// Gets the just completed achievement attempts.
-            /// </summary>
-            /// <value>
-            /// The just completed achievement attempts.
-            /// </value>
-            public AchievementAttempt[] JustCompletedAchievementAttempts { get; internal set; }
-
-            public PersonAchievementType[] GetPersonAchievementTypes( bool includeJustCompleted )
+            if ( checkinResult.InProgressAchievementAttempts?.Any() == true )
             {
-                // For each checkin, we only want to show one achievement per AchievementType
-                // If there is one in Progress, include that
-                // otherwise add the first Completed one of each AchievementType
-                List<AchievementAttempt> achievementAttempts = new List<AchievementAttempt>();
-                var checkinResult = this;
+                achievementAttempts.AddRange( checkinResult.InProgressAchievementAttempts );
+            }
 
-                if ( checkinResult.InProgressAchievementAttempts?.Any() == true )
-                {
-                    achievementAttempts.AddRange( checkinResult.InProgressAchievementAttempts );
-                }
+            if ( checkinResult.CompletedAchievementAttempts?.Any() == true )
+            {
+                achievementAttempts.AddRange( checkinResult.CompletedAchievementAttempts );
+            }
 
-                if ( checkinResult.CompletedAchievementAttempts?.Any() == true )
-                {
-                    achievementAttempts.AddRange( checkinResult.CompletedAchievementAttempts );
-                }
-
-                if ( achievementAttempts.Any() == true )
-                {
-                    PersonAchievementType[] personAchievementTypes = achievementAttempts
-                        .GroupBy( a => a.AchievementTypeId )
-                        .Select( a =>
+            if ( achievementAttempts.Any() == true )
+            {
+                PersonAchievementType[] personAchievementTypes = achievementAttempts
+                    .GroupBy( a => a.AchievementTypeId )
+                    .Select( a =>
+                    {
+                        var achievmentTypeId = a.Key;
+                        var achievementType = AchievementTypeCache.Get( achievmentTypeId );
+                        var person = checkinResult.Person.Person;
+                        AchievementAttempt justCompleted = null;
+                        if ( includeJustCompleted )
                         {
-                            var achievmentTypeId = a.Key;
-                            var achievementType = AchievementTypeCache.Get( achievmentTypeId );
-                            var person = checkinResult.Person.Person;
-                            AchievementAttempt justCompleted = null;
-                            if ( includeJustCompleted )
-                            {
-                                justCompleted = this.JustCompletedAchievementAttempts.Where( j => j.AchievementTypeId == achievmentTypeId ).FirstOrDefault();
-                            }
+                            justCompleted = this.JustCompletedAchievementAttempts.Where( j => j.AchievementTypeId == achievmentTypeId ).FirstOrDefault();
+                        }
 
-                            return new PersonAchievementType( person, achievementType, a.ToArray(), justCompleted );
-                        } ).ToArray();
+                        return new PersonAchievementType( person, achievementType, a.ToArray(), justCompleted );
+                    } ).ToArray();
 
-                    return personAchievementTypes;
-                }
-
-                return new PersonAchievementType[0];
+                return personAchievementTypes;
             }
 
-            /// <summary>
-            /// Updates the achievement fields.
-            /// </summary>
-            /// <param name="successfullyCompletedAchievementIdsPriorToCheckin">The successfully completed achievement ids prior to checkin.</param>
-            /// <param name="achievementsStateAfterCheckin">The achievements state after checkin.</param>
-            public void UpdateAchievementFields( int[] successfullyCompletedAchievementIdsPriorToCheckin, AchievementAttemptService.AchievementAttemptWithPersonAlias[] achievementsStateAfterCheckin )
-            {
-                if ( achievementsStateAfterCheckin == null )
-                {
-                    return;
-                }
-
-                var checkinResult = this;
-                var person = this.Person.Person;
-                var achievementsStateAfterCheckinForPerson = achievementsStateAfterCheckin.Where( a => a.AchieverPersonAlias.PersonId == person.Id ).ToArray();
-
-                checkinResult.InProgressAchievementAttempts = achievementsStateAfterCheckinForPerson
-                    .Where( a => !a.AchievementAttempt.IsSuccessful && !a.AchievementAttempt.IsClosed )
-                    .Select( a => a.AchievementAttempt )
-                    .ToArray();
-
-                var completedAchievementAttempts = achievementsStateAfterCheckinForPerson
-                    .Where( a => a.AchievementAttempt.IsSuccessful && a.AchievementAttempt.IsClosed )
-
-                    .Select( a => a.AchievementAttempt )
-                    .ToArray();
-
-
-                checkinResult.JustCompletedAchievementAttempts = completedAchievementAttempts
-                    .Where( a => !successfullyCompletedAchievementIdsPriorToCheckin.Contains( a.Id ) )
-                    .ToArray();
-
-
-                checkinResult.CompletedAchievementAttempts = completedAchievementAttempts;
-            }
+            return new PersonAchievementType[0];
         }
 
-       
+        /// <summary>
+        /// Updates the achievement fields.
+        /// </summary>
+        /// <param name="successfullyCompletedAchievementIdsPriorToCheckin">The successfully completed achievement ids prior to checkin.</param>
+        /// <param name="achievementsStateAfterCheckin">The achievements state after checkin.</param>
+        public void UpdateAchievementFields( int[] successfullyCompletedAchievementIdsPriorToCheckin, AchievementAttemptService.AchievementAttemptWithPersonAlias[] achievementsStateAfterCheckin )
+        {
+            if ( achievementsStateAfterCheckin == null )
+            {
+                return;
+            }
+
+            var checkinResult = this;
+            var person = this.Person.Person;
+            var achievementsStateAfterCheckinForPerson = achievementsStateAfterCheckin.Where( a => a.AchieverPersonAlias.PersonId == person.Id ).ToArray();
+
+            checkinResult.InProgressAchievementAttempts = achievementsStateAfterCheckinForPerson
+                .Where( a => !a.AchievementAttempt.IsSuccessful && !a.AchievementAttempt.IsClosed )
+                .Select( a => a.AchievementAttempt )
+                .ToArray();
+
+            var completedAchievementAttempts = achievementsStateAfterCheckinForPerson
+                .Where( a => a.AchievementAttempt.IsSuccessful && a.AchievementAttempt.IsClosed )
+
+                .Select( a => a.AchievementAttempt )
+                .ToArray();
+
+
+            checkinResult.JustCompletedAchievementAttempts = completedAchievementAttempts
+                .Where( a => !successfullyCompletedAchievementIdsPriorToCheckin.Contains( a.Id ) )
+                .ToArray();
+
+
+            checkinResult.CompletedAchievementAttempts = completedAchievementAttempts;
+        }
+    }
 }

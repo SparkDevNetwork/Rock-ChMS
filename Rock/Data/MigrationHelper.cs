@@ -2695,7 +2695,7 @@ END" );
         }
 
         /// <summary>
-        /// Addes or updates the Entity Attribute for the given EntityType, FieldType, and key.
+        /// Adds or updates the Entity Attribute for the given EntityType, FieldType, and key.
         /// </summary>
         /// <param name="entityTypeName">Name of the entity type.</param>
         /// <param name="fieldTypeGuid">The field type unique identifier.</param>
@@ -6048,6 +6048,138 @@ END
         }
 
         #endregion Badge
+
+        #region AchievementType
+
+        /// <summary>
+        /// Adds or updates the AchievementType Attribute for the given AchievementComponentEntityTypeGuid, FieldType, and key.
+        /// </summary>
+        /// <param name="achievementComponentEntityTypeGuid">The achievement component entity type unique identifier.</param>
+        /// <param name="fieldTypeGuid">The field type unique identifier.</param>
+        /// <param name="name">The name.</param>
+        /// <param name="key">The key.</param>
+        /// <param name="description">The description.</param>
+        /// <param name="order">The order.</param>
+        /// <param name="defaultValue">The default value.</param>
+        /// <param name="guid">The unique identifier.</param>
+        public void AddOrUpdateAchievementTypeAttribute( string achievementComponentEntityTypeGuid, string fieldTypeGuid, string name, string key, string description, int order, string defaultValue, string guid )
+        {
+            EnsureEntityTypeExists( "Rock.Model.AchievementType" );
+
+            key = key.IsNullOrWhiteSpace() ? name.Replace( " ", string.Empty ) : key;
+
+            string formattedDescription = description.Replace( "'", "''" );
+            string formattedDefaultValue = defaultValue.Replace( "'", "''" );
+
+            Migration.Sql( $@"
+                DECLARE @EntityTypeId INT = (SELECT [Id] FROM [EntityType] WHERE [Name] = 'Rock.Model.AchievementType')
+                DECLARE @FieldTypeId INT = (SELECT [Id] FROM [FieldType] WHERE [Guid] = '{fieldTypeGuid}')
+                DECLARE @ComponentEntityTypeId INT = (SELECT [Id] FROM [EntityType] WHERE [Guid] = '{achievementComponentEntityTypeGuid}')
+
+                IF EXISTS (
+                    SELECT [Id]
+                    FROM [Attribute]
+                    WHERE [EntityTypeId] = @EntityTypeId
+                        AND [EntityTypeQualifierColumn] = 'ComponentEntityTypeId'
+                        AND [EntityTypeQualifierValue] = @ComponentEntityTypeId
+                        AND [Key] = '{key}' )
+                BEGIN
+                    UPDATE [Attribute] SET
+                          [Name] = '{name}'
+                        , [Description] = '{formattedDescription}'
+                        , [Order] = {order}
+                        , [DefaultValue] = '{formattedDefaultValue}'
+                        , [Guid] = '{guid}'
+                    WHERE [EntityTypeId] = @EntityTypeId
+                        AND [EntityTypeQualifierColumn] = 'ComponentEntityTypeId'
+                        AND [EntityTypeQualifierValue] = @ComponentEntityTypeId
+                        AND [Key] = '{key}'
+                END
+                ELSE
+                BEGIN
+                    INSERT INTO [Attribute] (
+                          [IsSystem]
+                        , [FieldTypeId]
+                        , [EntityTypeId]
+                        , [EntityTypeQualifierColumn]
+                        , [EntityTypeQualifierValue]
+                        , [Key]
+                        , [Name]
+                        , [Description]
+                        , [Order]
+                        , [IsGridColumn]
+                        , [DefaultValue]
+                        , [IsMultiValue]
+                        , [IsRequired]
+                        , [Guid])
+                    VALUES(
+                          1
+                        , @FieldTypeId
+                        , @EntityTypeid
+                        , 'ComponentEntityTypeId'
+                        , @ComponentEntityTypeId
+                        , '{key}'
+                        , '{name}'
+                        , '{formattedDescription}'
+                        , {order}
+                        , 0
+                        , '{formattedDefaultValue}'
+                        , 0
+                        , 0
+                        , '{guid}')
+                END" );
+        }
+
+
+
+
+
+
+
+
+
+
+
+
+
+        
+
+        /// <summary>
+        /// Adds/Replaces the AchievementType attribute value.
+        /// </summary>
+        /// <param name="achievementTypeGuid">The achievement type unique identifier.</param>
+        /// <param name="attributeGuid">The attribute unique identifier.</param>
+        /// <param name="value">The value.</param>
+        public void AddAchievementTypeAttributeValue( string achievementTypeGuid, string attributeGuid, string value )
+        {
+            string safeVaue = value.Replace( "'", "''" );
+
+            Migration.Sql( $@"
+                DECLARE @AchievementTypeId INT = (SELECT [Id] FROM [AchievementType] WHERE [Guid] = '{achievementTypeGuid}')
+                DECLARE @AttributeId INT = (SELECT [Id] FROM [Attribute] WHERE [Guid] = '{attributeGuid}')
+
+                -- Delete existing attribute value first (might have been created by Rock system)
+                DELETE [AttributeValue]
+                WHERE [AttributeId] = @AttributeId
+                AND [EntityId] = @AchievementTypeId
+
+                INSERT INTO [AttributeValue] (
+                    [IsSystem],
+                    [AttributeId],
+                    [EntityId],
+                    [Value],
+                    [Guid])
+                VALUES(
+                    1,
+                    @AttributeId,
+                    @AchievementTypeId,
+                    '{safeVaue}',
+                    NEWID())
+                "
+            );
+        }
+
+        #endregion AchievementType
 
         #region PersonBadge (Obsolete)
 

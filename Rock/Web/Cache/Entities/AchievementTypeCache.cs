@@ -146,6 +146,11 @@ namespace Rock.Web.Cache
         [DataMember]
         public string CustomSummaryLavaTemplate { get; private set; }
 
+        /// <summary>
+        /// The default SummaryLavaTemplate if <see cref="Rock.Model.AchievementType.CustomSummaryLavaTemplate" /> is not set.
+        /// </summary>
+        public readonly string DefaultSummaryLavaTemplate = @"{% include '~/Assets/Lava/Achievements/AchievementTypeSummaryLavaTemplate.lava' %}";
+
         #endregion Entity Properties
 
         #region IHasActiveFlag
@@ -387,7 +392,7 @@ namespace Rock.Web.Cache
             var targetCount = NumberToAchieve ?? NumberToAccumulate;
             if ( targetCount.HasValue )
             {
-                var progressCount = Decimal.Multiply( achievementAttempt.Progress, targetCount.Value );
+                var progressCount = decimal.Multiply( achievementAttempt.Progress, targetCount.Value );
                 return ( int ) Math.Round( progressCount, 0 );
             }
 
