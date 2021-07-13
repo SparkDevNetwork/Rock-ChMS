@@ -23,6 +23,7 @@ using System.Linq.Dynamic;
 using System.Threading.Tasks;
 
 using Rock.Data;
+using Rock.Field.Types;
 using Rock.Web.Cache;
 
 namespace Rock.Model
@@ -64,6 +65,50 @@ namespace Rock.Model
         #endregion Constants
 
         #region Methods
+
+        /// <summary>
+        /// Determines whether this instance can delete the specified item.
+        /// </summary>
+        /// <param name="item">The item.</param>
+        /// <param name="errorMessage">The error message.</param>
+        /// <param name="checkIfUsedByAchievementType">if set to <c>true</c> [check if used by achievement type].</param>
+        /// <returns>
+        ///   <c>true</c> if this instance can delete the specified item; otherwise, <c>false</c>.
+        /// </returns>
+        public bool CanDelete( StreakType item, out string errorMessage, bool checkIfUsedByAchievementType )
+        {
+
+            if ( !this.CanDelete( item, out errorMessage ) )
+            {
+                return false;
+            }
+            else
+            {
+                if ( checkIfUsedByAchievementType )
+                {
+                    // check if any MatrixAttributes are using this AttributeMatrixTemplate
+                    var streakTypeFieldTypeId = FieldTypeCache.Get<StreakTypeFieldType>().Id;
+                    var entityTypeIdAchievementType = EntityTypeCache.GetId<Rock.Model.AchievementType>();
+
+                    var streakTypeGuid = item.Guid.ToString();
+                    var usedAsAchievementType = new AttributeValueService( new RockContext() ).Queryable()
+                        .Any( av =>
+                            av.Attribute.FieldTypeId == streakTypeFieldTypeId
+                            && av.Value == streakTypeGuid
+                            && av.Attribute.EntityTypeId == entityTypeIdAchievementType
+                            );
+
+                    if ( usedAsAchievementType )
+                    {
+                        errorMessage = string.Format( "This {0} is assigned to an {1}.", StreakType.FriendlyTypeName, Rock.Model.AchievementType.FriendlyTypeName );
+                        return false;
+                    }
+                }
+
+                errorMessage = string.Empty;
+                return true;
+            }
+        }
 
         /// <summary>
         /// Get the most recent engagement bits where there were occurrences for the person
