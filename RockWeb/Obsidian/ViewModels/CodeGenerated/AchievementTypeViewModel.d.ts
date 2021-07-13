@@ -41,8 +41,11 @@ export default interface AchievementType extends Entity {
     CategoryId: number | null;
     ComponentConfigJson: string | null;
     ComponentEntityTypeId: number;
+    CustomSummaryLavaTemplate: string | null;
     Description: string | null;
+    ImageBinaryFileId: number | null;
     IsActive: boolean;
+    IsPublic: boolean;
     MaxAccomplishmentsAllowed: number | null;
     Name: string | null;
     ResultsLavaTemplate: string | null;
