@@ -46,7 +46,7 @@ namespace Rock.Migrations
             RockMigrationHelper.AddAchievementTypeAttributeValue( Rock.SystemGuid.AchievementType.TWENTY_WEEKS_IN_A_YEAR,  Rock.SystemGuid.Attribute.ACCUMULATIVE_ACHIEVEMENT_TIME_SPAN_IN_DAYS, "365" );
 
             RockMigrationHelper.AddAchievementTypeAttributeValue( Rock.SystemGuid.AchievementType.TEN_WEEKS_IN_A_ROW, Rock.SystemGuid.Attribute.STREAK_ACHIEVEMENT_STREAK_TYPE, Rock.SystemGuid.StreakType.WEEKLY_ATTENDANCE );
-            RockMigrationHelper.AddAchievementTypeAttributeValue( Rock.SystemGuid.AchievementType.TEN_WEEKS_IN_A_ROW, Rock.SystemGuid.Attribute.STREAK_ACHIEVEMENT_NUMBER_TO_ACHIEVE, "5" );
+            RockMigrationHelper.AddAchievementTypeAttributeValue( Rock.SystemGuid.AchievementType.TEN_WEEKS_IN_A_ROW, Rock.SystemGuid.Attribute.STREAK_ACHIEVEMENT_NUMBER_TO_ACHIEVE, "10" );
         }
 
         private void AddOrUpdateAchievementTypeAttributes()

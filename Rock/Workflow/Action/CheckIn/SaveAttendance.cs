@@ -19,7 +19,6 @@ using System.Collections.Generic;
 using System.ComponentModel;
 using System.ComponentModel.Composition;
 using System.Data.Entity;
-using System.Diagnostics;
 using System.Linq;
 
 using Rock.Attribute;
@@ -80,7 +79,6 @@ namespace Rock.Workflow.Action.CheckIn
         /// <returns></returns>
         public override bool Execute( RockContext rockContext, Model.WorkflowAction action, object entity, out List<string> errorMessages )
         {
-            Stopwatch stopwatchSaveAttendance = Stopwatch.StartNew();
             var checkInState = GetCheckInState( entity, out errorMessages );
             if ( checkInState == null )
             {
@@ -244,8 +242,6 @@ namespace Rock.Workflow.Action.CheckIn
             family.AttendanceIds = attendanceRecords.Select( a => a.Id ).ToList();
             family.AttendanceCheckinSessionGuid = attendanceCheckInSession.Guid;
             attendanceRecords = null;
-
-            Debug.WriteLine( $"{stopwatchSaveAttendance.Elapsed.TotalMilliseconds}ms  SaveAttendance" );
 
             return true;
         }
