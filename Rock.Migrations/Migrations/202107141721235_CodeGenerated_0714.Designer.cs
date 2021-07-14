@@ -7,13 +7,13 @@ namespace Rock.Migrations
     using System.Resources;
     
     [GeneratedCode("EntityFramework.Migrations", "6.1.3-40302")]
-    public sealed partial class CheckinCelebrations : IMigrationMetadata
+    public sealed partial class CodeGenerated_0714 : IMigrationMetadata
     {
-        private readonly ResourceManager Resources = new ResourceManager(typeof(CheckinCelebrations));
+        private readonly ResourceManager Resources = new ResourceManager(typeof(RegistrationInstanceTimeout));
         
         string IMigrationMetadata.Id
         {
-            get { return "202107121806585_CheckinCelebrations"; }
+            get { return "202107141721235_CodeGenerated_0714"; }
         }
         
         string IMigrationMetadata.Source

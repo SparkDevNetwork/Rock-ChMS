@@ -7,13 +7,13 @@ namespace Rock.Migrations
     using System.Resources;
     
     [GeneratedCode("EntityFramework.Migrations", "6.1.3-40302")]
-    public sealed partial class WeeklyAttendanceAchievementTypes : IMigrationMetadata
+    public sealed partial class AchievementType : IMigrationMetadata
     {
-        private readonly ResourceManager Resources = new ResourceManager(typeof(CheckinCelebrations));
+        private readonly ResourceManager Resources = new ResourceManager(typeof(AchievementType));
         
         string IMigrationMetadata.Id
         {
-            get { return "202107122114373_WeeklyAttendanceAchievementTypes"; }
+            get { return "202107141741515_AchievementType"; }
         }
         
         string IMigrationMetadata.Source

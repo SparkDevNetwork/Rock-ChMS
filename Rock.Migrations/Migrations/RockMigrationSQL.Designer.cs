@@ -730,9 +730,9 @@ namespace Rock.Migrations.Migrations {
         ///        FROM EntityType
         ///        WHERE [Guid] = &apos;D953B0A5-0065-4624-8844-10010DE01E5C&apos; [rest of string was truncated]&quot;;.
         /// </summary>
-        public static string _202107122114373_WeeklyAttendanceAchievementTypes_AddAchievementTypes {
+        public static string _202107141741515_AchievementType_AddAchievementTypes {
             get {
-                return ResourceManager.GetString("_202107122114373_WeeklyAttendanceAchievementTypes_AddAchievementTypes", resourceCulture);
+                return ResourceManager.GetString("_202107141741515_AchievementType_AddAchievementTypes", resourceCulture);
             }
         }
         
@@ -747,9 +747,9 @@ namespace Rock.Migrations.Migrations {
         ///	BEGIN
         ///	INSERT INTO [BinaryFile] ([IsTemporary], [IsSystem], [BinaryFileTypeId], [FileName],  [rest of string was truncated]&quot;;.
         /// </summary>
-        public static string _202107122114373_WeeklyAttendanceAchievementTypes_AddMedalBinaryFile {
+        public static string _202107141741515_AchievementType_AddMedalBinaryFile {
             get {
-                return ResourceManager.GetString("_202107122114373_WeeklyAttendanceAchievementTypes_AddMedalBinaryFile", resourceCulture);
+                return ResourceManager.GetString("_202107141741515_AchievementType_AddMedalBinaryFile", resourceCulture);
             }
         }
         
@@ -772,9 +772,9 @@ namespace Rock.Migrations.Migrations {
         ///        FROM [BinaryFile]
         ///        WHERE [Guid] = &apos;9A1503BC-D965-4BD4-AEA4-803 [rest of string was truncated]&quot;;.
         /// </summary>
-        public static string _202107122114373_WeeklyAttendanceAchievementTypes_AddTrophyBinaryFile {
+        public static string _202107141741515_AchievementType_AddTrophyBinaryFile {
             get {
-                return ResourceManager.GetString("_202107122114373_WeeklyAttendanceAchievementTypes_AddTrophyBinaryFile", resourceCulture);
+                return ResourceManager.GetString("_202107141741515_AchievementType_AddTrophyBinaryFile", resourceCulture);
             }
         }
         
@@ -801,9 +801,9 @@ namespace Rock.Migrations.Migrations {
         ///        )
         ///    VALUES [rest of string was truncated]&quot;;.
         /// </summary>
-        public static string _202107122114373_WeeklyAttendanceAchievementTypes_AddWeeklyAttendanceStreakType {
+        public static string _202107141741515_AchievementType_AddWeeklyAttendanceStreakType {
             get {
-                return ResourceManager.GetString("_202107122114373_WeeklyAttendanceAchievementTypes_AddWeeklyAttendanceStreakType", resourceCulture);
+                return ResourceManager.GetString("_202107141741515_AchievementType_AddWeeklyAttendanceStreakType", resourceCulture);
             }
         }
     }

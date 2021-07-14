@@ -18,32 +18,53 @@ namespace Rock.Migrations
 {
     using System;
     using System.Data.Entity.Migrations;
-    
+
     /// <summary>
     ///
     /// </summary>
-    public partial class WeeklyAttendanceAchievementTypes : Rock.Migrations.RockMigration
+    public partial class AchievementType : Rock.Migrations.RockMigration
     {
-        /// <summary>
+        // <summary>
         /// Operations to be performed during the upgrade process.
         /// </summary>
         public override void Up()
         {
-            Sql( MigrationSQL._202107122114373_WeeklyAttendanceAchievementTypes_AddMedalBinaryFile );
-            Sql( MigrationSQL._202107122114373_WeeklyAttendanceAchievementTypes_AddTrophyBinaryFile );
-            Sql( MigrationSQL._202107122114373_WeeklyAttendanceAchievementTypes_AddWeeklyAttendanceStreakType );
-            Sql( MigrationSQL._202107122114373_WeeklyAttendanceAchievementTypes_AddAchievementTypes );
+            ModelChanges_Up();
+
+            Sql( MigrationSQL._202107141741515_AchievementType_AddMedalBinaryFile );
+            Sql( MigrationSQL._202107141741515_AchievementType_AddTrophyBinaryFile );
+            Sql( MigrationSQL._202107141741515_AchievementType_AddWeeklyAttendanceStreakType );
+            Sql( MigrationSQL._202107141741515_AchievementType_AddAchievementTypes );
 
             AddOrUpdateAchievementTypeAttributes();
 
             AddOrUpdateAchievementTypeAttributeValues();
         }
 
+        private void ModelChanges_Up()
+        {
+            AddColumn( "dbo.AchievementType", "IsPublic", c => c.Boolean( nullable: false, defaultValue: true ) );
+            AddColumn( "dbo.AchievementType", "ImageBinaryFileId", c => c.Int() );
+            AddColumn( "dbo.AchievementType", "CustomSummaryLavaTemplate", c => c.String() );
+            CreateIndex( "dbo.AchievementType", "ImageBinaryFileId" );
+            AddForeignKey( "dbo.AchievementType", "ImageBinaryFileId", "dbo.BinaryFile", "Id" );
+
+            // We want the "AchievementTypes" GroupType attribute to only apply to GroupType's with a GroupTypePurpose of 'Checkin Template'
+            // So, we need to get the checkInTemplatePurposeValueId for that so we can use it as the EntityTypeQualifierValue
+            var checkInTemplatePurposeValueId = SqlScalar( $" SELECT TOP 1 [Id] FROM [DefinedValue] WHERE [Guid] = '{Rock.SystemGuid.DefinedValue.GROUPTYPE_PURPOSE_CHECKIN_TEMPLATE}'" ) as int?;
+
+            // Add the "AchievementTypes" group type attribute with a EntityTypeQualifier of GroupTypePurposeValueId
+            RockMigrationHelper.UpdateEntityAttribute( "Rock.Model.GroupType", Rock.SystemGuid.FieldType.TEXT, "GroupTypePurposeValueId", checkInTemplatePurposeValueId?.ToString(), "Achievement Types", "", 0, "", "EECDA094-E5E2-4A47-804D-65701590F2A1", Rock.SystemKey.GroupTypeAttributeKey.CHECKIN_GROUPTYPE_ACHIEVEMENT_TYPES );
+
+            // Add the "AchievementTypes" group type attribute with a EntityTypeQualifier of GroupTypePurposeValueId
+            RockMigrationHelper.UpdateEntityAttribute( "Rock.Model.GroupType", Rock.SystemGuid.FieldType.TEXT, "GroupTypePurposeValueId", checkInTemplatePurposeValueId?.ToString(), "Success Template Display Mode", "", 0, "", "B30236D5-F25F-4CC6-8ED1-76E02E71F042", Rock.SystemKey.GroupTypeAttributeKey.CHECKIN_SUCCESS_LAVA_TEMPLATE_OVERRIDE_DISPLAY_MODE );
+        }
+
         private void AddOrUpdateAchievementTypeAttributeValues()
         {
-            RockMigrationHelper.AddAchievementTypeAttributeValue( Rock.SystemGuid.AchievementType.TWENTY_WEEKS_IN_A_YEAR,  Rock.SystemGuid.Attribute.ACCUMULATIVE_ACHIEVEMENT_STREAK_TYPE, Rock.SystemGuid.StreakType.WEEKLY_ATTENDANCE );
+            RockMigrationHelper.AddAchievementTypeAttributeValue( Rock.SystemGuid.AchievementType.TWENTY_WEEKS_IN_A_YEAR, Rock.SystemGuid.Attribute.ACCUMULATIVE_ACHIEVEMENT_STREAK_TYPE, Rock.SystemGuid.StreakType.WEEKLY_ATTENDANCE );
             RockMigrationHelper.AddAchievementTypeAttributeValue( Rock.SystemGuid.AchievementType.TWENTY_WEEKS_IN_A_YEAR, Rock.SystemGuid.Attribute.ACCUMULATIVE_ACHIEVEMENT_NUMBER_TO_ACCUMULATE, "20" );
-            RockMigrationHelper.AddAchievementTypeAttributeValue( Rock.SystemGuid.AchievementType.TWENTY_WEEKS_IN_A_YEAR,  Rock.SystemGuid.Attribute.ACCUMULATIVE_ACHIEVEMENT_TIME_SPAN_IN_DAYS, "365" );
+            RockMigrationHelper.AddAchievementTypeAttributeValue( Rock.SystemGuid.AchievementType.TWENTY_WEEKS_IN_A_YEAR, Rock.SystemGuid.Attribute.ACCUMULATIVE_ACHIEVEMENT_TIME_SPAN_IN_DAYS, "365" );
 
             RockMigrationHelper.AddAchievementTypeAttributeValue( Rock.SystemGuid.AchievementType.TEN_WEEKS_IN_A_ROW, Rock.SystemGuid.Attribute.STREAK_ACHIEVEMENT_STREAK_TYPE, Rock.SystemGuid.StreakType.WEEKLY_ATTENDANCE );
             RockMigrationHelper.AddAchievementTypeAttributeValue( Rock.SystemGuid.AchievementType.TEN_WEEKS_IN_A_ROW, Rock.SystemGuid.Attribute.STREAK_ACHIEVEMENT_NUMBER_TO_ACHIEVE, "10" );
@@ -112,12 +133,12 @@ namespace Rock.Migrations
             RockMigrationHelper.AddOrUpdateAchievementTypeAttribute( Rock.SystemGuid.EntityType.STEP_PROGRAM_ACHIEVEMENT_COMPONENT, "6B6AA175-4758-453F-8D83-FCD8044B5F36", "End Date", "EndDateTime", @"The date that defines when the program must be completed on or before.", 3, @"", "6BDEF165-C25C-45E7-B4C3-35B64419626B" );
 
             // Rock.Achievement.Component.StreakAchievement - Active
-            RockMigrationHelper.AddOrUpdateAchievementTypeAttribute( Rock.SystemGuid.EntityType.STREAK_ACHIEVEMENT_COMPONENT,"1EDAFDED-DFE6-4334-B019-6EECBA89E05A", "Active", "Active", @"Should Service be used?", 0, @"False", "7F15E4ED-74DB-4C46-B17F-CBC6B0927970" );
+            RockMigrationHelper.AddOrUpdateAchievementTypeAttribute( Rock.SystemGuid.EntityType.STREAK_ACHIEVEMENT_COMPONENT, "1EDAFDED-DFE6-4334-B019-6EECBA89E05A", "Active", "Active", @"Should Service be used?", 0, @"False", "7F15E4ED-74DB-4C46-B17F-CBC6B0927970" );
 
             // Rock.Achievement.Component.StreakAchievement - Order
             RockMigrationHelper.AddOrUpdateAchievementTypeAttribute( Rock.SystemGuid.EntityType.STREAK_ACHIEVEMENT_COMPONENT, "A75DFC58-7A1B-4799-BF31-451B2BBE38FF", "Order", "Order", @"The order that this service should be used (priority)", 0, @"", "DEBA6250-9241-4B9E-ADE3-1B341E74F003" );
 
-            
+
 
             // Rock.Achievement.Component.StreakAchievement - NumberToAchieve
             RockMigrationHelper.AddOrUpdateAchievementTypeAttribute( Rock.SystemGuid.EntityType.STREAK_ACHIEVEMENT_COMPONENT, "A75DFC58-7A1B-4799-BF31-451B2BBE38FF", "Number to Achieve", "NumberToAchieve", @"The number of engagements in a row required to earn this achievement.", 1, @"", Rock.SystemGuid.Attribute.STREAK_ACHIEVEMENT_NUMBER_TO_ACHIEVE );
@@ -137,6 +158,16 @@ namespace Rock.Migrations
         /// </summary>
         public override void Down()
         {
+            ModelChanges_Down();
+        }
+
+        private void ModelChanges_Down()
+        {
+            DropForeignKey( "dbo.AchievementType", "ImageBinaryFileId", "dbo.BinaryFile" );
+            DropIndex( "dbo.AchievementType", new[] { "ImageBinaryFileId" } );
+            DropColumn( "dbo.AchievementType", "CustomSummaryLavaTemplate" );
+            DropColumn( "dbo.AchievementType", "ImageBinaryFileId" );
+            DropColumn( "dbo.AchievementType", "IsPublic" );
         }
     }
 }
