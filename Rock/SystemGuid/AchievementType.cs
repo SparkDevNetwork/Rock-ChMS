@@ -14,18 +14,21 @@
 // limitations under the License.
 // </copyright>
 //
-
-namespace Rock.Blocks
+namespace Rock.SystemGuid
 {
     /// <summary>
-    /// Rock Client (ex: Obsidian, Mobile) Block Type
+    /// 
     /// </summary>
-    public interface IRockClientBlockType : IRockBlockType
+    public static class AchievementType
     {
         /// <summary>
-        /// Gets the property values that will be sent to the block.
+        /// Ten Weeks in a row
         /// </summary>
-        /// <returns>A collection of string/object pairs.</returns>
-        object GetBlockInitialization( RockClientType clientType );
+        public const string TEN_WEEKS_IN_A_ROW = "21E6CC63-702B-4A5D-BC92-503B0F5CAF5D";
+
+        /// <summary>
+        /// Twenty Weeks in a Year
+        /// </summary>
+        public const string TWENTY_WEEKS_IN_A_YEAR = "67EA551D-C3A6-4339-9F39-F6F4E4DAB4EA";
     }
 }

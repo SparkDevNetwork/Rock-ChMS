@@ -14,28 +14,16 @@
 // limitations under the License.
 // </copyright>
 //
-using System;
-
-using Rock.Web.Cache;
-
-namespace Rock.Model
+namespace Rock.SystemGuid
 {
-    public partial class CampusService
+    /// <summary>
+    /// 
+    /// </summary>
+    public static class StreakType
     {
         /// <summary>
-        /// Gets the Guid for the Campus that has the specified Id
+        /// Weekly Attendance
         /// </summary>
-        /// <param name="id">The identifier.</param>
-        /// <returns></returns>
-        public override Guid? GetGuid( int id )
-        {
-            var cacheItem = CampusCache.Get( id );
-            if ( cacheItem != null )
-            {
-                return cacheItem.Guid;
-            }
-
-            return null;
-        }
+        public const string WEEKLY_ATTENDANCE = "B9FADD97-38A4-4141-B6DB-48154563A2A9";
     }
 }

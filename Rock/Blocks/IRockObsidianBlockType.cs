@@ -20,7 +20,7 @@ namespace Rock.Blocks
     /// <summary>
     /// Obsidian Block Type
     /// </summary>
-    public interface IObsidianBlockType : IRockClientBlockType
+    public interface IRockObsidianBlockType : IRockWebBlockType
     {
         /// <summary>
         /// Gets the client block identifier.
