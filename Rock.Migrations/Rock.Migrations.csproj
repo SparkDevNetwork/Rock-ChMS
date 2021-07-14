@@ -121,6 +121,58 @@
     <Compile Include="Migrations\202106241733122_AddCampusSchedules.Designer.cs">
       <DependentUpon>202106241733122_AddCampusSchedules.cs</DependentUpon>
     </Compile>
+    <Compile Include="Migrations\202106301738565_GivingAnalyticsUpdates2.cs" />
+    <Compile Include="Migrations\202106301738565_GivingAnalyticsUpdates2.Designer.cs">
+      <DependentUpon>202106301738565_GivingAnalyticsUpdates2.cs</DependentUpon>
+    </Compile>
+    <Compile Include="Migrations\202107011629291_AddLanguageDefinedValue.cs" />
+    <Compile Include="Migrations\202107011629291_AddLanguageDefinedValue.Designer.cs">
+      <DependentUpon>202107011629291_AddLanguageDefinedValue.cs</DependentUpon>
+    </Compile>
+    <Compile Include="Migrations\202107061930320_Rollup_0706.cs" />
+    <Compile Include="Migrations\202107061930320_Rollup_0706.Designer.cs">
+      <DependentUpon>202107061930320_Rollup_0706.cs</DependentUpon>
+    </Compile>
+    <Compile Include="Migrations\202107062006254_CodeGenerated_0706.cs" />
+    <Compile Include="Migrations\202107062006254_CodeGenerated_0706.Designer.cs">
+      <DependentUpon>202107062006254_CodeGenerated_0706.cs</DependentUpon>
+    </Compile>
+    <Compile Include="Migrations\202107062041018_AddMapMarkersDefinedType.cs" />
+    <Compile Include="Migrations\202107062041018_AddMapMarkersDefinedType.Designer.cs">
+      <DependentUpon>202107062041018_AddMapMarkersDefinedType.cs</DependentUpon>
+    </Compile>
+    <Compile Include="Migrations\202107070516013_AddLanguageDefinedType.cs" />
+    <Compile Include="Migrations\202107070516013_AddLanguageDefinedType.Designer.cs">
+      <DependentUpon>202107070516013_AddLanguageDefinedType.cs</DependentUpon>
+    </Compile>
+    <Compile Include="Migrations\202107071327583_UpdateSignatureDocument.cs" />
+    <Compile Include="Migrations\202107071327583_UpdateSignatureDocument.Designer.cs">
+      <DependentUpon>202107071327583_UpdateSignatureDocument.cs</DependentUpon>
+    </Compile>
+    <Compile Include="Migrations\202107071721363_CheckinAbilityLevelDetermination.cs" />
+    <Compile Include="Migrations\202107071721363_CheckinAbilityLevelDetermination.Designer.cs">
+      <DependentUpon>202107071721363_CheckinAbilityLevelDetermination.cs</DependentUpon>
+    </Compile>
+    <Compile Include="Migrations\202107072001368_AddLogSettingsBlock.cs" />
+    <Compile Include="Migrations\202107072001368_AddLogSettingsBlock.Designer.cs">
+      <DependentUpon>202107072001368_AddLogSettingsBlock.cs</DependentUpon>
+    </Compile>
+    <Compile Include="Migrations\202107081553024_UpdateMergePersonStoredProcedureToSetIsFirstTime.cs" />
+    <Compile Include="Migrations\202107081553024_UpdateMergePersonStoredProcedureToSetIsFirstTime.Designer.cs">
+      <DependentUpon>202107081553024_UpdateMergePersonStoredProcedureToSetIsFirstTime.cs</DependentUpon>
+    </Compile>
+    <Compile Include="Migrations\202107121730176_RegistrationInstanceTimeout.cs" />
+    <Compile Include="Migrations\202107121730176_RegistrationInstanceTimeout.Designer.cs">
+      <DependentUpon>202107121730176_RegistrationInstanceTimeout.cs</DependentUpon>
+    </Compile>
+    <Compile Include="Migrations\202107141721235_CodeGenerated_0714.cs" />
+    <Compile Include="Migrations\202107141721235_CodeGenerated_0714.Designer.cs">
+      <DependentUpon>202107141721235_CodeGenerated_0714.cs</DependentUpon>
+    </Compile>
+    <Compile Include="Migrations\202107141741515_AchievementType.cs" />
+    <Compile Include="Migrations\202107141741515_AchievementType.Designer.cs">
+      <DependentUpon>202107141741515_AchievementType.cs</DependentUpon>
+    </Compile>
     <Compile Include="Migrations\Version 12.0\Version 1.12.4\202105280103566_StatementGenerator.cs" />
     <Compile Include="Migrations\Version 12.0\Version 1.12.4\202105280103566_StatementGenerator.Designer.cs">
       <DependentUpon>202105280103566_StatementGenerator.cs</DependentUpon>
@@ -1840,6 +1892,45 @@
     <EmbeddedResource Include="Migrations\202106241733122_AddCampusSchedules.resx">
       <DependentUpon>202106241733122_AddCampusSchedules.cs</DependentUpon>
     </EmbeddedResource>
+    <EmbeddedResource Include="Migrations\202106301738565_GivingAnalyticsUpdates2.resx">
+      <DependentUpon>202106301738565_GivingAnalyticsUpdates2.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Migrations\202107011629291_AddLanguageDefinedValue.resx">
+      <DependentUpon>202107011629291_AddLanguageDefinedValue.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Migrations\202107061930320_Rollup_0706.resx">
+      <DependentUpon>202107061930320_Rollup_0706.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Migrations\202107062006254_CodeGenerated_0706.resx">
+      <DependentUpon>202107062006254_CodeGenerated_0706.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Migrations\202107062041018_AddMapMarkersDefinedType.resx">
+      <DependentUpon>202107062041018_AddMapMarkersDefinedType.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Migrations\202107070516013_AddLanguageDefinedType.resx">
+      <DependentUpon>202107070516013_AddLanguageDefinedType.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Migrations\202107071327583_UpdateSignatureDocument.resx">
+      <DependentUpon>202107071327583_UpdateSignatureDocument.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Migrations\202107071721363_CheckinAbilityLevelDetermination.resx">
+      <DependentUpon>202107071721363_CheckinAbilityLevelDetermination.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Migrations\202107072001368_AddLogSettingsBlock.resx">
+      <DependentUpon>202107072001368_AddLogSettingsBlock.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Migrations\202107081553024_UpdateMergePersonStoredProcedureToSetIsFirstTime.resx">
+      <DependentUpon>202107081553024_UpdateMergePersonStoredProcedureToSetIsFirstTime.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Migrations\202107121730176_RegistrationInstanceTimeout.resx">
+      <DependentUpon>202107121730176_RegistrationInstanceTimeout.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Migrations\202107141721235_CodeGenerated_0714.resx">
+      <DependentUpon>202107141721235_CodeGenerated_0714.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Migrations\202107141741515_AchievementType.resx">
+      <DependentUpon>202107141741515_AchievementType.cs</DependentUpon>
+    </EmbeddedResource>
     <EmbeddedResource Include="Migrations\Version 12.0\Version 1.12.4\202105280103566_StatementGenerator.resx">
       <DependentUpon>202105280103566_StatementGenerator.cs</DependentUpon>
     </EmbeddedResource>
@@ -3114,7 +3205,31 @@
     <Content Include="Migrations\202106081803525_Rollup_0608_UpdateTrendChart.sql">
       <DependentUpon>202106081803525_Rollup_0608.cs</DependentUpon>
     </Content>
-    <Content Include="Migrations\202106221850270_Rollup_06221_UpdateStatementGenerator.sql" />
+    <Content Include="Migrations\202106221850270_Rollup_06221_UpdateStatementGenerator.sql">
+      <DependentUpon>202106221850270_Rollup_06221.cs</DependentUpon>
+    </Content>
+    <Content Include="Migrations\202107061930320_Rollup_0706_chartupdate.sql">
+      <DependentUpon>202107061930320_Rollup_0706.cs</DependentUpon>
+    </Content>
+    <Content Include="Migrations\202107061930320_Rollup_0706_KPIShortCode.sql">
+      <DependentUpon>202107061930320_Rollup_0706.cs</DependentUpon>
+    </Content>
+    <Content Include="Migrations\202107061930320_Rollup_0706_update-easypie.sql">
+      <DependentUpon>202107061930320_Rollup_0706.cs</DependentUpon>
+    </Content>
+    <Content Include="Migrations\202107061930320_Rollup_0706_update-sparklinesimg.sql">
+      <DependentUpon>202107061930320_Rollup_0706.cs</DependentUpon>
+    </Content>
+    <Content Include="Migrations\202107081553024_UpdateMergePersonStoredProcedureToSetIsFirstTime_spCrm_PersonMerge.sql">
+      <DependentUpon>202107081553024_UpdateMergePersonStoredProcedureToSetIsFirstTime.cs</DependentUpon>
+    </Content>
+    <Content Include="Migrations\202107121730176_RegistrationInstanceTimeout_UpdatePersonEntity.sql">
+      <DependentUpon>202107121730176_RegistrationInstanceTimeout.cs</DependentUpon>
+    </Content>
+    <Content Include="Migrations\202107141741515_AchievementType_AddAchievementTypes.sql" />
+    <Content Include="Migrations\202107141741515_AchievementType_AddMedalBinaryFile.sql" />
+    <Content Include="Migrations\202107141741515_AchievementType_AddTrophyBinaryFile.sql" />
+    <Content Include="Migrations\202107141741515_AchievementType_AddWeeklyAttendanceStreakType.sql" />
     <Content Include="Migrations\Version 12.0\Version 1.12.4\202104291818024_GroupSalutation_spAnalytics_ETL_Family.sql">
       <DependentUpon>202104291818024_GroupSalutation.cs</DependentUpon>
     </Content>
@@ -3491,7 +3606,9 @@
       <Name>Rock</Name>
     </ProjectReference>
   </ItemGroup>
-  <ItemGroup />
+  <ItemGroup>
+    <Folder Include="Resources\" />
+  </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <PropertyGroup>
     <PreBuildEvent>CD $(SolutionDir)Dev Tools\EntityFramework\
