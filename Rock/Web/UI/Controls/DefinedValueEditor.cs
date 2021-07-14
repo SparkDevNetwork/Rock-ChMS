@@ -481,9 +481,18 @@ namespace Rock.Web.UI.Controls
             {
                 var picker = this.Parent as DefinedValuePickerWithAdd;
 
-                if ( picker.SelectableDefinedValuesId != null && picker.SelectableDefinedValuesId.Any() )
+                if ( picker.AttributeId != null )
                 {
-                    // TODO: Need to add to the attribute.
+                    // Save the updated list to the AttributeQualifier
+                    var attributeQualifierService = new AttributeQualifierService( rockContext );
+                    var selectableValuesAttributeQualifier = attributeQualifierService.Queryable().Where( q => q.AttributeId == picker.AttributeId && q.Key == "SelectableDefinedValuesId" ).FirstOrDefault();
+                    if ( selectableValuesAttributeQualifier != null && selectableValuesAttributeQualifier.Value.IsNotNullOrWhiteSpace() )
+                    {
+                        selectableValuesAttributeQualifier.Value += $",{definedValue.Id}";
+                        rockContext.SaveChanges();
+
+                        picker.SelectableDefinedValuesId = selectableValuesAttributeQualifier.Value.Split( ',' ).Select( int.Parse ).ToArray();
+                    }
                 }
 
                 if ( this.IsMultiSelection )

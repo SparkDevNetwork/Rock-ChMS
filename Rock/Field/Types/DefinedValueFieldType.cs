@@ -45,7 +45,7 @@ namespace Rock.Field.Types
         private const string INCLUDE_INACTIVE_KEY = "includeInactive";
         private const string ALLOW_ADDING_NEW_VALUES_KEY = "AllowAddingNewValues";
         private const string REPEAT_COLUMNS_KEY = "RepeatColumns";
-        private const string SELECTABLE_VALUES_KEY = "SelectedDefinedValuesId";
+        private const string SELECTABLE_VALUES_KEY = "SelectableDefinedValuesId";
 
         /// <summary>
         /// Returns a list of the configuration keys.

@@ -33,8 +33,16 @@ namespace Rock.Web.UI.Controls
     /// </summary>
     /// <seealso cref="System.Web.UI.WebControls.CompositeControl" />
     /// <seealso cref="Rock.Web.UI.Controls.IRockControl" />
-    public class DefinedValuePickerWithAdd : CompositeControl, IRockControl
+    public class DefinedValuePickerWithAdd : CompositeControl, IRockControl, IHasAttributeId
     {
+        /// <summary>
+        /// Gets or sets the attribute identifier. Will be used to update the attribute/fieldtype configuration if it is not null and implemented by the control.
+        /// </summary>
+        /// <value>
+        /// The attribute identifier.
+        /// </value>
+        public virtual int? AttributeId { get; set; }
+
         #region IRockControl Implementation
 
         /// <summary>
