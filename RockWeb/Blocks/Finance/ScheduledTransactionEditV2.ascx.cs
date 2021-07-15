@@ -534,7 +534,7 @@ mission. We are so grateful for your commitment.</p>
             string existingPaymentInfoDisplayText;
             if ( scheduledTransaction.FinancialPaymentDetail.ExpirationDate.IsNotNullOrWhiteSpace() )
             {
-                existingPaymentInfoDisplayText = $"Existing Payment Method - {paymentName} ({scheduledTransaction.FinancialPaymentDetail.AccountNumberMasked} - exp {scheduledTransaction.FinancialPaymentDetail.ExpirationDate})";
+                existingPaymentInfoDisplayText = $"Existing Payment Method - {paymentName} ({scheduledTransaction.FinancialPaymentDetail.AccountNumberMasked} Expires: {scheduledTransaction.FinancialPaymentDetail.ExpirationDate})";
             }
             else
             {
@@ -680,7 +680,7 @@ mission. We are so grateful for your commitment.</p>
                 string displayName;
                 if ( personSavedAccount.FinancialPaymentDetail.ExpirationDate.IsNotNullOrWhiteSpace() )
                 {
-                    displayName = $"{personSavedAccount.Name} ({personSavedAccount.FinancialPaymentDetail.AccountNumberMasked} - exp {personSavedAccount.FinancialPaymentDetail.ExpirationDate})";
+                    displayName = $"{personSavedAccount.Name} ({personSavedAccount.FinancialPaymentDetail.AccountNumberMasked} Expires: {personSavedAccount.FinancialPaymentDetail.ExpirationDate})";
                 }
                 else
                 {

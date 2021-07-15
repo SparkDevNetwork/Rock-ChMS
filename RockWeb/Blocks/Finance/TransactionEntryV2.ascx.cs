@@ -575,7 +575,7 @@ mission. We are so grateful for your commitment.</p>
                         {% if financialPaymentDetail.CurrencyTypeValue.Value != 'Credit Card' %}
                             {{ financialPaymentDetail.CurrencyTypeValue.Value }}
                         {% else %}
-                            {{ financialPaymentDetail.CreditCardTypeValue.Value }} {{ financialPaymentDetail.AccountNumberMasked }} - exp {{ financialPaymentDetail.ExpirationDate }}
+                            {{ financialPaymentDetail.CreditCardTypeValue.Value }} {{ financialPaymentDetail.AccountNumberMasked }} Expires: {{ financialPaymentDetail.ExpirationDate }}
                         {% endif %}
                     </span>
                     <br />
@@ -2441,7 +2441,7 @@ mission. We are so grateful for your commitment.</p>
                 string displayName;
                 if ( personSavedAccount.FinancialPaymentDetail.ExpirationDate.IsNotNullOrWhiteSpace() )
                 {
-                    displayName = $"{personSavedAccount.Name} ({personSavedAccount.FinancialPaymentDetail.AccountNumberMasked} - exp {personSavedAccount.FinancialPaymentDetail.ExpirationDate})";
+                    displayName = $"{personSavedAccount.Name} ({personSavedAccount.FinancialPaymentDetail.AccountNumberMasked} Expires: {personSavedAccount.FinancialPaymentDetail.ExpirationDate})";
                 }
                 else
                 {

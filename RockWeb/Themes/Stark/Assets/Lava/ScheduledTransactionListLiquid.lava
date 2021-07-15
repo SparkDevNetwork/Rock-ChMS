@@ -4,7 +4,7 @@
     {% if ScheduledTransaction.CurrencyType != "Credit Card" %}
     {{ ScheduledTransaction.CurrencyType }}
     {% else %}
-    {{ ScheduledTransaction.CreditCardType }} {{ ScheduledTransaction.AccountNumberMasked }}{% if ScheduledTransaction.CardExpirationDate and ScheduledTransaction.CardExpirationDate != empty %} - exp {{ ScheduledTransaction.CardExpirationDate }} {% endif %}
+    {{ ScheduledTransaction.CreditCardType }} {{ ScheduledTransaction.AccountNumberMasked }}{% if ScheduledTransaction.CardExpirationDate and ScheduledTransaction.CardExpirationDate != empty %} Expires: {{ ScheduledTransaction.CardExpirationDate }} {% endif %}
     {% if ScheduledTransaction.CardIsExpired %}
     <span class='label label-warning'>Card Expired</span>
     {% elseif ScheduledTransaction.Status and ScheduledTransaction.Status != 'Active' %}

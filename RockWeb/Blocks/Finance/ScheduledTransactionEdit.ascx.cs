@@ -1720,7 +1720,7 @@ achieve our mission.  We are so grateful for your commitment.
 
                     if ( FinancialPaymentDetail.ExpirationDate.IsNotNullOrWhiteSpace() )
                     {
-                        return $"Use {SavedAccountName} ( {FinancialPaymentDetail.AccountNumberMasked} - exp {FinancialPaymentDetail.ExpirationDate})";
+                        return $"Use {SavedAccountName} ( {FinancialPaymentDetail.AccountNumberMasked} Expires {FinancialPaymentDetail.ExpirationDate})";
                     }
                     else
                     {

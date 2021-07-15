@@ -1693,7 +1693,7 @@ TransactionAccountDetails: [
                     string displayName;
                     if ( personSavedAccount.FinancialPaymentDetail.ExpirationDate.IsNotNullOrWhiteSpace() )
                     {
-                        displayName = $"{personSavedAccount.Name} ({personSavedAccount.FinancialPaymentDetail.AccountNumberMasked} - exp {personSavedAccount.FinancialPaymentDetail.ExpirationDate})";
+                        displayName = $"{personSavedAccount.Name} ({personSavedAccount.FinancialPaymentDetail.AccountNumberMasked} Expires: {personSavedAccount.FinancialPaymentDetail.ExpirationDate})";
                     }
                     else
                     {
